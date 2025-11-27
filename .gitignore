@@ -1,0 +1,29 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+.DS_Store
+dist/
+build/
+# 로그 파일
+*.log
+logs/
+sms-logs.json
+
+# 임시 파일
+*.tmp
+*.temp
+*.backup
+
+# 백업 폴더
+backup/
+hclim.github.io.backup/
+evkmc-as-app/evkmc-as-app/
+
+# 임시 폴더 및 파일
+temp/
+commit-msg.txt
+organize-files.ps1
+
+# public 폴더는 Git에 포함되어야 함 (정적 파일)
+# public/
