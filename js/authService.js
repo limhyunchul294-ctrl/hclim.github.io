@@ -134,35 +134,46 @@ window.authService = {
         const normalizedEmail = userEmail.trim().toLowerCase();
         console.log('🔍 정규화된 이메일:', normalizedEmail);
         
-        // 먼저 정확한 매칭 시도
+        // 방법 A: 정확한 매칭 시도
         let result = await window.supabaseClient
           .from('users')
           .select('username, phone, name, affiliation, role, auth_user_id, email')
           .eq('email', normalizedEmail)
           .maybeSingle();
         
-        // 정확한 매칭 실패 시 LIKE 패턴으로 시도 (대소문자 무시)
-        if (!result.data && result.error?.code === 'PGRST116') {
-          console.log('🔄 정확한 매칭 실패, LIKE 패턴으로 재시도...');
+        // 방법 B: 정확한 매칭 실패 시 모든 사용자 조회 후 클라이언트 측에서 필터링
+        if (!result.data && (result.error?.code === 'PGRST116' || result.error?.status === 406)) {
+          console.log('🔄 정확한 매칭 실패, 전체 조회 후 필터링 시도...');
           const allUsers = await window.supabaseClient
             .from('users')
             .select('username, phone, name, affiliation, role, auth_user_id, email')
             .not('email', 'is', null);
           
-          if (allUsers.data) {
-            const matchedUser = allUsers.data.find(u => 
-              u.email && 
-              LOWER(TRIM(u.email)) === normalizedEmail
-            );
+          if (allUsers.data && !allUsers.error) {
+            // 클라이언트 측에서 대소문자 무시 매칭
+            const matchedUser = allUsers.data.find(u => {
+              if (!u.email) return false;
+              const userEmailNormalized = String(u.email).trim().toLowerCase();
+              return userEmailNormalized === normalizedEmail;
+            });
             
             if (matchedUser) {
               result = { data: matchedUser, error: null };
-              console.log('✅ LIKE 패턴으로 사용자 찾음:', matchedUser.name || matchedUser.username);
+              console.log('✅ 클라이언트 필터링으로 사용자 찾음:', matchedUser.name || matchedUser.username);
+            } else {
+              console.warn('⚠️ 이메일 매칭 실패:', {
+                찾는_이메일: normalizedEmail,
+                조회된_이메일_목록: allUsers.data.map(u => u.email).slice(0, 5)
+              });
             }
           }
         }
         
-        console.log('📊 이메일 조회 결과:', { data: result.data, error: result.error });
+        console.log('📊 이메일 조회 결과:', { 
+          data: result.data, 
+          error: result.error,
+          찾은_사용자: result.data ? (result.data.name || result.data.username) : null
+        });
         
         if (result.data) {
           userInfo = result.data;
