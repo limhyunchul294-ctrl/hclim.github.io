@@ -130,11 +130,37 @@ window.authService = {
         console.log('🔄 auth_user_id로 조회 실패, 이메일로 재시도:', userEmail);
         console.log('📋 에러 상세:', { code: error.code, status: error.status, message: error.message });
         
-        const result = await window.supabaseClient
+        // 이메일 조회 시 대소문자 무시 및 공백 제거
+        const normalizedEmail = userEmail.trim().toLowerCase();
+        console.log('🔍 정규화된 이메일:', normalizedEmail);
+        
+        // 먼저 정확한 매칭 시도
+        let result = await window.supabaseClient
           .from('users')
           .select('username, phone, name, affiliation, role, auth_user_id, email')
-          .eq('email', userEmail.trim().toLowerCase())
+          .eq('email', normalizedEmail)
           .maybeSingle();
+        
+        // 정확한 매칭 실패 시 LIKE 패턴으로 시도 (대소문자 무시)
+        if (!result.data && result.error?.code === 'PGRST116') {
+          console.log('🔄 정확한 매칭 실패, LIKE 패턴으로 재시도...');
+          const allUsers = await window.supabaseClient
+            .from('users')
+            .select('username, phone, name, affiliation, role, auth_user_id, email')
+            .not('email', 'is', null);
+          
+          if (allUsers.data) {
+            const matchedUser = allUsers.data.find(u => 
+              u.email && 
+              LOWER(TRIM(u.email)) === normalizedEmail
+            );
+            
+            if (matchedUser) {
+              result = { data: matchedUser, error: null };
+              console.log('✅ LIKE 패턴으로 사용자 찾음:', matchedUser.name || matchedUser.username);
+            }
+          }
+        }
         
         console.log('📊 이메일 조회 결과:', { data: result.data, error: result.error });
         
