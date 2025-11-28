@@ -274,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const emailLoginForm = document.getElementById('email-login-form');
     const closeEmailModal = document.getElementById('close-email-modal');
     const sendMagicLinkBtn = document.getElementById('send-magic-link-btn');
+    const emailUsernameInput = document.getElementById('email-username');
     const emailInput = document.getElementById('email');
     const emailErrorMessage = document.getElementById('email-error-message');
     const emailSentModal = document.getElementById('email-sent-modal');
@@ -306,9 +307,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (emailLoginBtn) {
         emailLoginBtn.addEventListener('click', () => {
             emailModal.classList.remove('hidden');
+            if (emailUsernameInput) emailUsernameInput.value = '';
             emailInput.value = '';
             hideEmailError();
-            setTimeout(() => emailInput.focus(), 100);
+            setTimeout(() => {
+                if (emailUsernameInput) emailUsernameInput.focus();
+            }, 100);
         });
     }
 
@@ -316,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeEmailModal) {
         closeEmailModal.addEventListener('click', () => {
             emailModal.classList.add('hidden');
+            if (emailUsernameInput) emailUsernameInput.value = '';
             emailInput.value = '';
             hideEmailError();
         });
@@ -333,6 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
         emailModal.addEventListener('click', (e) => {
             if (e.target === emailModal) {
                 emailModal.classList.add('hidden');
+                if (emailUsernameInput) emailUsernameInput.value = '';
                 emailInput.value = '';
                 hideEmailError();
             }
@@ -352,9 +358,15 @@ document.addEventListener('DOMContentLoaded', () => {
         emailLoginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const username = emailUsernameInput ? emailUsernameInput.value.trim() : '';
             const email = emailInput.value.trim();
             
-            // 이메일 형식 검증
+            // 입력값 검증
+            if (!username) {
+                showEmailError('사용자계정을 입력해주세요.');
+                return;
+            }
+
             if (!email) {
                 showEmailError('이메일 주소를 입력해주세요.');
                 return;
@@ -367,10 +379,39 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 버튼 비활성화
             sendMagicLinkBtn.disabled = true;
-            sendMagicLinkBtn.textContent = '발송 중...';
+            sendMagicLinkBtn.textContent = '확인 중...';
             hideEmailError();
             
             try {
+                console.log('🔄 사용자 정보 확인 시작:', { username, email });
+                
+                // 1단계: public.users 테이블에서 사용자명과 이메일이 일치하는지 확인
+                const { data: userExists, error: rpcError } = await window.supabaseClient
+                    .rpc('check_user_email', {
+                        in_username: username,
+                        in_email: email
+                    });
+                
+                if (rpcError) {
+                    console.error('❌ 사용자 확인 오류:', rpcError);
+                    showEmailError('사용자 정보 확인 중 오류가 발생했습니다.');
+                    sendMagicLinkBtn.disabled = false;
+                    sendMagicLinkBtn.textContent = '로그인 링크 발송';
+                    return;
+                }
+                
+                if (!userExists) {
+                    console.error('❌ 사용자 정보 불일치:', { username, email });
+                    showEmailError('사용자계정과 이메일 주소가 일치하지 않습니다. 다시 확인해주세요.');
+                    sendMagicLinkBtn.disabled = false;
+                    sendMagicLinkBtn.textContent = '로그인 링크 발송';
+                    return;
+                }
+                
+                console.log('✅ 사용자 정보 확인 완료');
+                sendMagicLinkBtn.textContent = '발송 중...';
+                
+                // 2단계: 매직링크 발송
                 console.log('🔄 이메일 매직링크 발송 시작:', email);
                 
                 // 현재 페이지의 origin 가져오기

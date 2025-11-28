@@ -114,9 +114,21 @@
         <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
             <h2 class="text-xl font-bold mb-2">이메일로 로그인</h2>
             <p class="text-sm text-gray-600 mb-4">
-                입력하신 이메일 주소로 로그인 링크를 발송합니다.
+                사용자계정과 이메일 주소를 입력해주세요.
             </p>
             <form id="email-login-form" class="space-y-4">
+                <div>
+                    <label for="email-username" class="block text-sm font-medium mb-1 text-slate-700">사용자계정</label>
+                    <input 
+                        id="email-username" 
+                        name="username" 
+                        type="text" 
+                        required 
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-800"
+                        placeholder="사용자계정 입력"
+                        autocomplete="username"
+                    >
+                </div>
                 <div>
                     <label for="email" class="block text-sm font-medium mb-1 text-slate-700">이메일 주소</label>
                     <input 
