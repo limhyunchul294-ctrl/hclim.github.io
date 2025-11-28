@@ -1122,7 +1122,33 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             `;
         }
 
-        function renderDocPage(title) {
+        async function renderDocPage(title) {
+            // 사용자 정보 확인
+            const userInfo = await window.authService?.getUserInfo();
+            if (!userInfo) {
+                return `
+                    <div class="bg-white rounded-xl shadow-soft p-6 text-center">
+                        <div class="text-5xl mb-4">🚫</div>
+                        <h2 class="text-xl font-bold mb-2 text-red-600">접근 제한</h2>
+                        <p class="text-sm text-gray-700 mb-4">
+                            기술문서 열람은 등록된 사용자만 가능합니다.
+                        </p>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                            <p class="text-xs text-yellow-800 font-medium mb-1">⚠️ 접근 불가</p>
+                            <p class="text-xs text-yellow-700">
+                                • 현재 계정은 시스템에 등록되지 않았습니다<br>
+                                • 기술문서 열람이 제한됩니다<br>
+                                • 관리자에게 계정 등록을 요청하세요
+                            </p>
+                        </div>
+                        <button onclick="window.location.hash='#/home'" 
+                                class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                            홈으로 돌아가기
+                        </button>
+                    </div>
+                `;
+            }
+            
             const treeData = getTreeDataByTitle(title);
             
             return `
@@ -1892,12 +1918,16 @@ async function renderAccountPage() {
 
         async function router(path, param = null) {
             try {
-                // 게시판 접근 시 사용자 정보 확인
-                const boardPaths = ['/notices', '/community'];
-                if (boardPaths.includes(path)) {
+                // 게시판 및 기술문서 접근 시 사용자 정보 확인
+                const restrictedPaths = ['/notices', '/community', '/shop', '/etm', '/dtc', '/wiring', '/tsb'];
+                if (restrictedPaths.includes(path)) {
                     const userInfo = await window.authService?.getUserInfo();
                     if (!userInfo) {
-                        console.warn('⚠️ 게시판 접근 차단: 사용자 정보 없음');
+                        const isBoard = ['/notices', '/community'].includes(path);
+                        const isDoc = ['/shop', '/etm', '/dtc', '/wiring', '/tsb'].includes(path);
+                        const contentType = isBoard ? '게시판' : '기술문서';
+                        
+                        console.warn(`⚠️ ${contentType} 접근 차단: 사용자 정보 없음`);
                         
                         // 경고 팝업 표시
                         const warningModal = document.createElement('div');
@@ -1910,18 +1940,18 @@ async function renderAccountPage() {
                                 </div>
                                 <div class="space-y-4">
                                     <p class="text-sm text-gray-700">
-                                        게시판 열람은 등록된 사용자만 가능합니다.
+                                        ${contentType} 열람은 등록된 사용자만 가능합니다.
                                     </p>
                                     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                                         <p class="text-xs text-yellow-800 font-medium mb-1">⚠️ 접근 불가</p>
                                         <p class="text-xs text-yellow-700">
                                             • 현재 계정은 시스템에 등록되지 않았습니다<br>
-                                            • 게시판 열람이 제한됩니다<br>
+                                            • ${contentType} 열람이 제한됩니다<br>
                                             • 관리자에게 계정 등록을 요청하세요
                                         </p>
                                     </div>
                                     <button 
-                                        id="board-warning-modal-ok"
+                                        id="restricted-warning-modal-ok"
                                         class="w-full py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-medium"
                                     >
                                         확인
@@ -1932,7 +1962,7 @@ async function renderAccountPage() {
                         document.body.appendChild(warningModal);
                         
                         // 확인 버튼 클릭 시 홈으로 리다이렉트
-                        warningModal.querySelector('#board-warning-modal-ok').addEventListener('click', () => {
+                        warningModal.querySelector('#restricted-warning-modal-ok').addEventListener('click', () => {
                             warningModal.remove();
                             window.location.hash = '#/home';
                         });
