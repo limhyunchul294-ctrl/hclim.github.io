@@ -1,4 +1,5 @@
 {
+  // Vercel 배포 설정 - 이메일 로그인 기본 적용
   "rewrites": [
     { "source": "/login", "destination": "/login.html" },
     { "source": "/((?!api/|assets/|js/|_astro/|favicon.ico).*)", "destination": "/index.html" }
