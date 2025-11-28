@@ -385,7 +385,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 console.log('🔄 사용자 정보 확인 시작:', { username, email });
                 
-                // 1단계: public.users 테이블에서 사용자명과 이메일이 일치하는지 확인
+                // 1단계: public.users 테이블에서 이메일이 등록되어 있는지 확인
+                // 이메일만으로 확인 (사용자명은 참고용)
                 const { data: userExists, error: rpcError } = await window.supabaseClient
                     .rpc('check_user_email', {
                         in_username: username,
@@ -401,8 +402,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 if (!userExists) {
-                    console.error('❌ 사용자 정보 불일치:', { username, email });
-                    showEmailError('사용자계정과 이메일 주소가 일치하지 않습니다. 다시 확인해주세요.');
+                    console.error('❌ 등록되지 않은 이메일:', { username, email });
+                    showEmailError('등록되지 않은 이메일 주소입니다. 이메일 주소를 확인해주세요.');
                     sendMagicLinkBtn.disabled = false;
                     sendMagicLinkBtn.textContent = '로그인 링크 발송';
                     return;
