@@ -24,9 +24,39 @@
                 <p class="text-slate-500 mt-1">정비 기술 문서 포털</p>
             </div>
 
-            <!-- 로그인 폼 -->
-            <form id="login-form" class="space-y-4">
-                <!-- ... (form inputs) ... -->
+            <!-- 이메일 로그인 버튼 (기본) -->
+            <button 
+                id="email-login-btn" 
+                type="button"
+                class="w-full py-3 rounded-xl bg-gray-800 text-white hover:bg-gray-700 transition-colors font-medium flex items-center justify-center gap-2"
+            >
+                <span>📧</span>
+                <span>이메일로 로그인</span>
+            </button>
+
+            <!-- 휴대폰 인증 구분선 -->
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-200"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white text-gray-500">또는</span>
+                </div>
+            </div>
+
+            <!-- 휴대폰 인증 (추후 업데이트 예정) -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
+                <div class="text-gray-400 mb-2">
+                    <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <p class="text-sm font-medium text-gray-700 mb-1">휴대폰 인증</p>
+                <p class="text-xs text-gray-500">추후 업데이트 예정</p>
+            </div>
+
+            <!-- 숨겨진 휴대폰 인증 폼 (기능 비활성화) -->
+            <form id="login-form" class="hidden space-y-4">
                 <div>
                     <label for="username" class="block text-sm font-medium mb-1 text-slate-700">사용자계정</label>
                     <input 
@@ -71,26 +101,6 @@
                     </button>
                 </div>
             </form>
-
-            <!-- 이메일 로그인 구분선 -->
-            <div class="relative my-6">
-                <div class="absolute inset-0 flex items-center">
-                    <div class="w-full border-t border-gray-200"></div>
-                </div>
-                <div class="relative flex justify-center text-sm">
-                    <span class="px-2 bg-white text-gray-500">또는</span>
-                </div>
-            </div>
-
-            <!-- 이메일 로그인 버튼 -->
-            <button 
-                id="email-login-btn" 
-                type="button"
-                class="w-full py-3 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors font-medium flex items-center justify-center gap-2"
-            >
-                <span>📧</span>
-                <span>이메일로 로그인</span>
-            </button>
         </div>
 
         <!-- 푸터 -->

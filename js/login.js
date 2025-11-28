@@ -55,9 +55,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * 로그인 폼 제출
+     * ⚠️ 휴대폰 인증은 현재 비활성화됨 (추후 업데이트 예정)
      */
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        // 휴대폰 인증 비활성화 (추후 업데이트 예정)
+        showError('휴대폰 인증은 추후 업데이트 예정입니다. 이메일 로그인을 이용해주세요.');
+        return;
+        
         disableButton();
         hideError();
         
