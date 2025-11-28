@@ -1167,6 +1167,24 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
 
         async function renderNoticesListPage() {
             try {
+                // 사용자 정보 확인
+                const userInfo = await window.authService?.getUserInfo();
+                if (!userInfo) {
+                    return `
+                        <div class="bg-white rounded-xl shadow-soft p-6 text-center">
+                            <div class="text-5xl mb-4">🚫</div>
+                            <h2 class="text-xl font-bold mb-2 text-red-600">접근 제한</h2>
+                            <p class="text-sm text-gray-700 mb-4">
+                                공지사항 열람은 등록된 사용자만 가능합니다.
+                            </p>
+                            <button onclick="window.location.hash='#/home'" 
+                                    class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                                홈으로 돌아가기
+                            </button>
+                        </div>
+                    `;
+                }
+                
                 const notices = await window.dataService?.getNotices(100) || [];
                 
                 // 관리 권한 확인
@@ -1220,6 +1238,24 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
 
         async function renderNoticeDetailPage(id) {
             try {
+                // 사용자 정보 확인
+                const userInfo = await window.authService?.getUserInfo();
+                if (!userInfo) {
+                    return `
+                        <div class="bg-white rounded-xl shadow-soft p-6 text-center">
+                            <div class="text-5xl mb-4">🚫</div>
+                            <h2 class="text-xl font-bold mb-2 text-red-600">접근 제한</h2>
+                            <p class="text-sm text-gray-700 mb-4">
+                                공지사항 열람은 등록된 사용자만 가능합니다.
+                            </p>
+                            <button onclick="window.location.hash='#/home'" 
+                                    class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                                홈으로 돌아가기
+                            </button>
+                        </div>
+                    `;
+                }
+                
                 const notice = await window.dataService?.getNoticeById(id) || {
                     id: id,
                     title: '공지사항을 찾을 수 없습니다',
@@ -1284,6 +1320,24 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
         
         async function renderCommunityListPage() {
             try {
+                // 사용자 정보 확인
+                const userInfo = await window.authService?.getUserInfo();
+                if (!userInfo) {
+                    return `
+                        <div class="bg-white rounded-xl shadow-soft p-6 text-center">
+                            <div class="text-5xl mb-4">🚫</div>
+                            <h2 class="text-xl font-bold mb-2 text-red-600">접근 제한</h2>
+                            <p class="text-sm text-gray-700 mb-4">
+                                커뮤니티 열람은 등록된 사용자만 가능합니다.
+                            </p>
+                            <button onclick="window.location.hash='#/home'" 
+                                    class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                                홈으로 돌아가기
+                            </button>
+                        </div>
+                    `;
+                }
+                
                 let posts = [];
                 try {
                     posts = await window.dataService?.getCommunityPosts(null, 20, 0) || [];
@@ -1838,6 +1892,64 @@ async function renderAccountPage() {
 
         async function router(path, param = null) {
             try {
+                // 게시판 접근 시 사용자 정보 확인
+                const boardPaths = ['/notices', '/community'];
+                if (boardPaths.includes(path)) {
+                    const userInfo = await window.authService?.getUserInfo();
+                    if (!userInfo) {
+                        console.warn('⚠️ 게시판 접근 차단: 사용자 정보 없음');
+                        
+                        // 경고 팝업 표시
+                        const warningModal = document.createElement('div');
+                        warningModal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+                        warningModal.innerHTML = `
+                            <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+                                <div class="text-center mb-4">
+                                    <div class="text-5xl mb-4">🚫</div>
+                                    <h2 class="text-xl font-bold mb-2 text-red-600">접근 제한</h2>
+                                </div>
+                                <div class="space-y-4">
+                                    <p class="text-sm text-gray-700">
+                                        게시판 열람은 등록된 사용자만 가능합니다.
+                                    </p>
+                                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                        <p class="text-xs text-yellow-800 font-medium mb-1">⚠️ 접근 불가</p>
+                                        <p class="text-xs text-yellow-700">
+                                            • 현재 계정은 시스템에 등록되지 않았습니다<br>
+                                            • 게시판 열람이 제한됩니다<br>
+                                            • 관리자에게 계정 등록을 요청하세요
+                                        </p>
+                                    </div>
+                                    <button 
+                                        id="board-warning-modal-ok"
+                                        class="w-full py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-medium"
+                                    >
+                                        확인
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(warningModal);
+                        
+                        // 확인 버튼 클릭 시 홈으로 리다이렉트
+                        warningModal.querySelector('#board-warning-modal-ok').addEventListener('click', () => {
+                            warningModal.remove();
+                            window.location.hash = '#/home';
+                        });
+                        
+                        // 모달 외부 클릭 시에도 홈으로 리다이렉트
+                        warningModal.addEventListener('click', (e) => {
+                            if (e.target === warningModal) {
+                                warningModal.remove();
+                                window.location.hash = '#/home';
+                            }
+                        });
+                        
+                        // 홈 페이지 렌더링
+                        mainContent.innerHTML = await renderHomePage();
+                        return;
+                    }
+                }
                 const route = routes[path];
                 if (route) {
                     if (mainContent) {
