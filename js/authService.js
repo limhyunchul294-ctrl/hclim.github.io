@@ -134,20 +134,31 @@ window.authService = {
         const normalizedEmail = userEmail.trim().toLowerCase();
         console.log('🔍 정규화된 이메일:', normalizedEmail);
         
-        // 방법 A: 정확한 매칭 시도
+        // 방법 A: 정확한 매칭 시도 (대소문자 무시)
         let result = await window.supabaseClient
           .from('users')
           .select('username, phone, name, affiliation, role, auth_user_id, email')
-          .eq('email', normalizedEmail)
+          .ilike('email', normalizedEmail)
           .maybeSingle();
         
-        // 방법 B: 정확한 매칭 실패 시 모든 사용자 조회 후 클라이언트 측에서 필터링
+        // 방법 B: 정확한 매칭 실패 시 eq로 재시도
+        if (!result.data && result.error?.code === 'PGRST116') {
+          console.log('🔄 ilike 매칭 실패, eq로 재시도...');
+          result = await window.supabaseClient
+            .from('users')
+            .select('username, phone, name, affiliation, role, auth_user_id, email')
+            .eq('email', normalizedEmail)
+            .maybeSingle();
+        }
+        
+        // 방법 C: 정확한 매칭 실패 시 모든 사용자 조회 후 클라이언트 측에서 필터링
         if (!result.data && (result.error?.code === 'PGRST116' || result.error?.status === 406)) {
           console.log('🔄 정확한 매칭 실패, 전체 조회 후 필터링 시도...');
           const allUsers = await window.supabaseClient
             .from('users')
             .select('username, phone, name, affiliation, role, auth_user_id, email')
-            .not('email', 'is', null);
+            .not('email', 'is', null)
+            .limit(100); // 성능을 위해 제한
           
           if (allUsers.data && !allUsers.error) {
             // 클라이언트 측에서 대소문자 무시 매칭
@@ -163,8 +174,11 @@ window.authService = {
             } else {
               console.warn('⚠️ 이메일 매칭 실패:', {
                 찾는_이메일: normalizedEmail,
-                조회된_이메일_목록: allUsers.data.map(u => u.email).slice(0, 5)
+                조회된_이메일_개수: allUsers.data.length,
+                조회된_이메일_목록: allUsers.data.map(u => u.email).slice(0, 10)
               });
+              console.error('💡 해결 방법: Supabase Dashboard > SQL Editor에서 다음 파일 실행:');
+              console.error('   supabase/migrations/011_manual_email_link_fix.sql');
             }
           }
         }
