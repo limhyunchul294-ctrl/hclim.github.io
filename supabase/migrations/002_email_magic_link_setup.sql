@@ -10,6 +10,7 @@ WHERE email IS NOT NULL;
 -- ============================================
 -- 2. 이메일로 사용자 정보 확인 RPC 함수
 -- ============================================
+-- ⚠️ 주의: public.users 테이블에 username 컬럼이 없으면 name 컬럼을 사용합니다
 CREATE OR REPLACE FUNCTION check_user_email(
     in_username VARCHAR,
     in_email VARCHAR
@@ -19,17 +20,18 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
+    -- name 컬럼을 사용하여 사용자 확인 (username 컬럼이 없는 경우)
     RETURN EXISTS (
         SELECT 1 
         FROM public.users
-        WHERE username = in_username
+        WHERE name = in_username
         AND email = in_email
         AND email IS NOT NULL
     );
 END;
 $$;
 
-COMMENT ON FUNCTION check_user_email IS '사용자명과 이메일로 사용자 존재 여부 확인 (매직링크 로그인용)';
+COMMENT ON FUNCTION check_user_email IS '사용자명(name)과 이메일로 사용자 존재 여부 확인 (매직링크 로그인용)';
 
 -- ============================================
 -- 3. 이메일로 사용자 정보 조회 함수 (선택사항)
