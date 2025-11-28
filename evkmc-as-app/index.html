@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EVKMC A/S 정비 포털</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    // 브랜드 설정
+    window.__BRAND__ = {
+      name: "EVKMC A/S",
+      primary: "#374151",
+      accent: "#9CA3AF",
+      dark: "#111827",
+      light: "#F3F4F6",
+      logoUrl: "assets/evkmc-logo.png",
+      splashUrl: "assets/splash.jpg"
+    };
+    
+    // Tailwind CSS 설정
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: window.__BRAND__.primary,
+              accent: window.__BRAND__.accent,
+              dark: window.__BRAND__.dark,
+              light: window.__BRAND__.light
+            }
+          },
+          boxShadow: { soft: "0 10px 30px rgba(0,0,0,.06)" },
+          borderRadius: { '2xl': '1rem', '3xl': '1.25rem' }
+        }
+      }
+    }
+  </script>
+  <style>
+    @font-face {
+      font-family: 'NanumSquareR';
+      src: url('assets/NanumSquareR.ttf') format('truetype');
+    }
+
+    /* 기본 스타일 */
+    #watermark-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+      display: grid;
+      grid-template-columns: repeat(4, 2fr);
+      gap: 120px;
+      padding: 80px;
+      overflow: hidden;
+    }
+    #watermark-overlay > span {
+      color: rgba(0, 0, 0, 0.06);
+      font-size: 16px;
+      font-weight: 600;
+      transform: rotate(-30deg);
+      white-space: nowrap;
+      text-align: center;
+    }
+    html, body { height: 100%; }
+    body { overflow-x: hidden; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    .x-anim { transition: all .2s ease; }
+    
+    /* 네비게이션 언더라인 효과 */
+    .nav-link { 
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #374151, #9CA3AF);
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 1px;
+    }
+    
+    .nav-link:hover::after, .nav-active::after {
+      width: 100%;
+    }
+    
+    .nav-active { 
+      color: #111827; 
+    }
+    
+    .nav-icon {
+      transition: transform 0.2s ease;
+    }
+    
+    .nav-link:hover .nav-icon, .nav-active .nav-icon {
+      transform: scale(1.1);
+    }
+    
+    /* 드롭다운 메뉴 스타일 */
+    .nav-dropdown-container {
+      position: relative;
+    }
+    
+    .nav-dropdown-menu {
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+    }
+    
+    .nav-dropdown-menu.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+      display: block !important;
+    }
+    
+    .nav-dropdown-arrow {
+      transition: transform 0.2s ease;
+    }
+    
+    .nav-dropdown-container.active .nav-dropdown-arrow {
+      transform: rotate(180deg);
+    }
+    
+    .nav-dropdown-item {
+      white-space: nowrap;
+    }
+    
+    /* 페이지 전환 애니메이션 */
+    .page-transition {
+      animation: fadeInUp 0.4s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* 버튼 호버 효과 */
+    .btn-primary {
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .btn-primary:hover::before {
+      left: 100%;
+    }
+    
+    /* 토스트 알림 */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    
+    .toast {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
+      transform: translateX(120%);
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      max-width: 320px;
+    }
+    
+    .toast.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    
+    .toast.success { border-left: 4px solid #10b981; }
+    .toast.error { border-left: 4px solid #ef4444; }
+    .toast.info { border-left: 4px solid #3b82f6; }
+    
+    /* 스켈레톤 로딩 */
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+      border-radius: 4px;
+    }
+    
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    .skeleton-text { height: 16px; margin-bottom: 8px; }
+    .skeleton-button { height: 32px; width: 80px; border-radius: 8px; }
+    
+    /* 로딩 스피너 */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #374151;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* 필터 칩 */
+    .filter-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #f3f4f6; border: 1px solid #d1d5db;
+      border-radius: 16px; padding: 4px 12px;
+      font-size: 12px; color: #374151;
+      transition: all 0.2s ease;
+    }
+    .filter-chip:hover { background: #e5e7eb; }
+    .filter-chip .remove { cursor: pointer; padding: 2px; border-radius: 50%; transition: background 0.2s ease; }
+    .filter-chip .remove:hover { background: #d1d5db; }
+    
+    /* 검색 제안 드롭다운 */
+    .search-suggestions {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: white; border: 1px solid #e5e7eb; border-top: none;
+      border-radius: 0 0 12px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 1000; max-height: 200px; overflow-y: auto;
+    }
+    .suggestion-item { padding: 8px 12px; cursor: pointer; transition: background 0.2s ease; }
+    .suggestion-item:hover { background: #f9fafb; }
+    .suggestion-item.active { background: #f3f4f6; }
+    
+    /* 트리 컴포넌트 */
+    .tree-item {
+      position: relative; cursor: pointer; transition: all 0.2s ease;
+      border-radius: 6px; margin: 1px 0;
+    }
+    .tree-item:hover { background: #f9fafb; transform: translateX(2px); }
+    .tree-item.active {
+      background: #f3f4f6;
+      border-left: 3px solid #3b82f6;
+    }
+    .tree-item.active .tree-content { background: rgba(59, 130, 246, 0.1); }
+    .tree-item.active:hover { background: #f3f4f6; transform: translateX(2px); }
+    .tree-toggle {
+      width: 16px; height: 16px; display: inline-flex; align-items: center;
+      justify-content: center; transition: transform 0.2s ease; margin-right: 8px;
+    }
+    .tree-toggle.expanded { transform: rotate(90deg); }
+    .tree-content {
+      display: flex; align-items: center; padding: 8px 12px;
+      font-size: 14px; color: #374151; border-radius: 6px;
+      transition: background-color 0.2s ease;
+    }
+    .tree-content:hover { background: rgba(59, 130, 246, 0.05); }
+    .tree-children {
+      margin-left: 20px; overflow: hidden; transition: max-height 0.3s ease-out;
+    }
+    .tree-children.collapsed { max-height: 0; }
+    .tree-children.expanded { max-height: 1000px; }
+    .tree-icon { width: 16px; height: 16px; margin-right: 8px; opacity: 0.6; }
+    .tree-badge {
+      background: #e5e7eb; color: #6b7280; font-size: 11px;
+      padding: 2px 6px; border-radius: 10px; margin-left: auto; font-weight: 500;
+    }
+    .status-indicator {
+        font-size: 9px; padding: 1px 4px; border-radius: 6px;
+        margin-left: 4px; font-weight: 600; text-transform: uppercase;
+    }
+    .status-indicator.new { background: #dcfce7; color: #166534; }
+    .status-indicator.updated { background: #fef3c7; color: #92400e; }
+    .tree-item.new .tree-label { font-weight: 600; color: #166534; }
+    .tree-item.updated .tree-label { font-weight: 600; color: #92400e; }
+    .tree-item.tree-item-visited .tree-label {
+      color: #9CA3AF;
+      text-decoration: line-through;
+    }
+    .tree-search { position: relative; margin-bottom: 12px; }
+    .tree-search input {
+      width: 100%; padding: 6px 12px; border: 1px solid #d1d5db;
+      border-radius: 6px; font-size: 12px;
+    }
+    .tree-search input:focus {
+      outline: none; border-color: #374151;
+      box-shadow: 0 0 0 2px rgba(55, 65, 81, 0.1);
+    }
+
+    /* 스플래시 화면 애니메이션 */
+    #splash-screen {
+      transition: opacity 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { 
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .splash-content {
+      animation: slideUp 0.8s ease-out;
+    }
+
+    /* ✅ 세션 정보 위젯 스타일 */
+    .session-widget {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-width: 350px;
+    }
+
+    .session-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .session-info-row:last-child {
+      border-bottom: none;
+    }
+
+    .session-label {
+      font-size: 12px;
+      color: #888;
+      font-weight: 500;
+    }
+
+    .session-value {
+      font-size: 13px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .session-time-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-slate-800">
+
+  <!-- 스플래시 화면 -->
+  <div id="splash-screen" class="fixed inset-0 z-50 flex items-center justify-center" style="background-image: url('assets/splash.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+    <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+    <div class="text-center splash-content relative z-10 text-white">
+        <img src="assets/evkmc-logo.png" alt="EVKMC A/S" class="w-24 h-24 object-contain mx-auto mb-6">
+      <h1 class="text-3xl font-bold text-white mb-2">EVKMC A/S</h1>
+      <p class="text-gray-200 mb-8">정비 기술 문서 포털</p>
+      <div class="flex items-center justify-center gap-2">
+        <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+        <div class="w-2 h-2 bg-white rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+        <div class="w-2 h-2 bg-white rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+      </div>
+      <p class="text-sm text-gray-200 mt-4">로딩 중...</p>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="#/home" class="text-xl md:text-2xl font-semibold tracking-tight">EVKMC A/S</a>
+      </div>
+      <nav id="desktop-nav" class="hidden md:flex items-center gap-7 text-[15px]"></nav>
+      <div id="auth-container"></div>
+    </div>
+  </header>
+
+  <main id="app" class="relative mx-auto max-w-7xl px-4 py-8">
+    <div id="main-content">
+      <div class="flex items-center justify-center min-h-96">
+        <div class="text-center">
+          <div class="spinner mx-auto mb-4"></div>
+          <p class="text-gray-600">애플리케이션 로딩 중...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="watermark-overlay"></div>
+
+  <footer class="mt-16 bg-slate-800 text-slate-200 text-center py-4">
+    <p>&copy; <span id="year"></span> (주)이브이케이엠씨. All rights reserved.</p>
+  </footer>
+
+  <!-- ✅ 모듈 방식: main.js 하나만 로드하며, 필요한 모든 모듈은 main.js에서 import -->
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
