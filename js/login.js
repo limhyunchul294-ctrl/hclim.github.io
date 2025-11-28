@@ -261,5 +261,243 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('year').textContent = new Date().getFullYear();
     }
 
+    // ============================================
+    // 이메일 매직링크 로그인 기능
+    // ============================================
+    const emailLoginBtn = document.getElementById('email-login-btn');
+    const emailModal = document.getElementById('email-modal');
+    const emailLoginForm = document.getElementById('email-login-form');
+    const closeEmailModal = document.getElementById('close-email-modal');
+    const sendMagicLinkBtn = document.getElementById('send-magic-link-btn');
+    const emailInput = document.getElementById('email');
+    const emailErrorMessage = document.getElementById('email-error-message');
+    const emailSentModal = document.getElementById('email-sent-modal');
+    const closeEmailSentModal = document.getElementById('close-email-sent-modal');
+
+    /**
+     * 이메일 형식 검증
+     */
+    function validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    /**
+     * 이메일 에러 메시지 표시
+     */
+    function showEmailError(message) {
+        emailErrorMessage.textContent = message;
+        emailErrorMessage.classList.remove('hidden');
+    }
+
+    /**
+     * 이메일 에러 메시지 숨기기
+     */
+    function hideEmailError() {
+        emailErrorMessage.classList.add('hidden');
+    }
+
+    // 이메일 로그인 버튼 클릭
+    if (emailLoginBtn) {
+        emailLoginBtn.addEventListener('click', () => {
+            emailModal.classList.remove('hidden');
+            emailInput.value = '';
+            hideEmailError();
+            setTimeout(() => emailInput.focus(), 100);
+        });
+    }
+
+    // 이메일 모달 닫기
+    if (closeEmailModal) {
+        closeEmailModal.addEventListener('click', () => {
+            emailModal.classList.add('hidden');
+            emailInput.value = '';
+            hideEmailError();
+        });
+    }
+
+    // 이메일 발송 완료 모달 닫기
+    if (closeEmailSentModal) {
+        closeEmailSentModal.addEventListener('click', () => {
+            emailSentModal.classList.add('hidden');
+        });
+    }
+
+    // 모달 외부 클릭 시 닫기
+    if (emailModal) {
+        emailModal.addEventListener('click', (e) => {
+            if (e.target === emailModal) {
+                emailModal.classList.add('hidden');
+                emailInput.value = '';
+                hideEmailError();
+            }
+        });
+    }
+
+    if (emailSentModal) {
+        emailSentModal.addEventListener('click', (e) => {
+            if (e.target === emailSentModal) {
+                emailSentModal.classList.add('hidden');
+            }
+        });
+    }
+
+    // 이메일 로그인 폼 제출
+    if (emailLoginForm) {
+        emailLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            
+            // 이메일 형식 검증
+            if (!email) {
+                showEmailError('이메일 주소를 입력해주세요.');
+                return;
+            }
+
+            if (!validateEmail(email)) {
+                showEmailError('올바른 이메일 주소를 입력해주세요.');
+                return;
+            }
+            
+            // 버튼 비활성화
+            sendMagicLinkBtn.disabled = true;
+            sendMagicLinkBtn.textContent = '발송 중...';
+            hideEmailError();
+            
+            try {
+                console.log('🔄 이메일 매직링크 발송 시작:', email);
+                
+                // 현재 페이지의 origin 가져오기
+                const redirectUrl = `${window.location.origin}${window.location.pathname.replace('login.html', 'index.html')}`;
+                
+                // Supabase 매직링크 발송
+                const { data, error } = await window.supabaseClient.auth.signInWithOtp({
+                    email: email,
+                    options: {
+                        // 리다이렉트 URL 설정 (로그인 후 돌아올 페이지)
+                        emailRedirectTo: redirectUrl
+                    }
+                });
+                
+                if (error) {
+                    console.error('❌ 매직링크 발송 오류:', error);
+                    
+                    // 사용자에게 친화적인 에러 메시지
+                    let errorMsg = '이메일 발송에 실패했습니다.';
+                    if (error.message?.includes('rate limit')) {
+                        errorMsg = '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+                    } else if (error.message?.includes('invalid')) {
+                        errorMsg = '올바른 이메일 주소를 입력해주세요.';
+                    } else {
+                        errorMsg = `이메일 발송 실패: ${error.message}`;
+                    }
+                    
+                    showEmailError(errorMsg);
+                    sendMagicLinkBtn.disabled = false;
+                    sendMagicLinkBtn.textContent = '로그인 링크 발송';
+                    return;
+                }
+                
+                console.log('✅ 매직링크 발송 완료');
+                console.log('📧 발송된 이메일:', email);
+                console.log('🔗 리다이렉트 URL:', redirectUrl);
+                
+                // 이메일 발송 완료 모달 표시
+                const emailSentMessage = document.getElementById('email-sent-message');
+                if (emailSentMessage) {
+                    emailSentMessage.innerHTML = 
+                        `<strong>${email}</strong>로 로그인 링크를 발송했습니다.<br><br>` +
+                        `이메일의 링크를 클릭하여 로그인하세요.`;
+                }
+                
+                emailModal.classList.add('hidden');
+                emailSentModal.classList.remove('hidden');
+                
+                // 입력 필드 초기화
+                emailInput.value = '';
+                sendMagicLinkBtn.disabled = false;
+                sendMagicLinkBtn.textContent = '로그인 링크 발송';
+                
+            } catch (error) {
+                console.error('❌ 예상치 못한 오류:', error);
+                showEmailError('예상치 못한 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+                sendMagicLinkBtn.disabled = false;
+                sendMagicLinkBtn.textContent = '로그인 링크 발송';
+            }
+        });
+    }
+
+    // ============================================
+    // 매직링크 콜백 처리 (페이지 로드 시)
+    // ============================================
+    async function handleMagicLinkCallback() {
+        // URL hash에서 인증 정보 확인
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const type = hashParams.get('type');
+        const error = hashParams.get('error');
+        const errorDescription = hashParams.get('error_description');
+        
+        // 에러가 있는 경우
+        if (error) {
+            console.error('❌ 매직링크 인증 오류:', error, errorDescription);
+            showError(`로그인 실패: ${errorDescription || error}`);
+            // URL에서 hash 제거
+            window.history.replaceState(null, '', window.location.pathname);
+            return;
+        }
+        
+        // 매직링크로 로그인한 경우
+        if (accessToken && (type === 'magiclink' || type === 'recovery')) {
+            console.log('✅ 매직링크 인증 토큰 확인됨');
+            console.log('📋 타입:', type);
+            
+            try {
+                // 세션 확인
+                const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
+                
+                if (sessionError) {
+                    console.error('❌ 세션 확인 오류:', sessionError);
+                    showError('세션 확인 중 오류가 발생했습니다.');
+                    window.history.replaceState(null, '', window.location.pathname);
+                    return;
+                }
+                
+                if (session) {
+                    console.log('✅ 로그인 성공!');
+                    console.log('📊 세션:', session);
+                    
+                    // 로그인 시간 저장 (30분 세션 타이머 시작)
+                    if (typeof localStorage !== 'undefined') {
+                        localStorage.setItem('session_login_time', Date.now().toString());
+                    }
+                    
+                    // 세션 캐시 초기화하여 최신 세션 로드
+                    if (window.authSession) {
+                        window.authSession._sessionCache = session;
+                        window.authSession._lastFetchTime = Date.now();
+                    }
+                    
+                    // URL에서 hash 제거
+                    window.history.replaceState(null, '', window.location.pathname);
+                    
+                    // index.html로 리다이렉트
+                    window.location.href = 'index.html';
+                } else {
+                    console.warn('⚠️ 세션이 없습니다.');
+                    window.history.replaceState(null, '', window.location.pathname);
+                }
+            } catch (error) {
+                console.error('❌ 매직링크 처리 오류:', error);
+                showError('로그인 처리 중 오류가 발생했습니다.');
+                window.history.replaceState(null, '', window.location.pathname);
+            }
+        }
+    }
+
+    // 페이지 로드 시 매직링크 콜백 처리
+    handleMagicLinkCallback();
+
     console.log('✅ Login 스크립트 로드 완료');
 });
