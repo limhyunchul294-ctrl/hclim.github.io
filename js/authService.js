@@ -126,14 +126,17 @@ window.authService = {
         .single();
 
       // 방법 2: auth_user_id로 조회 실패 시 이메일로 조회 시도
-      if (error && error.code === 'PGRST116' && userEmail) {
+      if ((error && (error.code === 'PGRST116' || error.code === 'PGRST301' || error.status === 406)) && userEmail) {
         console.log('🔄 auth_user_id로 조회 실패, 이메일로 재시도:', userEmail);
+        console.log('📋 에러 상세:', { code: error.code, status: error.status, message: error.message });
         
         const result = await window.supabaseClient
           .from('users')
           .select('username, phone, name, affiliation, role, auth_user_id, email')
-          .eq('email', userEmail)
+          .eq('email', userEmail.trim().toLowerCase())
           .maybeSingle();
+        
+        console.log('📊 이메일 조회 결과:', { data: result.data, error: result.error });
         
         if (result.data) {
           userInfo = result.data;
@@ -146,7 +149,7 @@ window.authService = {
             const { error: updateError } = await window.supabaseClient
               .from('users')
               .update({ auth_user_id: userId })
-              .eq('email', userEmail);
+              .eq('email', userEmail.trim().toLowerCase());
             
             if (updateError) {
               console.warn('⚠️ auth_user_id 업데이트 실패:', updateError.message);
@@ -156,6 +159,12 @@ window.authService = {
             }
           }
         } else {
+          // 406 에러인 경우 RLS 정책 문제일 수 있음
+          if (result.error && (result.error.status === 406 || result.error.code === 'PGRST301')) {
+            console.error('❌ RLS 정책 문제 가능성:', result.error);
+            console.error('💡 해결 방법: Supabase Dashboard > SQL Editor에서 RLS 정책을 확인하고 수정하세요.');
+            console.error('   파일 참고: supabase/migrations/007_fix_rls_policy_immediate.sql');
+          }
           error = result.error || { code: 'PGRST116' };
         }
       }
