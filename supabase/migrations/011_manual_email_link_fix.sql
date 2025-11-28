@@ -99,8 +99,9 @@ AND NOT EXISTS (
 RETURNING profile_id, name, email, auth_user_id;
 
 -- ============================================
--- 7. 최종 확인
+-- 7. 최종 확인 (FULL OUTER JOIN 대신 UNION 사용)
 -- ============================================
+-- 방법 A: public.users 기준으로 조인
 SELECT 
     pu.profile_id,
     pu.name,
@@ -115,10 +116,28 @@ SELECT
         ELSE '❌ 연결 안됨'
     END as connection_status
 FROM public.users pu
-FULL OUTER JOIN auth.users au ON (
+LEFT JOIN auth.users au ON pu.auth_user_id = au.id
+WHERE LOWER(TRIM(pu.email)) = LOWER(TRIM('hclim@evkmc.com'))
+LIMIT 5;
+
+-- 방법 B: auth.users 기준으로 조인 (public.users에 없을 경우 확인)
+SELECT 
+    pu.profile_id,
+    pu.name,
+    pu.email,
+    pu.auth_user_id,
+    au.email as auth_email,
+    au.id as auth_id,
+    CASE 
+        WHEN pu.auth_user_id = au.id THEN '✅ 정상 연결됨'
+        WHEN pu.profile_id IS NULL THEN '❌ public.users에 없음'
+        ELSE '❌ 연결 안됨'
+    END as connection_status
+FROM auth.users au
+LEFT JOIN public.users pu ON (
     pu.auth_user_id = au.id 
     OR LOWER(TRIM(pu.email)) = LOWER(TRIM(au.email))
 )
-WHERE LOWER(TRIM(COALESCE(pu.email, au.email))) = LOWER(TRIM('hclim@evkmc.com'))
+WHERE LOWER(TRIM(au.email)) = LOWER(TRIM('hclim@evkmc.com'))
 LIMIT 5;
 
