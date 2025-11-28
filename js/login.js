@@ -383,54 +383,11 @@ document.addEventListener('DOMContentLoaded', () => {
             hideEmailError();
             
             try {
-                console.log('🔄 사용자 정보 확인 시작:', { username, email });
+                console.log('🔄 이메일 매직링크 발송 시작:', { username, email });
                 
-                // 1단계: public.users 테이블에서 이메일이 등록되어 있는지 확인
-                // 이메일만으로 확인 (사용자명은 참고용)
-                console.log('🔍 사용자 확인 시작:', { username, email });
-                
-                const { data: userExists, error: rpcError } = await window.supabaseClient
-                    .rpc('check_user_email', {
-                        in_username: username,
-                        in_email: email.trim()
-                    });
-                
-                console.log('📊 RPC 결과:', { userExists, rpcError });
-                
-                if (rpcError) {
-                    console.error('❌ 사용자 확인 오류:', rpcError);
-                    showEmailError(`사용자 정보 확인 중 오류가 발생했습니다: ${rpcError.message}`);
-                    sendMagicLinkBtn.disabled = false;
-                    sendMagicLinkBtn.textContent = '로그인 링크 발송';
-                    return;
-                }
-                
-                // 직접 테이블에서도 확인해보기 (디버깅용)
-                const { data: directCheck, error: directError } = await window.supabaseClient
-                    .from('users')
-                    .select('email, name')
-                    .eq('email', email.trim())
-                    .limit(1);
-                
-                console.log('🔍 직접 테이블 조회 결과:', { directCheck, directError });
-                
-                if (!userExists) {
-                    console.error('❌ 등록되지 않은 이메일:', { username, email, userExists, directCheck });
-                    let errorMsg = '등록되지 않은 이메일 주소입니다. 이메일 주소를 확인해주세요.';
-                    if (directCheck && directCheck.length > 0) {
-                        errorMsg += ` (디버그: 테이블에는 존재하지만 함수가 false 반환)`;
-                    }
-                    showEmailError(errorMsg);
-                    sendMagicLinkBtn.disabled = false;
-                    sendMagicLinkBtn.textContent = '로그인 링크 발송';
-                    return;
-                }
-                
-                console.log('✅ 사용자 정보 확인 완료');
+                // 이메일 검증은 Supabase Auth가 자동으로 처리하므로
+                // public.users 테이블 검증을 건너뛰고 바로 매직링크 발송
                 sendMagicLinkBtn.textContent = '발송 중...';
-                
-                // 2단계: 매직링크 발송
-                console.log('🔄 이메일 매직링크 발송 시작:', email);
                 
                 // 현재 페이지의 origin 가져오기
                 const redirectUrl = `${window.location.origin}${window.location.pathname.replace('login.html', 'index.html')}`;
