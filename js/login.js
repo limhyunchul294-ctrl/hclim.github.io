@@ -500,11 +500,80 @@ document.addEventListener('DOMContentLoaded', () => {
                         window.authSession._lastFetchTime = Date.now();
                     }
                     
-                    // URL에서 hash 제거
-                    window.history.replaceState(null, '', window.location.pathname);
+                    // public.users 테이블에서 사용자 정보 확인
+                    const userEmail = session.user.email;
+                    console.log('🔍 사용자 정보 확인 중:', userEmail);
                     
-                    // index.html로 리다이렉트
-                    window.location.href = 'index.html';
+                    const { data: userInfo, error: userError } = await window.supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('email', userEmail)
+                        .limit(1)
+                        .single();
+                    
+                    // 사용자 정보가 없으면 경고 팝업 표시
+                    if (!userInfo || userError) {
+                        console.warn('⚠️ public.users 테이블에 사용자 정보가 없습니다:', userError);
+                        
+                        // 경고 팝업 표시
+                        const warningModal = document.createElement('div');
+                        warningModal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+                        warningModal.innerHTML = `
+                            <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+                                <div class="text-center mb-4">
+                                    <div class="text-5xl mb-4">⚠️</div>
+                                    <h2 class="text-xl font-bold mb-2 text-red-600">접근 권한 경고</h2>
+                                </div>
+                                <div class="space-y-4">
+                                    <p class="text-sm text-gray-700">
+                                        현재 로그인된 계정(<strong>${userEmail}</strong>)은<br>
+                                        시스템에 등록되지 않은 계정입니다.
+                                    </p>
+                                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                        <p class="text-xs text-yellow-800 font-medium mb-1">⚠️ 제한된 접근</p>
+                                        <p class="text-xs text-yellow-700">
+                                            • PDF 문서 열람 불가<br>
+                                            • 민감한 정보 접근 제한<br>
+                                            • 관리자에게 계정 등록을 요청하세요
+                                        </p>
+                                    </div>
+                                    <button 
+                                        id="warning-modal-ok"
+                                        class="w-full py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-medium"
+                                    >
+                                        확인
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(warningModal);
+                        
+                        // 확인 버튼 클릭 시 모달 닫기 및 리다이렉트
+                        warningModal.querySelector('#warning-modal-ok').addEventListener('click', () => {
+                            warningModal.remove();
+                            // URL에서 hash 제거
+                            window.history.replaceState(null, '', window.location.pathname);
+                            // index.html로 리다이렉트
+                            window.location.href = 'index.html';
+                        });
+                        
+                        // 모달 외부 클릭 시에도 닫기
+                        warningModal.addEventListener('click', (e) => {
+                            if (e.target === warningModal) {
+                                warningModal.remove();
+                                window.history.replaceState(null, '', window.location.pathname);
+                                window.location.href = 'index.html';
+                            }
+                        });
+                    } else {
+                        console.log('✅ 사용자 정보 확인 완료:', userInfo);
+                        
+                        // URL에서 hash 제거
+                        window.history.replaceState(null, '', window.location.pathname);
+                        
+                        // index.html로 리다이렉트
+                        window.location.href = 'index.html';
+                    }
                 } else {
                     console.warn('⚠️ 세션이 없습니다.');
                     window.history.replaceState(null, '', window.location.pathname);

@@ -111,28 +111,65 @@ window.authService = {
 
       // 3. 사용자 정보 DB 조회
       const userId = session.user.id;
+      const userEmail = session.user.email;
       const userPhone = session.user.phone?.replace(/^\+82/, '0') || session.user.phone; // +8210... -> 010...
       
       console.log('🔍 사용자 정보 조회:', userId);
+      console.log('📧 이메일:', userEmail);
       console.log('📱 전화번호:', userPhone);
 
       // 방법 1: auth_user_id로 조회 시도
       let { data: userInfo, error } = await window.supabaseClient
         .from('users')
-        .select('username, phone, name, affiliation, role, auth_user_id')
+        .select('username, phone, name, affiliation, role, auth_user_id, email')
         .eq('auth_user_id', userId)
         .single();
 
-      // 방법 2: auth_user_id로 조회 실패 시 전화번호로 조회 시도
+      // 방법 2: auth_user_id로 조회 실패 시 이메일로 조회 시도
+      if (error && error.code === 'PGRST116' && userEmail) {
+        console.log('🔄 auth_user_id로 조회 실패, 이메일로 재시도:', userEmail);
+        
+        const result = await window.supabaseClient
+          .from('users')
+          .select('username, phone, name, affiliation, role, auth_user_id, email')
+          .eq('email', userEmail)
+          .maybeSingle();
+        
+        if (result.data) {
+          userInfo = result.data;
+          error = null;
+          console.log('✅ 이메일로 사용자 정보 조회 성공:', userInfo.name || userInfo.username);
+          
+          // auth_user_id가 없으면 업데이트 시도
+          if (!userInfo.auth_user_id) {
+            console.log('🔄 auth_user_id 업데이트 시도...');
+            const { error: updateError } = await window.supabaseClient
+              .from('users')
+              .update({ auth_user_id: userId })
+              .eq('email', userEmail);
+            
+            if (updateError) {
+              console.warn('⚠️ auth_user_id 업데이트 실패:', updateError.message);
+            } else {
+              console.log('✅ auth_user_id 업데이트 성공');
+              userInfo.auth_user_id = userId;
+            }
+          }
+        } else {
+          error = result.error || { code: 'PGRST116' };
+        }
+      }
+
+      // 방법 3: 이메일로도 조회 실패 시 전화번호로 조회 시도
       if (error && error.code === 'PGRST116' && userPhone) {
-        console.log('🔄 auth_user_id로 조회 실패, 전화번호로 재시도:', userPhone);
+        console.log('🔄 이메일로 조회 실패, 전화번호로 재시도:', userPhone);
         const phoneNormalized = userPhone.replace(/-/g, ''); // 하이픈 제거
         
         const result = await window.supabaseClient
           .from('users')
-          .select('username, phone, name, affiliation, role, auth_user_id')
+          .select('username, phone, name, affiliation, role, auth_user_id, email')
           .eq('phone', phoneNormalized)
-          .maybeSingle(); // single() 대신 maybeSingle() 사용
+          .maybeSingle();
         
         if (result.data) {
           userInfo = result.data;
