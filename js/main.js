@@ -1943,40 +1943,78 @@ async function renderAccountPage() {
 
                 // 명함 이미지 업로드 및 압축
                 (async function() {
+                    // DOM이 완전히 로드될 때까지 대기
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
                     const uploadInput = document.getElementById('business-card-upload');
                     const previewDiv = document.getElementById('business-card-preview');
                     
-                    if (!uploadInput || !previewDiv) return;
+                    if (!uploadInput || !previewDiv) {
+                        console.warn('명함 이미지 업로드 요소를 찾을 수 없습니다');
+                        return;
+                    }
+                    
+                    // 토스트 메시지 표시 함수
+                    function showToast(message, type = 'success') {
+                        const toast = document.createElement('div');
+                        toast.className = \`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white font-medium transition-all transform translate-x-0 opacity-100\`;
+                        toast.style.backgroundColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
+                        toast.textContent = message;
+                        document.body.appendChild(toast);
+                        
+                        setTimeout(() => {
+                            toast.style.opacity = '0';
+                            toast.style.transform = 'translateX(100%)';
+                            setTimeout(() => toast.remove(), 300);
+                        }, 3000);
+                    }
                     
                     // 기존 명함 이미지 로드
-                    try {
-                        const userInfo = await window.authService?.getUserInfo();
-                        const session = await window.authSession.getSession();
-                        if (userInfo && session?.user?.id) {
-                            const userId = session.user.id;
-                            // Supabase Storage에서 명함 이미지 조회
-                            const { data: files, error } = await window.supabaseClient
-                                .storage
-                                .from('business_cards')
-                                .list(userId, {
-                                    limit: 1,
-                                    sortBy: { column: 'created_at', order: 'desc' }
-                                });
-                            
-                            if (!error && files && files.length > 0) {
-                                const { data: { publicUrl } } = window.supabaseClient
+                    async function loadExistingCard() {
+                        try {
+                            const userInfo = await window.authService?.getUserInfo();
+                            const session = await window.authSession.getSession();
+                            if (userInfo && session?.user?.id) {
+                                const userId = session.user.id;
+                                console.log('명함 이미지 로드 시도:', userId);
+                                
+                                // Supabase Storage에서 명함 이미지 조회
+                                const { data: files, error } = await window.supabaseClient
                                     .storage
                                     .from('business_cards')
-                                    .getPublicUrl(\`\${userId}/\${files[0].name}\`);
+                                    .list(userId, {
+                                        limit: 1,
+                                        sortBy: { column: 'created_at', order: 'desc' }
+                                    });
                                 
-                                previewDiv.innerHTML = \`
-                                    <img src="\${publicUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md">
-                                \`;
+                                console.log('명함 이미지 조회 결과:', { files, error });
+                                
+                                if (!error && files && files.length > 0) {
+                                    const filePath = userId + '/' + files[0].name;
+                                    const { data: { publicUrl } } = window.supabaseClient
+                                        .storage
+                                        .from('business_cards')
+                                        .getPublicUrl(filePath);
+                                    
+                                    console.log('명함 이미지 URL:', publicUrl);
+                                    
+                                    previewDiv.innerHTML = \`
+                                        <div class="relative">
+                                            <img src="\${publicUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" onerror="this.parentElement.innerHTML='<div class=\\\"text-center text-gray-500\\\"><p class=\\\"text-sm\\\">이미지를 불러올 수 없습니다</p></div>'">
+                                            <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">저장됨</div>
+                                        </div>
+                                    \`;
+                                } else {
+                                    console.log('저장된 명함 이미지가 없습니다');
+                                }
                             }
+                        } catch (error) {
+                            console.error('명함 이미지 로드 오류:', error);
                         }
-                    } catch (error) {
-                        console.error('명함 이미지 로드 오류:', error);
                     }
+                    
+                    // 초기 로드
+                    await loadExistingCard();
 
                     // 이미지 압축 함수 (1MB 미만, 해상도 유지)
                     async function compressImage(file, maxSizeMB = 1) {
@@ -2022,26 +2060,40 @@ async function renderAccountPage() {
 
                         // 이미지 파일만 허용
                         if (!file.type.startsWith('image/')) {
-                            alert('이미지 파일만 업로드 가능합니다.');
+                            showToast('이미지 파일만 업로드 가능합니다.', 'error');
+                            uploadInput.value = '';
                             return;
                         }
 
                         try {
                             // 로딩 표시
                             previewDiv.innerHTML = \`
-                                <div class="text-center">
+                                <div class="text-center py-8">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
                                     <p class="text-sm text-gray-600">이미지 압축 중...</p>
+                                    <p class="text-xs text-gray-400 mt-1">원본 크기: \${(file.size / 1024 / 1024).toFixed(2)}MB</p>
                                 </div>
                             \`;
 
                             // 이미지 압축
                             const compressedBlob = await compressImage(file, 1);
+                            const originalSize = file.size;
+                            const compressedSize = compressedBlob.size;
+                            const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+                            
+                            console.log('이미지 압축 완료:', {
+                                원본: (originalSize / 1024 / 1024).toFixed(2) + 'MB',
+                                압축: (compressedSize / 1024 / 1024).toFixed(2) + 'MB',
+                                압축률: compressionRatio + '%'
+                            });
                             
                             // 압축된 이미지 미리보기
                             const previewUrl = URL.createObjectURL(compressedBlob);
                             previewDiv.innerHTML = \`
-                                <img src="\${previewUrl}" alt="명함 이미지 미리보기" class="max-w-full max-h-64 rounded-lg shadow-md">
+                                <div class="text-center">
+                                    <img src="\${previewUrl}" alt="명함 이미지 미리보기" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto mb-2">
+                                    <p class="text-xs text-gray-500">압축 완료 (\${compressionRatio}% 감소) - 업로드 중...</p>
+                                </div>
                             \`;
 
                             // Supabase Storage에 업로드
@@ -2053,8 +2105,10 @@ async function renderAccountPage() {
                             const userId = session.user.id;
                             const timestamp = Date.now();
                             const fileExt = file.name.split('.').pop();
-                            const fileName = \`\${timestamp}-business-card.\${fileExt}\`;
-                            const filePath = \`\${userId}/\${fileName}\`;
+                            const fileName = timestamp + '-business-card.' + fileExt;
+                            const filePath = userId + '/' + fileName;
+
+                            console.log('업로드 시작:', filePath);
 
                             const { data, error } = await window.supabaseClient
                                 .storage
@@ -2065,8 +2119,11 @@ async function renderAccountPage() {
                                 });
 
                             if (error) {
+                                console.error('업로드 오류:', error);
                                 throw error;
                             }
+
+                            console.log('업로드 성공:', data);
 
                             // Public URL 생성
                             const { data: { publicUrl } } = window.supabaseClient
@@ -2074,45 +2131,55 @@ async function renderAccountPage() {
                                 .from('business_cards')
                                 .getPublicUrl(filePath);
 
+                            console.log('Public URL:', publicUrl);
+
                             // 최종 미리보기 업데이트
                             previewDiv.innerHTML = \`
-                                <img src="\${publicUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md">
+                                <div class="relative">
+                                    <img src="\${publicUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" onerror="this.parentElement.innerHTML='<div class=\\\"text-center text-red-500\\\"><p class=\\\"text-sm\\\">이미지 로드 실패</p></div>'">
+                                    <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        저장됨
+                                    </div>
+                                </div>
                             \`;
 
                             // 기존 파일 삭제 (같은 사용자의 다른 명함 이미지)
-                            const { data: oldFiles } = await window.supabaseClient
-                                .storage
-                                .from('business_cards')
-                                .list(userId);
-                            
-                            if (oldFiles && oldFiles.length > 1) {
-                                const filesToDelete = oldFiles
-                                    .filter(f => f.name !== fileName)
-                                    .map(f => \`\${userId}/\${f.name}\`);
+                            try {
+                                const { data: oldFiles } = await window.supabaseClient
+                                    .storage
+                                    .from('business_cards')
+                                    .list(userId);
                                 
-                                if (filesToDelete.length > 0) {
-                                    await window.supabaseClient
-                                        .storage
-                                        .from('business_cards')
-                                        .remove(filesToDelete);
+                                if (oldFiles && oldFiles.length > 1) {
+                                    const filesToDelete = oldFiles
+                                        .filter(f => f.name !== fileName)
+                                        .map(f => userId + '/' + f.name);
+                                    
+                                    if (filesToDelete.length > 0) {
+                                        await window.supabaseClient
+                                            .storage
+                                            .from('business_cards')
+                                            .remove(filesToDelete);
+                                        console.log('기존 파일 삭제 완료:', filesToDelete);
+                                    }
                                 }
+                            } catch (deleteError) {
+                                console.warn('기존 파일 삭제 중 오류 (무시):', deleteError);
                             }
 
                             // URL 정리
                             URL.revokeObjectURL(previewUrl);
 
-                            alert('명함 이미지가 업로드되었습니다.');
+                            showToast('명함 이미지가 업로드되었습니다.', 'success');
                         } catch (error) {
                             console.error('명함 이미지 업로드 오류:', error);
-                            alert('명함 이미지 업로드 중 오류가 발생했습니다: ' + error.message);
-                            previewDiv.innerHTML = \`
-                                <div class="text-center text-gray-500">
-                                    <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                    </svg>
-                                    <p class="text-sm">명함 이미지가 없습니다</p>
-                                </div>
-                            \`;
+                            showToast('업로드 실패: ' + (error.message || '알 수 없는 오류'), 'error');
+                            
+                            // 기존 이미지 다시 로드 시도
+                            await loadExistingCard();
                         } finally {
                             // input 초기화
                             uploadInput.value = '';
