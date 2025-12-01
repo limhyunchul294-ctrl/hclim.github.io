@@ -193,20 +193,35 @@ window.authService = {
           userInfo = result.data;
           error = null;
           console.log('✅ 이메일로 사용자 정보 조회 성공:', userInfo.name || userInfo.username);
+          console.log('📋 조회된 사용자 정보:', {
+            profile_id: userInfo.profile_id || 'N/A',
+            name: userInfo.name,
+            email: userInfo.email,
+            auth_user_id: userInfo.auth_user_id || '없음'
+          });
           
-          // auth_user_id가 없으면 업데이트 시도
-          if (!userInfo.auth_user_id) {
-            console.log('🔄 auth_user_id 업데이트 시도...');
-            const { error: updateError } = await window.supabaseClient
+          // auth_user_id가 없거나 다르면 업데이트 시도 (기존 레코드 연결)
+          if (!userInfo.auth_user_id || userInfo.auth_user_id !== userId) {
+            console.log('🔄 기존 레코드의 auth_user_id 업데이트 시도...');
+            const updateCondition = userInfo.profile_id 
+              ? { profile_id: userInfo.profile_id }  // profile_id로 정확히 업데이트
+              : { email: normalizedEmail };  // profile_id가 없으면 이메일로
+            
+            const { error: updateError, data: updateData } = await window.supabaseClient
               .from('users')
               .update({ auth_user_id: userId })
-              .eq('email', userEmail.trim().toLowerCase());
+              .match(updateCondition)
+              .select();
             
             if (updateError) {
               console.warn('⚠️ auth_user_id 업데이트 실패:', updateError.message);
-            } else {
-              console.log('✅ auth_user_id 업데이트 성공');
+            } else if (updateData && updateData.length > 0) {
+              console.log('✅ 기존 레코드의 auth_user_id 업데이트 성공');
               userInfo.auth_user_id = userId;
+              // 업데이트된 데이터로 userInfo 갱신
+              Object.assign(userInfo, updateData[0]);
+            } else {
+              console.warn('⚠️ 업데이트된 레코드가 없습니다.');
             }
           }
         } else {

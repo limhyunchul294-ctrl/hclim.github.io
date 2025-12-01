@@ -78,30 +78,33 @@ WHERE LOWER(TRIM(email)) = LOWER(TRIM('hclim@evkmc.com'));
 -- WHERE profile_id = 3;  -- 실제 profile_id로 변경
 
 -- ============================================
--- 6. public.users에 이메일이 없으면 auth.users 정보로 생성
+-- 6. (비권장) public.users에 이메일이 없으면 auth.users 정보로 생성
 -- ============================================
--- 만약 public.users에 hclim@evkmc.com이 아예 없다면
--- auth.users의 정보를 기반으로 새 레코드 생성
-INSERT INTO public.users (auth_user_id, email, name, username, role)
-SELECT 
-    au.id,
-    au.email,
-    COALESCE(SPLIT_PART(au.email, '@', 1), 'hclim') as name,
-    COALESCE(SPLIT_PART(au.email, '@', 1), 'hclim') as username,
-    'user' as role
-FROM auth.users au
-WHERE LOWER(TRIM(au.email)) = LOWER(TRIM('hclim@evkmc.com'))
-AND NOT EXISTS (
-    SELECT 1 FROM public.users pu 
-    WHERE pu.auth_user_id = au.id 
-    OR LOWER(TRIM(pu.email)) = LOWER(TRIM(au.email))
-)
-RETURNING profile_id, name, email, auth_user_id;
+-- 주의: 기존 데이터를 사용하는 것이 권장됩니다.
+-- 이 쿼리는 public.users에 해당 이메일이 정말 없을 때만 사용하세요.
+-- 
+-- 먼저 위의 1단계 쿼리로 기존 레코드를 확인한 후,
+-- 정말 없을 때만 아래 쿼리를 실행하세요.
+--
+-- INSERT INTO public.users (auth_user_id, email, name, username, role)
+-- SELECT 
+--     au.id,
+--     au.email,
+--     COALESCE(SPLIT_PART(au.email, '@', 1), 'hclim') as name,
+--     COALESCE(SPLIT_PART(au.email, '@', 1), 'hclim') as username,
+--     'user' as role
+-- FROM auth.users au
+-- WHERE LOWER(TRIM(au.email)) = LOWER(TRIM('hclim@evkmc.com'))
+-- AND NOT EXISTS (
+--     SELECT 1 FROM public.users pu 
+--     WHERE pu.auth_user_id = au.id 
+--     OR LOWER(TRIM(pu.email)) = LOWER(TRIM(au.email))
+-- )
+-- RETURNING profile_id, name, email, auth_user_id;
 
 -- ============================================
--- 7. 최종 확인 (FULL OUTER JOIN 대신 UNION 사용)
+-- 7. 최종 확인
 -- ============================================
--- 방법 A: public.users 기준으로 조인
 SELECT 
     pu.profile_id,
     pu.name,
@@ -116,28 +119,10 @@ SELECT
         ELSE '❌ 연결 안됨'
     END as connection_status
 FROM public.users pu
-LEFT JOIN auth.users au ON pu.auth_user_id = au.id
-WHERE LOWER(TRIM(pu.email)) = LOWER(TRIM('hclim@evkmc.com'))
-LIMIT 5;
-
--- 방법 B: auth.users 기준으로 조인 (public.users에 없을 경우 확인)
-SELECT 
-    pu.profile_id,
-    pu.name,
-    pu.email,
-    pu.auth_user_id,
-    au.email as auth_email,
-    au.id as auth_id,
-    CASE 
-        WHEN pu.auth_user_id = au.id THEN '✅ 정상 연결됨'
-        WHEN pu.profile_id IS NULL THEN '❌ public.users에 없음'
-        ELSE '❌ 연결 안됨'
-    END as connection_status
-FROM auth.users au
-LEFT JOIN public.users pu ON (
+FULL OUTER JOIN auth.users au ON (
     pu.auth_user_id = au.id 
     OR LOWER(TRIM(pu.email)) = LOWER(TRIM(au.email))
 )
-WHERE LOWER(TRIM(au.email)) = LOWER(TRIM('hclim@evkmc.com'))
+WHERE LOWER(TRIM(COALESCE(pu.email, au.email))) = LOWER(TRIM('hclim@evkmc.com'))
 LIMIT 5;
 
