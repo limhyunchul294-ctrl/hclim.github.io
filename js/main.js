@@ -1940,6 +1940,185 @@ async function renderAccountPage() {
                         }, 1000);
                     }
                 })();
+
+                // 명함 이미지 업로드 및 압축
+                (async function() {
+                    const uploadInput = document.getElementById('business-card-upload');
+                    const previewDiv = document.getElementById('business-card-preview');
+                    
+                    if (!uploadInput || !previewDiv) return;
+                    
+                    // 기존 명함 이미지 로드
+                    try {
+                        const userInfo = await window.authService?.getUserInfo();
+                        const session = await window.authSession.getSession();
+                        if (userInfo && session?.user?.id) {
+                            const userId = session.user.id;
+                            // Supabase Storage에서 명함 이미지 조회
+                            const { data: files, error } = await window.supabaseClient
+                                .storage
+                                .from('business_cards')
+                                .list(userId, {
+                                    limit: 1,
+                                    sortBy: { column: 'created_at', order: 'desc' }
+                                });
+                            
+                            if (!error && files && files.length > 0) {
+                                const { data: { publicUrl } } = window.supabaseClient
+                                    .storage
+                                    .from('business_cards')
+                                    .getPublicUrl(\`\${userId}/\${files[0].name}\`);
+                                
+                                previewDiv.innerHTML = \`
+                                    <img src="\${publicUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md">
+                                \`;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('명함 이미지 로드 오류:', error);
+                    }
+
+                    // 이미지 압축 함수 (1MB 미만, 해상도 유지)
+                    async function compressImage(file, maxSizeMB = 1) {
+                        return new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const img = new Image();
+                                img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    const ctx = canvas.getContext('2d');
+                                    
+                                    // 원본 해상도 유지
+                                    canvas.width = img.width;
+                                    canvas.height = img.height;
+                                    ctx.drawImage(img, 0, 0);
+                                    
+                                    // 품질 조절하여 압축
+                                    let quality = 0.9;
+                                    
+                                    const compress = () => {
+                                        canvas.toBlob((blob) => {
+                                            if (blob.size <= maxSizeMB * 1024 * 1024 || quality <= 0.1) {
+                                                resolve(blob);
+                                            } else {
+                                                quality -= 0.1;
+                                                compress();
+                                            }
+                                        }, file.type, quality);
+                                    };
+                                    
+                                    compress();
+                                };
+                                img.src = e.target.result;
+                            };
+                            reader.readAsDataURL(file);
+                        });
+                    }
+
+                    // 파일 선택 시 처리
+                    uploadInput.addEventListener('change', async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        // 이미지 파일만 허용
+                        if (!file.type.startsWith('image/')) {
+                            alert('이미지 파일만 업로드 가능합니다.');
+                            return;
+                        }
+
+                        try {
+                            // 로딩 표시
+                            previewDiv.innerHTML = \`
+                                <div class="text-center">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                                    <p class="text-sm text-gray-600">이미지 압축 중...</p>
+                                </div>
+                            \`;
+
+                            // 이미지 압축
+                            const compressedBlob = await compressImage(file, 1);
+                            
+                            // 압축된 이미지 미리보기
+                            const previewUrl = URL.createObjectURL(compressedBlob);
+                            previewDiv.innerHTML = \`
+                                <img src="\${previewUrl}" alt="명함 이미지 미리보기" class="max-w-full max-h-64 rounded-lg shadow-md">
+                            \`;
+
+                            // Supabase Storage에 업로드
+                            const session = await window.authSession.getSession();
+                            if (!session?.user?.id) {
+                                throw new Error('세션이 없습니다');
+                            }
+
+                            const userId = session.user.id;
+                            const timestamp = Date.now();
+                            const fileExt = file.name.split('.').pop();
+                            const fileName = \`\${timestamp}-business-card.\${fileExt}\`;
+                            const filePath = \`\${userId}/\${fileName}\`;
+
+                            const { data, error } = await window.supabaseClient
+                                .storage
+                                .from('business_cards')
+                                .upload(filePath, compressedBlob, {
+                                    cacheControl: '3600',
+                                    upsert: true
+                                });
+
+                            if (error) {
+                                throw error;
+                            }
+
+                            // Public URL 생성
+                            const { data: { publicUrl } } = window.supabaseClient
+                                .storage
+                                .from('business_cards')
+                                .getPublicUrl(filePath);
+
+                            // 최종 미리보기 업데이트
+                            previewDiv.innerHTML = \`
+                                <img src="\${publicUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md">
+                            \`;
+
+                            // 기존 파일 삭제 (같은 사용자의 다른 명함 이미지)
+                            const { data: oldFiles } = await window.supabaseClient
+                                .storage
+                                .from('business_cards')
+                                .list(userId);
+                            
+                            if (oldFiles && oldFiles.length > 1) {
+                                const filesToDelete = oldFiles
+                                    .filter(f => f.name !== fileName)
+                                    .map(f => \`\${userId}/\${f.name}\`);
+                                
+                                if (filesToDelete.length > 0) {
+                                    await window.supabaseClient
+                                        .storage
+                                        .from('business_cards')
+                                        .remove(filesToDelete);
+                                }
+                            }
+
+                            // URL 정리
+                            URL.revokeObjectURL(previewUrl);
+
+                            alert('명함 이미지가 업로드되었습니다.');
+                        } catch (error) {
+                            console.error('명함 이미지 업로드 오류:', error);
+                            alert('명함 이미지 업로드 중 오류가 발생했습니다: ' + error.message);
+                            previewDiv.innerHTML = \`
+                                <div class="text-center text-gray-500">
+                                    <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <p class="text-sm">명함 이미지가 없습니다</p>
+                                </div>
+                            \`;
+                        } finally {
+                            // input 초기화
+                            uploadInput.value = '';
+                        }
+                    });
+                })();
             </script>
         `;
     } catch (error) {
