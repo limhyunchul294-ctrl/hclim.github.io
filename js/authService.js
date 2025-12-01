@@ -10,6 +10,65 @@ window.authService = {
   _cacheExpiry: 5 * 60 * 1000, // 5분
 
   /**
+   * 사용자 grade 조회 (blue, silver, black)
+   */
+  async getUserGrade() {
+    try {
+      // 개발 환경에서는 목업 데이터 반환
+      if (window.APP_CONFIG?.ENV === 'development') {
+        console.log('📦 개발 환경: 목업 grade 반환 (black)');
+        return 'black';
+      }
+
+      // 1. 세션 확인
+      const session = await window.authSession?.getSession();
+      if (!session || !session.user) {
+        console.warn('⚠️ 세션이 없습니다');
+        return null;
+      }
+
+      // 2. 사용자 정보 조회
+      const userInfo = await this.getUserInfo();
+      if (!userInfo) {
+        console.warn('⚠️ 사용자 정보를 찾을 수 없습니다');
+        return null;
+      }
+
+      // 3. grade 반환 (없으면 null)
+      const grade = userInfo.grade || null;
+      console.log('📋 사용자 grade:', grade);
+      return grade;
+    } catch (error) {
+      console.error('❌ getUserGrade 오류:', error);
+      return null;
+    }
+  },
+
+  /**
+   * grade 기반 접근 권한 확인
+   * @param {string} requiredGrade - 필요한 최소 grade (blue, silver, black)
+   * @returns {boolean} 접근 가능 여부
+   */
+  async checkGradeAccess(requiredGrade) {
+    const userGrade = await this.getUserGrade();
+    if (!userGrade) {
+      return false;
+    }
+
+    // grade 우선순위: blue < silver < black
+    const gradeLevels = {
+      'blue': 1,
+      'silver': 2,
+      'black': 3
+    };
+
+    const userLevel = gradeLevels[userGrade.toLowerCase()] || 0;
+    const requiredLevel = gradeLevels[requiredGrade.toLowerCase()] || 0;
+
+    return userLevel >= requiredLevel;
+  },
+
+  /**
    * 사용자 역할 조회 (admin, user 등)
    */
   async getUserRole() {
@@ -156,7 +215,7 @@ window.authService = {
           console.log('🔄 정확한 매칭 실패, 전체 조회 후 필터링 시도...');
           const allUsers = await window.supabaseClient
             .from('users')
-            .select('username, phone, name, affiliation, role, auth_user_id, email, profile_id')
+            .select('username, phone, name, affiliation, role, auth_user_id, email, grade, profile_id')
             .not('email', 'is', null)
             .limit(100); // 성능을 위해 제한
           

@@ -1916,17 +1916,123 @@ async function renderAccountPage() {
             '/account': renderAccountPage
         };
 
+        /**
+         * grade 기반 접근 권한 확인
+         * @param {string} path - 접근하려는 경로
+         * @returns {Object} { allowed: boolean, requiredGrade: string, userGrade: string }
+         */
+        async function checkDocumentAccess(path) {
+            const userInfo = await window.authService?.getUserInfo();
+            if (!userInfo) {
+                return { allowed: false, requiredGrade: null, userGrade: null, reason: 'no_user_info' };
+            }
+
+            const userGrade = userInfo.grade?.toLowerCase() || null;
+            
+            // 문서별 필요한 최소 grade
+            const documentGradeMap = {
+                '/shop': 'blue',      // 정비지침서: blue 이상
+                '/etm': 'silver',     // 전장회로도: silver 이상
+                '/dtc': 'black',      // DTC 매뉴얼: black 이상
+                '/wiring': 'silver',  // 와이어링 커넥터: silver 이상 (전장회로도와 동일)
+                '/tsb': 'blue'        // TSB: blue 이상 (정비지침서와 동일)
+            };
+
+            const requiredGrade = documentGradeMap[path];
+            if (!requiredGrade) {
+                return { allowed: true, requiredGrade: null, userGrade, reason: 'no_restriction' };
+            }
+
+            // grade 우선순위: blue < silver < black
+            const gradeLevels = {
+                'blue': 1,
+                'silver': 2,
+                'black': 3
+            };
+
+            const userLevel = userGrade ? (gradeLevels[userGrade] || 0) : 0;
+            const requiredLevel = gradeLevels[requiredGrade] || 0;
+
+            const allowed = userLevel >= requiredLevel;
+
+            return {
+                allowed,
+                requiredGrade,
+                userGrade,
+                reason: allowed ? 'granted' : 'insufficient_grade'
+            };
+        }
+
+        /**
+         * 접근 제한 팝업 표시
+         * @param {string} contentType - 콘텐츠 타입 (게시판, 기술문서 등)
+         * @param {string} requiredGrade - 필요한 grade
+         * @param {string} userGrade - 사용자 grade
+         */
+        function showGradeRestrictedPopup(contentType, requiredGrade, userGrade) {
+            const gradeLabels = {
+                'blue': '블루 라벨',
+                'silver': '실버 라벨',
+                'black': '블랙 라벨'
+            };
+
+            const requiredLabel = gradeLabels[requiredGrade] || requiredGrade;
+            const userLabel = userGrade ? (gradeLabels[userGrade] || userGrade) : '없음';
+
+            const warningModal = document.createElement('div');
+            warningModal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+            warningModal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+                    <div class="text-center mb-4">
+                        <div class="text-5xl mb-4">🚫</div>
+                        <h2 class="text-xl font-bold mb-2 text-red-600">접근 제한</h2>
+                    </div>
+                    <div class="space-y-4">
+                        <p class="text-sm text-gray-700">
+                            ${contentType} 열람은 <strong>${requiredLabel}</strong> 이상의 권한이 필요합니다.
+                        </p>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <p class="text-xs text-yellow-800 font-medium mb-1">⚠️ 접근 불가</p>
+                            <p class="text-xs text-yellow-700">
+                                • 현재 등급: <strong>${userLabel}</strong><br>
+                                • 필요 등급: <strong>${requiredLabel}</strong><br>
+                                • 관리자에게 등급 업그레이드를 요청하세요
+                            </p>
+                        </div>
+                        <button 
+                            id="grade-restricted-modal-ok"
+                            class="w-full py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-medium"
+                        >
+                            확인
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(warningModal);
+            
+            // 확인 버튼 클릭 시 홈으로 리다이렉트
+            warningModal.querySelector('#grade-restricted-modal-ok').addEventListener('click', () => {
+                warningModal.remove();
+                window.location.hash = '#/home';
+            });
+            
+            // 모달 외부 클릭 시에도 홈으로 리다이렉트
+            warningModal.addEventListener('click', (e) => {
+                if (e.target === warningModal) {
+                    warningModal.remove();
+                    window.location.hash = '#/home';
+                }
+            });
+        }
+
         async function router(path, param = null) {
             try {
-                // 게시판 및 기술문서 접근 시 사용자 정보 확인
-                const restrictedPaths = ['/notices', '/community', '/shop', '/etm', '/dtc', '/wiring', '/tsb'];
-                if (restrictedPaths.includes(path)) {
+                // 게시판 접근 시 사용자 정보 확인
+                const boardPaths = ['/notices', '/community'];
+                if (boardPaths.includes(path)) {
                     const userInfo = await window.authService?.getUserInfo();
                     if (!userInfo) {
-                        const isBoard = ['/notices', '/community'].includes(path);
-                        const isDoc = ['/shop', '/etm', '/dtc', '/wiring', '/tsb'].includes(path);
-                        const contentType = isBoard ? '게시판' : '기술문서';
-                        
+                        const contentType = '게시판';
                         console.warn(`⚠️ ${contentType} 접근 차단: 사용자 정보 없음`);
                         
                         // 경고 팝업 표시
@@ -1978,6 +2084,84 @@ async function renderAccountPage() {
                         // 홈 페이지 렌더링
                         mainContent.innerHTML = await renderHomePage();
                         return;
+                    }
+                }
+
+                // 기술문서 접근 시 grade 확인
+                const documentPaths = ['/shop', '/etm', '/dtc', '/wiring', '/tsb'];
+                if (documentPaths.includes(path)) {
+                    const accessCheck = await checkDocumentAccess(path);
+                    
+                    if (!accessCheck.allowed) {
+                        if (accessCheck.reason === 'no_user_info') {
+                            // 사용자 정보가 없는 경우 (기존 로직)
+                            const contentType = '기술문서';
+                            console.warn(`⚠️ ${contentType} 접근 차단: 사용자 정보 없음`);
+                            
+                            const warningModal = document.createElement('div');
+                            warningModal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+                            warningModal.innerHTML = `
+                                <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+                                    <div class="text-center mb-4">
+                                        <div class="text-5xl mb-4">🚫</div>
+                                        <h2 class="text-xl font-bold mb-2 text-red-600">접근 제한</h2>
+                                    </div>
+                                    <div class="space-y-4">
+                                        <p class="text-sm text-gray-700">
+                                            기술문서 열람은 등록된 사용자만 가능합니다.
+                                        </p>
+                                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                            <p class="text-xs text-yellow-800 font-medium mb-1">⚠️ 접근 불가</p>
+                                            <p class="text-xs text-yellow-700">
+                                                • 현재 계정은 시스템에 등록되지 않았습니다<br>
+                                                • 기술문서 열람이 제한됩니다<br>
+                                                • 관리자에게 계정 등록을 요청하세요
+                                            </p>
+                                        </div>
+                                        <button 
+                                            id="restricted-warning-modal-ok"
+                                            class="w-full py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-medium"
+                                        >
+                                            확인
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            document.body.appendChild(warningModal);
+                            
+                            warningModal.querySelector('#restricted-warning-modal-ok').addEventListener('click', () => {
+                                warningModal.remove();
+                                window.location.hash = '#/home';
+                            });
+                            
+                            warningModal.addEventListener('click', (e) => {
+                                if (e.target === warningModal) {
+                                    warningModal.remove();
+                                    window.location.hash = '#/home';
+                                }
+                            });
+                            
+                            mainContent.innerHTML = await renderHomePage();
+                            return;
+                        } else if (accessCheck.reason === 'insufficient_grade') {
+                            // grade가 부족한 경우
+                            const documentNames = {
+                                '/shop': '정비지침서',
+                                '/etm': '전장회로도',
+                                '/dtc': 'DTC 매뉴얼',
+                                '/wiring': '와이어링 커넥터',
+                                '/tsb': 'TSB'
+                            };
+                            
+                            const documentName = documentNames[path] || '기술문서';
+                            console.warn(`⚠️ ${documentName} 접근 차단: grade 부족 (필요: ${accessCheck.requiredGrade}, 현재: ${accessCheck.userGrade})`);
+                            
+                            showGradeRestrictedPopup(documentName, accessCheck.requiredGrade, accessCheck.userGrade);
+                            
+                            // 홈 페이지 렌더링
+                            mainContent.innerHTML = await renderHomePage();
+                            return;
+                        }
                     }
                 }
                 const route = routes[path];
