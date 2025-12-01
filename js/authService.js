@@ -156,30 +156,62 @@ window.authService = {
           console.log('🔄 정확한 매칭 실패, 전체 조회 후 필터링 시도...');
           const allUsers = await window.supabaseClient
             .from('users')
-            .select('username, phone, name, affiliation, role, auth_user_id, email')
+            .select('username, phone, name, affiliation, role, auth_user_id, email, profile_id')
             .not('email', 'is', null)
             .limit(100); // 성능을 위해 제한
           
           if (allUsers.data && !allUsers.error) {
+            console.log('📋 전체 사용자 조회 결과:', {
+              총_사용자_수: allUsers.data.length,
+              이메일_목록: allUsers.data.map(u => ({
+                profile_id: u.profile_id,
+                email: u.email,
+                normalized: u.email ? String(u.email).trim().toLowerCase() : null
+              })).slice(0, 20)
+            });
+            
             // 클라이언트 측에서 대소문자 무시 매칭
             const matchedUser = allUsers.data.find(u => {
               if (!u.email) return false;
               const userEmailNormalized = String(u.email).trim().toLowerCase();
-              return userEmailNormalized === normalizedEmail;
+              const isMatch = userEmailNormalized === normalizedEmail;
+              if (isMatch) {
+                console.log('🔍 매칭된 사용자:', {
+                  profile_id: u.profile_id,
+                  email: u.email,
+                  normalized: userEmailNormalized,
+                  찾는_이메일: normalizedEmail
+                });
+              }
+              return isMatch;
             });
             
             if (matchedUser) {
               result = { data: matchedUser, error: null };
               console.log('✅ 클라이언트 필터링으로 사용자 찾음:', matchedUser.name || matchedUser.username);
             } else {
-              console.warn('⚠️ 이메일 매칭 실패:', {
+              console.error('❌ 이메일 매칭 실패 - 상세 정보:', {
                 찾는_이메일: normalizedEmail,
-                조회된_이메일_개수: allUsers.data.length,
-                조회된_이메일_목록: allUsers.data.map(u => u.email).slice(0, 10)
+                조회된_사용자_수: allUsers.data.length,
+                조회된_이메일_목록: allUsers.data
+                  .filter(u => u.email)
+                  .map(u => ({
+                    profile_id: u.profile_id,
+                    email: u.email,
+                    normalized: String(u.email).trim().toLowerCase(),
+                    일치여부: String(u.email).trim().toLowerCase() === normalizedEmail
+                  }))
+                  .slice(0, 20)
               });
-              console.error('💡 해결 방법: Supabase Dashboard > SQL Editor에서 다음 파일 실행:');
-              console.error('   supabase/migrations/011_manual_email_link_fix.sql');
+              console.error('💡 해결 방법:');
+              console.error('   1. Supabase Dashboard > SQL Editor에서 다음 파일 실행:');
+              console.error('      supabase/migrations/013_deep_diagnosis_email_issue.sql');
+              console.error('   2. 1단계 쿼리로 public.users에 실제로 어떤 이메일이 있는지 확인');
+              console.error('   3. 2단계 쿼리로 hclim 관련 레코드 검색');
+              console.error('   4. 이메일이 다르면 수동으로 수정하거나 동기화 SQL 실행');
             }
+          } else if (allUsers.error) {
+            console.error('❌ 전체 사용자 조회 실패:', allUsers.error);
           }
         }
         
