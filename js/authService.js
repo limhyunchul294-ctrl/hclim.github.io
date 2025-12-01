@@ -180,7 +180,7 @@ window.authService = {
       // 방법 1: auth_user_id로 조회 시도
       let { data: userInfo, error } = await window.supabaseClient
         .from('users')
-        .select('username, phone, name, affiliation, role, auth_user_id, email')
+        .select('username, phone, name, affiliation, role, auth_user_id, email, grade')
         .eq('auth_user_id', userId)
         .single();
 
@@ -196,7 +196,7 @@ window.authService = {
         // 방법 A: 정확한 매칭 시도 (대소문자 무시)
         let result = await window.supabaseClient
           .from('users')
-          .select('username, phone, name, affiliation, role, auth_user_id, email')
+          .select('username, phone, name, affiliation, role, auth_user_id, email, grade')
           .ilike('email', normalizedEmail)
           .maybeSingle();
         
@@ -205,7 +205,7 @@ window.authService = {
           console.log('🔄 ilike 매칭 실패, eq로 재시도...');
           result = await window.supabaseClient
             .from('users')
-            .select('username, phone, name, affiliation, role, auth_user_id, email')
+            .select('username, phone, name, affiliation, role, auth_user_id, email, grade')
             .eq('email', normalizedEmail)
             .maybeSingle();
         }
@@ -339,7 +339,7 @@ window.authService = {
         
         const result = await window.supabaseClient
           .from('users')
-          .select('username, phone, name, affiliation, role, auth_user_id, email')
+          .select('username, phone, name, affiliation, role, auth_user_id, email, grade')
           .eq('phone', phoneNormalized)
           .maybeSingle();
         
