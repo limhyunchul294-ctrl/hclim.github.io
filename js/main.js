@@ -1747,6 +1747,22 @@ async function renderAccountPage() {
                                 <label class="block text-sm font-medium text-gray-700 mb-2">연락처</label>
                                 <input type="tel" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" value="${userInfo?.phone || '정보 없음'}" readonly>
                             </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">등급 (Grade)</label>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 font-semibold ${userInfo?.grade === 'black' ? 'text-gray-900' : userInfo?.grade === 'silver' ? 'text-gray-600' : 'text-blue-600'}">
+                                        ${userInfo?.grade === 'black' ? '⚫ 블랙 라벨' : userInfo?.grade === 'silver' ? '⚪ 실버 라벨' : userInfo?.grade === 'blue' ? '🔵 블루 라벨' : '등급 없음'}
+                                    </span>
+                                </div>
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
+                                    <p class="font-semibold mb-1">등급별 접근 권한:</p>
+                                    <ul class="space-y-1 list-disc list-inside">
+                                        <li><strong>블루 라벨:</strong> 정비지침서, TSB</li>
+                                        <li><strong>실버 라벨:</strong> 정비지침서, 전장회로도, 와이어링 커넥터, TSB</li>
+                                        <li><strong>블랙 라벨:</strong> 모든 기술문서 접근 가능</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                         <div class="mt-4 pt-4 border-t border-gray-200">
                             <p class="text-xs text-gray-500">정보 변경은 관리자에게 문의해주세요.</p>
@@ -1810,6 +1826,43 @@ async function renderAccountPage() {
                                 <div class="session-info-row">
                                     <span class="session-label">📅 계정 생성</span>
                                     <span class="session-value">${new Date(session.user.created_at).toLocaleDateString('ko-KR')}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 명함 이미지 -->
+                        <div class="bg-white rounded-xl shadow-soft p-6">
+                            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                명함 이미지
+                            </h2>
+                            <div class="space-y-4">
+                                <!-- 미리보기 영역 -->
+                                <div id="business-card-preview" class="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-[200px] flex items-center justify-center bg-gray-50">
+                                    <div class="text-center text-gray-500">
+                                        <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <p class="text-sm">명함 이미지가 없습니다</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- 업로드 버튼 -->
+                                <div>
+                                    <input type="file" id="business-card-upload" accept="image/jpeg,image/png,image/webp" class="hidden">
+                                    <button 
+                                        type="button"
+                                        onclick="document.getElementById('business-card-upload').click()"
+                                        class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center gap-2"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                        </svg>
+                                        명함 이미지 업로드
+                                    </button>
+                                    <p class="text-xs text-gray-500 mt-2 text-center">이미지는 자동으로 1MB 미만으로 압축됩니다</p>
                                 </div>
                             </div>
                         </div>
