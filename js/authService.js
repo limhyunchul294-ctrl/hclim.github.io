@@ -130,8 +130,8 @@ window.authService = {
         console.log('🔄 auth_user_id로 조회 실패, 이메일로 재시도:', userEmail);
         console.log('📋 에러 상세:', { code: error.code, status: error.status, message: error.message });
         
-        // 이메일 조회 시 대소문자 무시 및 공백 제거
-        const normalizedEmail = userEmail.trim().toLowerCase();
+        // 이메일 조회 시 대소문자 무시, 공백 제거, 줄바꿈 제거
+        const normalizedEmail = userEmail.trim().toLowerCase().replace(/[\n\r\t]+/g, '');
         console.log('🔍 정규화된 이메일:', normalizedEmail);
         
         // 방법 A: 정확한 매칭 시도 (대소문자 무시)
@@ -239,10 +239,16 @@ window.authService = {
               ? { profile_id: userInfo.profile_id }  // profile_id로 정확히 업데이트
               : { email: normalizedEmail };  // profile_id가 없으면 이메일로
             
+            // 이메일로 업데이트할 때도 줄바꿈 제거된 이메일 사용
+            const updateEmail = normalizedEmail;
+            const finalUpdateCondition = userInfo.profile_id 
+              ? { profile_id: userInfo.profile_id }
+              : { email: updateEmail };
+            
             const { error: updateError, data: updateData } = await window.supabaseClient
               .from('users')
               .update({ auth_user_id: userId })
-              .match(updateCondition)
+              .match(finalUpdateCondition)
               .select();
             
             if (updateError) {
