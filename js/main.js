@@ -2073,8 +2073,8 @@ async function initBusinessCardUpload() {
                                     
                                     if (imageUrl) {
                                         previewDiv.innerHTML = `
-                                            <div class="relative">
-                                                <img src="${imageUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" 
+                                            <div class="relative w-full h-full flex items-center justify-center">
+                                                <img src="${imageUrl}" alt="명함 이미지" class="w-full h-full object-contain rounded-lg" 
                                                      onerror="console.error('이미지 로드 실패:', this.src); this.parentElement.innerHTML='<div class=\\\"text-center text-gray-500\\\"><p class=\\\"text-sm\\\">이미지를 불러올 수 없습니다</p></div>'"
                                                      onload="console.log('이미지 로드 성공:', this.src)">
                                                 <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
@@ -2199,9 +2199,9 @@ async function initBusinessCardUpload() {
                             // 압축된 이미지 미리보기
                             const previewUrl = URL.createObjectURL(compressedBlob);
                             previewDiv.innerHTML = `
-                                <div class="text-center">
-                                    <img src="${previewUrl}" alt="명함 이미지 미리보기" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto mb-2">
-                                    <p class="text-xs text-gray-500">압축 완료 (${compressionRatio}% 감소) - 업로드 중...</p>
+                                <div class="relative w-full h-full flex flex-col items-center justify-center">
+                                    <img src="${previewUrl}" alt="명함 이미지 미리보기" class="w-full h-full object-contain rounded-lg mb-2">
+                                    <p class="text-xs text-gray-500 absolute bottom-2">압축 완료 (${compressionRatio}% 감소) - 업로드 중...</p>
                                 </div>
                             `;
 
@@ -2211,10 +2211,23 @@ async function initBusinessCardUpload() {
                                 throw new Error('세션이 없습니다');
                             }
 
+                            // 사용자 정보 가져오기 (파일명 생성용)
+                            const userInfo = await window.authService?.getUserInfo();
                             const userId = session.user.id;
-                            const timestamp = Date.now();
                             const fileExt = file.name.split('.').pop() || 'jpg';
-                            const fileName = timestamp + '-business-card.' + fileExt;
+                            
+                            // 파일명 생성: 업체명-이름.확장자
+                            let fileName = 'business-card.' + fileExt;
+                            if (userInfo?.affiliation && userInfo?.name) {
+                                // 특수문자 제거 및 공백을 하이픈으로 변경
+                                const affiliation = userInfo.affiliation.replace(/[^\w가-힣\s-]/g, '').replace(/\s+/g, '-');
+                                const name = userInfo.name.replace(/[^\w가-힣\s-]/g, '').replace(/\s+/g, '-');
+                                fileName = `${affiliation}-${name}.${fileExt}`;
+                            } else if (userInfo?.name) {
+                                const name = userInfo.name.replace(/[^\w가-힣\s-]/g, '').replace(/\s+/g, '-');
+                                fileName = `${name}.${fileExt}`;
+                            }
+                            
                             const filePath = userId + '/' + fileName;
 
                             console.log('Storage 업로드 시작:', { 
@@ -2386,8 +2399,8 @@ async function initBusinessCardUpload() {
                             // 최종 미리보기 업데이트
                             if (finalImageUrl) {
                                 previewDiv.innerHTML = `
-                                    <div class="relative">
-                                        <img src="${finalImageUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" 
+                                    <div class="relative w-full h-full flex items-center justify-center">
+                                        <img src="${finalImageUrl}" alt="명함 이미지" class="w-full h-full object-contain rounded-lg" 
                                              onerror="console.error('이미지 로드 실패:', this.src); this.parentElement.innerHTML='<div class=\\\"text-center text-red-500\\\"><p class=\\\"text-sm\\\">이미지 로드 실패</p></div>'"
                                              onload="console.log('이미지 로드 성공:', this.src)">
                                         <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
