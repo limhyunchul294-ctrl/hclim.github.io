@@ -2075,8 +2075,8 @@ async function initBusinessCardUpload() {
                                         previewDiv.innerHTML = `
                                             <div class="relative w-full h-full flex items-center justify-center">
                                                 <img src="${imageUrl}" alt="명함 이미지" class="w-full h-full object-contain rounded-lg" 
-                                                     onerror="console.error('이미지 로드 실패:', this.src); this.parentElement.innerHTML='<div class=\\\"text-center text-gray-500\\\"><p class=\\\"text-sm\\\">이미지를 불러올 수 없습니다</p></div>'"
-                                                     onload="console.log('이미지 로드 성공:', this.src)">
+                                                     onerror="this.onerror=null; this.style.display='none'; const placeholder = this.parentElement.querySelector('.image-placeholder') || document.createElement('div'); placeholder.className='image-placeholder text-center text-gray-400'; placeholder.innerHTML='<svg class=\\\"w-16 h-16 mx-auto mb-2 opacity-50\\\" fill=\\\"none\\\" stroke=\\\"currentColor\\\" viewBox=\\\"0 0 24 24\\\"><path stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\" stroke-width=\\\"2\\\" d=\\\"M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\\\"></path></svg><p class=\\\"text-sm\\\">명함 이미지</p>'; if(!this.parentElement.querySelector('.image-placeholder')) this.parentElement.appendChild(placeholder);"
+                                                     onload="console.log('이미지 로드 성공:', this.src); const placeholder = this.parentElement.querySelector('.image-placeholder'); if(placeholder) placeholder.remove();">
                                                 <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
                                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
@@ -2216,17 +2216,32 @@ async function initBusinessCardUpload() {
                             const userId = session.user.id;
                             const fileExt = file.name.split('.').pop() || 'jpg';
                             
-                            // 파일명 생성: 업체명-이름.확장자
+                            // 파일명 생성: 업체명-이름.확장자 (URL-safe)
                             let fileName = 'business-card.' + fileExt;
                             if (userInfo?.affiliation && userInfo?.name) {
-                                // 특수문자 제거 및 공백을 하이픈으로 변경
-                                const affiliation = userInfo.affiliation.replace(/[^\w가-힣\s-]/g, '').replace(/\s+/g, '-');
-                                const name = userInfo.name.replace(/[^\w가-힣\s-]/g, '').replace(/\s+/g, '-');
-                                fileName = `${affiliation}-${name}.${fileExt}`;
+                                // 한글을 URL-safe하게 인코딩 (공백은 하이픈으로, 특수문자는 제거)
+                                const affiliation = userInfo.affiliation.trim()
+                                    .replace(/\s+/g, '-')
+                                    .replace(/[^\w가-힣\-]/g, '');
+                                const name = userInfo.name.trim()
+                                    .replace(/\s+/g, '-')
+                                    .replace(/[^\w가-힣\-]/g, '');
+                                if (affiliation && name) {
+                                    // 파일명은 한글을 그대로 사용하되, 경로는 인코딩
+                                    fileName = `${affiliation}-${name}.${fileExt}`;
+                                }
                             } else if (userInfo?.name) {
-                                const name = userInfo.name.replace(/[^\w가-힣\s-]/g, '').replace(/\s+/g, '-');
-                                fileName = `${name}.${fileExt}`;
+                                const name = userInfo.name.trim()
+                                    .replace(/\s+/g, '-')
+                                    .replace(/[^\w가-힣\-]/g, '');
+                                if (name) {
+                                    fileName = `${name}.${fileExt}`;
+                                }
                             }
+                            
+                            // 파일 경로 생성 시 파일명 부분만 인코딩
+                            const encodedFileName = encodeURIComponent(fileName).replace(/%2F/g, '-');
+                            const filePath = userId + '/' + encodedFileName;
                             
                             const filePath = userId + '/' + fileName;
 
