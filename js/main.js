@@ -1943,7 +1943,7 @@ async function renderAccountPage() {
                     }
                 })();
 
-            </script>
+            <\/script>
         `;
     } catch (error) {
         console.error('계정 정보 로드 오류:', error);
@@ -2541,7 +2541,7 @@ async function initBusinessCardUpload() {
                         uploadInput.click();
                     });
                 })();
-            </script>
+            <\/script>
         `;
     } catch (error) {
         console.error('계정 정보 로드 오류:', error);
