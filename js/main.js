@@ -1998,9 +1998,9 @@ async function initBusinessCardUpload() {
             setTimeout(() => toast.remove(), 300);
         }, 3000);
     }
-                    
-                    // 기존 명함 이미지 로드
-                    async function loadExistingCard() {
+    
+    // 기존 명함 이미지 로드
+    async function loadExistingCard() {
                         try {
                             const userInfo = await window.authService?.getUserInfo();
                             const session = await window.authSession.getSession();
@@ -2103,13 +2103,13 @@ async function initBusinessCardUpload() {
                         } catch (error) {
                             console.error('명함 이미지 로드 오류:', error);
                         }
-                    }
-                    
-                    // 초기 로드
-                    await loadExistingCard();
+    }
+    
+    // 초기 로드
+    await loadExistingCard();
 
-                    // 이미지 압축 함수 (1MB 미만, 해상도 유지)
-                    async function compressImage(file, maxSizeMB = 1) {
+    // 이미지 압축 함수 (1MB 미만, 해상도 유지)
+    async function compressImage(file, maxSizeMB = 1) {
                         return new Promise((resolve) => {
                             const reader = new FileReader();
                             reader.onload = (e) => {
@@ -2143,10 +2143,10 @@ async function initBusinessCardUpload() {
                             };
                             reader.readAsDataURL(file);
                         });
-                    }
+    }
 
-                    // 파일 업로드 공통 함수
-                    async function handleFileUpload(file) {
+    // 파일 업로드 공통 함수
+    async function handleFileUpload(file) {
                         console.log('handleFileUpload 호출됨:', { file, fileName: file?.name, fileType: file?.type, fileSize: file?.size });
                         
                         if (!file) {
@@ -2479,78 +2479,64 @@ async function initBusinessCardUpload() {
                                 console.error('기존 이미지 로드 실패:', loadError);
                             }
                         }
-                    }
-
-                    // 파일 선택 시 처리
-                    uploadInput.addEventListener('change', async (e) => {
-                        const file = e.target.files[0];
-                        await handleFileUpload(file);
-                        uploadInput.value = '';
-                    });
-
-                    // 드래그 앤 드롭 이벤트 처리
-                    let dragCounter = 0;
-                    
-                    // 드래그 오버 시 스타일 변경
-                    ['dragenter', 'dragover'].forEach(eventName => {
-                        previewDiv.addEventListener(eventName, (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            dragCounter++;
-                            previewDiv.classList.add('border-purple-500', 'bg-purple-100');
-                            previewDiv.classList.remove('border-gray-300', 'bg-gray-50');
-                        });
-                    });
-                    
-                    // 드래그 리브 시 스타일 복원
-                    ['dragleave', 'drop'].forEach(eventName => {
-                        previewDiv.addEventListener(eventName, (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            dragCounter--;
-                            if (dragCounter === 0) {
-                                previewDiv.classList.remove('border-purple-500', 'bg-purple-100');
-                                previewDiv.classList.add('border-gray-300', 'bg-gray-50');
-                            }
-                        });
-                    });
-                    
-                    // 드롭 시 파일 처리
-                    previewDiv.addEventListener('drop', async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        dragCounter = 0;
-                        previewDiv.classList.remove('border-purple-500', 'bg-purple-100');
-                        previewDiv.classList.add('border-gray-300', 'bg-gray-50');
-                        
-                        const files = e.dataTransfer?.files;
-                        if (files && files.length > 0) {
-                            await handleFileUpload(files[0]);
-                        }
-                    });
-                    
-                    // 클릭 시 파일 선택 다이얼로그 열기
-                    previewDiv.addEventListener('click', (e) => {
-                        // 이미지가 있으면 클릭 무시
-                        if (previewDiv.querySelector('img')) {
-                            return;
-                        }
-                        uploadInput.click();
-                    });
-                })();
-            <\/script>
-        `;
-    } catch (error) {
-        console.error('계정 정보 로드 오류:', error);
-        return `
-            <div class="max-w-2xl mx-auto p-6">
-                <h1 class="text-2xl font-bold text-gray-900 mb-6">내 정보</h1>
-                <div class="bg-white rounded-xl shadow-soft p-6">
-                    <p class="text-red-500 text-center">계정 정보를 불러올 수 없습니다.</p>
-                </div>
-            </div>
-        `;
     }
+
+    // 파일 선택 시 처리
+    uploadInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        await handleFileUpload(file);
+        uploadInput.value = '';
+    });
+
+    // 드래그 앤 드롭 이벤트 처리
+    let dragCounter = 0;
+    
+    // 드래그 오버 시 스타일 변경
+    ['dragenter', 'dragover'].forEach(eventName => {
+        previewDiv.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter++;
+            previewDiv.classList.add('border-purple-500', 'bg-purple-100');
+            previewDiv.classList.remove('border-gray-300', 'bg-gray-50');
+        });
+    });
+    
+    // 드래그 리브 시 스타일 복원
+    ['dragleave', 'drop'].forEach(eventName => {
+        previewDiv.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter--;
+            if (dragCounter === 0) {
+                previewDiv.classList.remove('border-purple-500', 'bg-purple-100');
+                previewDiv.classList.add('border-gray-300', 'bg-gray-50');
+            }
+        });
+    });
+    
+    // 드롭 시 파일 처리
+    previewDiv.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter = 0;
+        previewDiv.classList.remove('border-purple-500', 'bg-purple-100');
+        previewDiv.classList.add('border-gray-300', 'bg-gray-50');
+        
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+            await handleFileUpload(files[0]);
+        }
+    });
+    
+    // 클릭 시 파일 선택 다이얼로그 열기
+    previewDiv.addEventListener('click', (e) => {
+        // 이미지가 있으면 클릭 무시
+        if (previewDiv.querySelector('img')) {
+            return;
+        }
+        uploadInput.click();
+    });
 }
 
         // ---- 7. 라우터 ----
