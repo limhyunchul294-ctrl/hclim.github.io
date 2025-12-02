@@ -1906,53 +1906,53 @@ async function renderAccountPage() {
 
 // 세션 카운트다운 초기화 함수
 function initSessionCountdown() {
-    const loginTimeKey = 'session_login_time';
-    const sessionDuration = 30 * 60 * 1000; // 30분
-    const countdownEl = document.getElementById('session-countdown');
-    
-    if (countdownEl) {
-        const interval = setInterval(() => {
-            const loginTime = localStorage.getItem(loginTimeKey);
-            if (!loginTime) {
-                clearInterval(interval);
-                countdownEl.textContent = '만료됨';
-                countdownEl.classList.add('text-red-600');
-                return;
-            }
-            
-            const now = Date.now();
-            const loginTimestamp = parseInt(loginTime);
-            const elapsedTime = now - loginTimestamp;
-            const remaining = sessionDuration - elapsedTime;
-            
-            if (remaining <= 0) {
-                clearInterval(interval);
-                countdownEl.textContent = '만료됨';
-                countdownEl.classList.add('text-red-600');
-                // 자동 로그아웃
-                setTimeout(() => {
-                    if (window.handleLogout) {
-                        window.handleLogout();
+                    const loginTimeKey = 'session_login_time';
+                    const sessionDuration = 30 * 60 * 1000; // 30분
+                    const countdownEl = document.getElementById('session-countdown');
+                    
+                    if (countdownEl) {
+                        const interval = setInterval(() => {
+                            const loginTime = localStorage.getItem(loginTimeKey);
+                            if (!loginTime) {
+                                clearInterval(interval);
+                                countdownEl.textContent = '만료됨';
+                                countdownEl.classList.add('text-red-600');
+                                return;
+                            }
+                            
+                            const now = Date.now();
+                            const loginTimestamp = parseInt(loginTime);
+                            const elapsedTime = now - loginTimestamp;
+                            const remaining = sessionDuration - elapsedTime;
+                            
+                            if (remaining <= 0) {
+                                clearInterval(interval);
+                                countdownEl.textContent = '만료됨';
+                                countdownEl.classList.add('text-red-600');
+                                // 자동 로그아웃
+                                setTimeout(() => {
+                                    if (window.handleLogout) {
+                                        window.handleLogout();
+                                    }
+                                }, 1000);
+                                return;
+                            }
+                            
+                            const minutes = Math.floor(remaining / 60000);
+                            const seconds = Math.floor((remaining % 60000) / 1000);
+                            
+                            // 10분 이하면 빨간색으로 변경
+                            if (minutes <= 10) {
+                                countdownEl.classList.remove('text-purple-600');
+                                countdownEl.classList.add('text-red-600');
+                            } else {
+                                countdownEl.classList.remove('text-red-600');
+                                countdownEl.classList.add('text-purple-600');
+                            }
+                            
+                            countdownEl.textContent = minutes + '분 ' + seconds + '초';
+                        }, 1000);
                     }
-                }, 1000);
-                return;
-            }
-            
-            const minutes = Math.floor(remaining / 60000);
-            const seconds = Math.floor((remaining % 60000) / 1000);
-            
-            // 10분 이하면 빨간색으로 변경
-            if (minutes <= 10) {
-                countdownEl.classList.remove('text-purple-600');
-                countdownEl.classList.add('text-red-600');
-            } else {
-                countdownEl.classList.remove('text-red-600');
-                countdownEl.classList.add('text-purple-600');
-            }
-            
-            countdownEl.textContent = minutes + '분 ' + seconds + '초';
-        }, 1000);
-    }
 }
 
 // 명함 이미지 업로드 초기화 함수 (DOM 삽입 후 호출)
@@ -2074,9 +2074,7 @@ async function initBusinessCardUpload() {
                                     if (imageUrl) {
                                         previewDiv.innerHTML = `
                                             <div class="relative w-full h-full flex items-center justify-center overflow-hidden">
-                                                <img src="${imageUrl}" alt="명함 이미지" class="w-full h-full object-contain rounded-lg" 
-                                                     onerror="this.onerror=null; this.style.display='none'; const placeholder = this.parentElement.querySelector('.image-placeholder') || document.createElement('div'); placeholder.className='image-placeholder text-center text-gray-400'; placeholder.innerHTML='<svg class=\\\"w-16 h-16 mx-auto mb-2 opacity-50\\\" fill=\\\"none\\\" stroke=\\\"currentColor\\\" viewBox=\\\"0 0 24 24\\\"><path stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\" stroke-width=\\\"2\\\" d=\\\"M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\\\"></path></svg><p class=\\\"text-sm\\\">명함 이미지</p>'; if(!this.parentElement.querySelector('.image-placeholder')) this.parentElement.appendChild(placeholder);"
-                                                     onload="console.log('이미지 로드 성공:', this.src); const placeholder = this.parentElement.querySelector('.image-placeholder'); if(placeholder) placeholder.remove();">
+                                                <img src="${imageUrl}" alt="명함 이미지" class="w-full h-full object-contain rounded-lg" id="business-card-loaded-image">
                                                 <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1 z-10 shadow-md">
                                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
@@ -2085,6 +2083,25 @@ async function initBusinessCardUpload() {
                                                 </div>
                                             </div>
                                         `;
+                                        
+                                        // 이미지 로드 이벤트 핸들러 추가
+                                        const loadedImg = previewDiv.querySelector('#business-card-loaded-image');
+                                        if (loadedImg) {
+                                            loadedImg.onerror = function() {
+                                                this.style.display = 'none';
+                                                const placeholder = this.parentElement.querySelector('.image-placeholder') || document.createElement('div');
+                                                placeholder.className = 'image-placeholder text-center text-gray-400';
+                                                placeholder.innerHTML = '<svg class="w-16 h-16 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><p class="text-sm">명함 이미지</p>';
+                                                if (!this.parentElement.querySelector('.image-placeholder')) {
+                                                    this.parentElement.appendChild(placeholder);
+                                                }
+                                            };
+                                            loadedImg.onload = function() {
+                                                console.log('이미지 로드 성공:', this.src);
+                                                const placeholder = this.parentElement.querySelector('.image-placeholder');
+                                                if (placeholder) placeholder.remove();
+                                            };
+                                        }
                                     } else {
                                         console.error('이미지 URL을 생성할 수 없습니다');
                                         previewDiv.innerHTML = `
@@ -2100,7 +2117,7 @@ async function initBusinessCardUpload() {
                                     }
                                 }
                             }
-                        } catch (error) {
+    } catch (error) {
                             console.error('명함 이미지 로드 오류:', error);
                         }
     }
@@ -2205,9 +2222,9 @@ async function initBusinessCardUpload() {
                                         <div class="bg-white/90 px-3 py-2 rounded-lg shadow-lg">
                                             <p class="text-xs text-gray-700 font-medium">압축 완료 (${compressionRatio}% 감소) - 업로드 중...</p>
                                         </div>
-                                    </div>
-                                </div>
-                            `;
+                </div>
+            </div>
+        `;
 
                             // Supabase Storage에 업로드
                             const session = await window.authSession.getSession();
@@ -2413,9 +2430,7 @@ async function initBusinessCardUpload() {
                             if (finalImageUrl) {
                                 previewDiv.innerHTML = `
                                     <div class="relative w-full h-full flex items-center justify-center overflow-hidden">
-                                        <img src="${finalImageUrl}" alt="명함 이미지" class="w-full h-full object-contain rounded-lg" 
-                                             onerror="this.onerror=null; this.style.display='none'; const placeholder = this.parentElement.querySelector('.image-placeholder') || document.createElement('div'); placeholder.className='image-placeholder text-center text-gray-400'; placeholder.innerHTML='<svg class=\\\"w-16 h-16 mx-auto mb-2 opacity-50\\\" fill=\\\"none\\\" stroke=\\\"currentColor\\\" viewBox=\\\"0 0 24 24\\\"><path stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\" stroke-width=\\\"2\\\" d=\\\"M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\\\"></path></svg><p class=\\\"text-sm\\\">명함 이미지</p>'; if(!this.parentElement.querySelector('.image-placeholder')) this.parentElement.appendChild(placeholder);"
-                                             onload="console.log('이미지 로드 성공:', this.src); const placeholder = this.parentElement.querySelector('.image-placeholder'); if(placeholder) placeholder.remove();">
+                                        <img src="${finalImageUrl}" alt="명함 이미지" class="w-full h-full object-contain rounded-lg" id="business-card-final-image">
                                         <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1 z-10 shadow-md">
                                             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
@@ -2424,6 +2439,25 @@ async function initBusinessCardUpload() {
                                         </div>
                                     </div>
                                 `;
+                                
+                                // 이미지 로드 이벤트 핸들러 추가
+                                const finalImg = previewDiv.querySelector('#business-card-final-image');
+                                if (finalImg) {
+                                    finalImg.onerror = function() {
+                                        this.style.display = 'none';
+                                        const placeholder = this.parentElement.querySelector('.image-placeholder') || document.createElement('div');
+                                        placeholder.className = 'image-placeholder text-center text-gray-400';
+                                        placeholder.innerHTML = '<svg class="w-16 h-16 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><p class="text-sm">명함 이미지</p>';
+                                        if (!this.parentElement.querySelector('.image-placeholder')) {
+                                            this.parentElement.appendChild(placeholder);
+                                        }
+                                    };
+                                    finalImg.onload = function() {
+                                        console.log('이미지 로드 성공:', this.src);
+                                        const placeholder = this.parentElement.querySelector('.image-placeholder');
+                                        if (placeholder) placeholder.remove();
+                                    };
+                                }
                             } else {
                                 console.error('모든 URL 생성 방법 실패');
                                 previewDiv.innerHTML = `
