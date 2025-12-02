@@ -2077,7 +2077,7 @@ async function initBusinessCardUpload() {
                                     if (imageUrl) {
                                         previewDiv.innerHTML = `
                                             <div class="relative">
-                                                <img src="\${imageUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" 
+                                                <img src="${imageUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" 
                                                      onerror="console.error('이미지 로드 실패:', this.src); this.parentElement.innerHTML='<div class=\\\"text-center text-gray-500\\\"><p class=\\\"text-sm\\\">이미지를 불러올 수 없습니다</p></div>'"
                                                      onload="console.log('이미지 로드 성공:', this.src)">
                                                 <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
@@ -2087,14 +2087,14 @@ async function initBusinessCardUpload() {
                                                     저장됨
                                                 </div>
                                             </div>
-                                        \`;
+                                        `;
                                     } else {
                                         console.error('이미지 URL을 생성할 수 없습니다');
                                         previewDiv.innerHTML = `
                                             <div class="text-center text-gray-500">
                                                 <p class="text-sm">이미지 URL 생성 실패</p>
                                             </div>
-                                        \`;
+                                        `;
                                     }
                                 } else {
                                     console.log('저장된 명함 이미지가 없습니다:', error);
@@ -2183,7 +2183,7 @@ async function initBusinessCardUpload() {
                                 <div class="text-center py-8">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
                                     <p class="text-sm text-gray-600">이미지 압축 중...</p>
-                                    <p class="text-xs text-gray-400 mt-1">원본 크기: \${(file.size / 1024 / 1024).toFixed(2)}MB</p>
+                                    <p class="text-xs text-gray-400 mt-1">원본 크기: ${(file.size / 1024 / 1024).toFixed(2)}MB</p>
                                 </div>
                             \`;
 
@@ -2203,8 +2203,8 @@ async function initBusinessCardUpload() {
                             const previewUrl = URL.createObjectURL(compressedBlob);
                             previewDiv.innerHTML = `
                                 <div class="text-center">
-                                    <img src="\${previewUrl}" alt="명함 이미지 미리보기" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto mb-2">
-                                    <p class="text-xs text-gray-500">압축 완료 (\${compressionRatio}% 감소) - 업로드 중...</p>
+                                    <img src="${previewUrl}" alt="명함 이미지 미리보기" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto mb-2">
+                                    <p class="text-xs text-gray-500">압축 완료 (${compressionRatio}% 감소) - 업로드 중...</p>
                                 </div>
                             \`;
 
@@ -2390,7 +2390,7 @@ async function initBusinessCardUpload() {
                             if (finalImageUrl) {
                                 previewDiv.innerHTML = `
                                     <div class="relative">
-                                        <img src="\${finalImageUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" 
+                                        <img src="${finalImageUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" 
                                              onerror="console.error('이미지 로드 실패:', this.src); this.parentElement.innerHTML='<div class=\\\"text-center text-red-500\\\"><p class=\\\"text-sm\\\">이미지 로드 실패</p></div>'"
                                              onload="console.log('이미지 로드 성공:', this.src)">
                                         <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
@@ -2470,7 +2470,7 @@ async function initBusinessCardUpload() {
                             previewDiv.innerHTML = `
                                 <div class="text-center text-red-500 p-4">
                                     <p class="text-sm font-medium">업로드 실패</p>
-                                    <p class="text-xs mt-1">\${errorMessage}</p>
+                                    <p class="text-xs mt-1">${errorMessage}</p>
                                     <p class="text-xs mt-2 text-gray-400">콘솔에서 자세한 오류를 확인하세요</p>
                                 </div>
                             \`;
