@@ -2185,7 +2185,7 @@ async function initBusinessCardUpload() {
                                     <p class="text-sm text-gray-600">이미지 압축 중...</p>
                                     <p class="text-xs text-gray-400 mt-1">원본 크기: ${(file.size / 1024 / 1024).toFixed(2)}MB</p>
                                 </div>
-                            \`;
+                            `;
 
                             // 이미지 압축
                             const compressedBlob = await compressImage(file, 1);
@@ -2206,7 +2206,7 @@ async function initBusinessCardUpload() {
                                     <img src="${previewUrl}" alt="명함 이미지 미리보기" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto mb-2">
                                     <p class="text-xs text-gray-500">압축 완료 (${compressionRatio}% 감소) - 업로드 중...</p>
                                 </div>
-                            \`;
+                            `;
 
                             // Supabase Storage에 업로드
                             const session = await window.authSession.getSession();
@@ -2400,7 +2400,7 @@ async function initBusinessCardUpload() {
                                             저장됨
                                         </div>
                                     </div>
-                                \`;
+                                `;
                             } else {
                                 console.error('모든 URL 생성 방법 실패');
                                 previewDiv.innerHTML = `
@@ -2408,7 +2408,7 @@ async function initBusinessCardUpload() {
                                         <p class="text-sm">이미지 URL 생성 실패</p>
                                         <p class="text-xs mt-1">업로드는 완료되었지만 표시할 수 없습니다.</p>
                                     </div>
-                                \`;
+                                `;
                             }
 
                             // 업로드 성공한 버킷 이름 찾기
@@ -2473,7 +2473,7 @@ async function initBusinessCardUpload() {
                                     <p class="text-xs mt-1">${errorMessage}</p>
                                     <p class="text-xs mt-2 text-gray-400">콘솔에서 자세한 오류를 확인하세요</p>
                                 </div>
-                            \`;
+                            `;
                             
                             // 기존 이미지 다시 로드 시도
                             try {
