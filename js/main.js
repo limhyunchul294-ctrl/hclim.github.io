@@ -1839,13 +1839,15 @@ async function renderAccountPage() {
                                 명함 이미지
                             </h2>
                             <div class="space-y-4">
-                                <!-- 미리보기 영역 -->
-                                <div id="business-card-preview" class="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-[200px] flex items-center justify-center bg-gray-50">
-                                    <div class="text-center text-gray-500">
+                                <!-- 미리보기 영역 (드래그 앤 드롭 지원) -->
+                                <div id="business-card-preview" class="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-[200px] flex items-center justify-center bg-gray-50 transition-colors cursor-pointer hover:border-purple-400 hover:bg-purple-50" 
+                                     style="position: relative;">
+                                    <div class="text-center text-gray-500 pointer-events-none">
                                         <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                         </svg>
                                         <p class="text-sm">명함 이미지가 없습니다</p>
+                                        <p class="text-xs mt-1 text-gray-400">이미지를 드래그하여 놓거나 클릭하여 선택하세요</p>
                                     </div>
                                 </div>
                                 
@@ -2093,15 +2095,13 @@ async function renderAccountPage() {
                         });
                     }
 
-                    // 파일 선택 시 처리
-                    uploadInput.addEventListener('change', async (e) => {
-                        const file = e.target.files[0];
+                    // 파일 업로드 공통 함수
+                    async function handleFileUpload(file) {
                         if (!file) return;
 
                         // 이미지 파일만 허용
                         if (!file.type.startsWith('image/')) {
                             showToast('이미지 파일만 업로드 가능합니다.', 'error');
-                            uploadInput.value = '';
                             return;
                         }
 
@@ -2144,13 +2144,13 @@ async function renderAccountPage() {
 
                             const userId = session.user.id;
                             const timestamp = Date.now();
-                            const fileExt = file.name.split('.').pop();
+                            const fileExt = file.name.split('.').pop() || 'jpg';
                             const fileName = timestamp + '-business-card.' + fileExt;
                             const filePath = userId + '/' + fileName;
 
-                            console.log('업로드 시작:', filePath);
+                            console.log('업로드 시작:', { filePath, userId, fileSize: compressedBlob.size });
 
-                            const { data, error } = await window.supabaseClient
+                            const { data: uploadData, error: uploadError } = await window.supabaseClient
                                 .storage
                                 .from('business_cards')
                                 .upload(filePath, compressedBlob, {
@@ -2158,25 +2158,33 @@ async function renderAccountPage() {
                                     upsert: true
                                 });
 
-                            if (error) {
-                                console.error('업로드 오류:', error);
-                                throw error;
+                            if (uploadError) {
+                                console.error('업로드 오류:', uploadError);
+                                throw uploadError;
                             }
 
-                            console.log('업로드 성공:', data);
+                            console.log('업로드 성공:', uploadData);
 
-                            // Public URL 생성 시도
+                            // 업로드 후 잠시 대기 (Storage 반영 시간)
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+
+                            // 이미지 URL 생성 (여러 방법 시도)
                             let finalImageUrl = null;
+                            
+                            // 방법 1: Public URL 시도
                             try {
                                 const { data: { publicUrl } } = window.supabaseClient
                                     .storage
                                     .from('business_cards')
                                     .getPublicUrl(filePath);
                                 finalImageUrl = publicUrl;
-                                console.log('Public URL:', finalImageUrl);
+                                console.log('Public URL 생성 성공:', finalImageUrl);
                             } catch (urlError) {
                                 console.warn('Public URL 생성 실패, Signed URL 시도:', urlError);
-                                // Public URL이 실패하면 Signed URL 시도
+                            }
+                            
+                            // 방법 2: Public URL이 없으면 Signed URL 시도
+                            if (!finalImageUrl) {
                                 try {
                                     const { data: { signedUrl }, error: signedError } = await window.supabaseClient
                                         .storage
@@ -2185,12 +2193,43 @@ async function renderAccountPage() {
                                     
                                     if (!signedError && signedUrl) {
                                         finalImageUrl = signedUrl;
-                                        console.log('Signed URL:', finalImageUrl);
+                                        console.log('Signed URL 생성 성공:', finalImageUrl);
+                                    } else {
+                                        console.error('Signed URL 생성 실패:', signedError);
                                     }
                                 } catch (signedUrlError) {
-                                    console.error('Signed URL 생성 실패:', signedUrlError);
+                                    console.error('Signed URL 생성 예외:', signedUrlError);
                                 }
                             }
+
+                            // 방법 3: 파일 목록에서 다시 조회하여 URL 생성
+                            if (!finalImageUrl) {
+                                console.log('파일 목록에서 다시 조회 시도...');
+                                const { data: files, error: listError } = await window.supabaseClient
+                                    .storage
+                                    .from('business_cards')
+                                    .list(userId, {
+                                        limit: 1,
+                                        sortBy: { column: 'created_at', order: 'desc' }
+                                    });
+                                
+                                if (!listError && files && files.length > 0) {
+                                    const latestFilePath = userId + '/' + files[0].name;
+                                    try {
+                                        const { data: { publicUrl } } = window.supabaseClient
+                                            .storage
+                                            .from('business_cards')
+                                            .getPublicUrl(latestFilePath);
+                                        finalImageUrl = publicUrl;
+                                        console.log('재조회 Public URL:', finalImageUrl);
+                                    } catch (retryError) {
+                                        console.error('재조회 URL 생성 실패:', retryError);
+                                    }
+                                }
+                            }
+
+                            // URL 정리
+                            URL.revokeObjectURL(previewUrl);
 
                             // 최종 미리보기 업데이트
                             if (finalImageUrl) {
@@ -2208,10 +2247,11 @@ async function renderAccountPage() {
                                     </div>
                                 \`;
                             } else {
-                                console.error('이미지 URL을 생성할 수 없습니다');
+                                console.error('모든 URL 생성 방법 실패');
                                 previewDiv.innerHTML = \`
                                     <div class="text-center text-red-500">
                                         <p class="text-sm">이미지 URL 생성 실패</p>
+                                        <p class="text-xs mt-1">업로드는 완료되었지만 표시할 수 없습니다.</p>
                                     </div>
                                 \`;
                             }
@@ -2240,9 +2280,6 @@ async function renderAccountPage() {
                                 console.warn('기존 파일 삭제 중 오류 (무시):', deleteError);
                             }
 
-                            // URL 정리
-                            URL.revokeObjectURL(previewUrl);
-
                             // 업로드 성공 후 이미지 다시 로드하여 확실히 반영
                             await new Promise(resolve => setTimeout(resolve, 500));
                             await loadExistingCard();
@@ -2254,10 +2291,64 @@ async function renderAccountPage() {
                             
                             // 기존 이미지 다시 로드 시도
                             await loadExistingCard();
-                        } finally {
-                            // input 초기화
-                            uploadInput.value = '';
                         }
+                    }
+
+                    // 파일 선택 시 처리
+                    uploadInput.addEventListener('change', async (e) => {
+                        const file = e.target.files[0];
+                        await handleFileUpload(file);
+                        uploadInput.value = '';
+                    });
+
+                    // 드래그 앤 드롭 이벤트 처리
+                    let dragCounter = 0;
+                    
+                    // 드래그 오버 시 스타일 변경
+                    ['dragenter', 'dragover'].forEach(eventName => {
+                        previewDiv.addEventListener(eventName, (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            dragCounter++;
+                            previewDiv.classList.add('border-purple-500', 'bg-purple-100');
+                            previewDiv.classList.remove('border-gray-300', 'bg-gray-50');
+                        });
+                    });
+                    
+                    // 드래그 리브 시 스타일 복원
+                    ['dragleave', 'drop'].forEach(eventName => {
+                        previewDiv.addEventListener(eventName, (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            dragCounter--;
+                            if (dragCounter === 0) {
+                                previewDiv.classList.remove('border-purple-500', 'bg-purple-100');
+                                previewDiv.classList.add('border-gray-300', 'bg-gray-50');
+                            }
+                        });
+                    });
+                    
+                    // 드롭 시 파일 처리
+                    previewDiv.addEventListener('drop', async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dragCounter = 0;
+                        previewDiv.classList.remove('border-purple-500', 'bg-purple-100');
+                        previewDiv.classList.add('border-gray-300', 'bg-gray-50');
+                        
+                        const files = e.dataTransfer?.files;
+                        if (files && files.length > 0) {
+                            await handleFileUpload(files[0]);
+                        }
+                    });
+                    
+                    // 클릭 시 파일 선택 다이얼로그 열기
+                    previewDiv.addEventListener('click', (e) => {
+                        // 이미지가 있으면 클릭 무시
+                        if (previewDiv.querySelector('img')) {
+                            return;
+                        }
+                        uploadInput.click();
                     });
                 })();
             </script>
