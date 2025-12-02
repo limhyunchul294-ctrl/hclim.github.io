@@ -1991,21 +1991,61 @@ async function renderAccountPage() {
                                 
                                 if (!error && files && files.length > 0) {
                                     const filePath = userId + '/' + files[0].name;
-                                    const { data: { publicUrl } } = window.supabaseClient
-                                        .storage
-                                        .from('business_cards')
-                                        .getPublicUrl(filePath);
                                     
-                                    console.log('명함 이미지 URL:', publicUrl);
+                                    // Public URL 시도
+                                    let imageUrl = null;
+                                    try {
+                                        const { data: { publicUrl } } = window.supabaseClient
+                                            .storage
+                                            .from('business_cards')
+                                            .getPublicUrl(filePath);
+                                        imageUrl = publicUrl;
+                                        console.log('명함 이미지 Public URL:', imageUrl);
+                                    } catch (urlError) {
+                                        console.warn('Public URL 생성 실패, Signed URL 시도:', urlError);
+                                        // Public URL이 실패하면 Signed URL 시도
+                                        try {
+                                            const { data: { signedUrl }, error: signedError } = await window.supabaseClient
+                                                .storage
+                                                .from('business_cards')
+                                                .createSignedUrl(filePath, 3600);
+                                            
+                                            if (!signedError && signedUrl) {
+                                                imageUrl = signedUrl;
+                                                console.log('명함 이미지 Signed URL:', imageUrl);
+                                            }
+                                        } catch (signedUrlError) {
+                                            console.error('Signed URL 생성 실패:', signedUrlError);
+                                        }
+                                    }
                                     
-                                    previewDiv.innerHTML = \`
-                                        <div class="relative">
-                                            <img src="\${publicUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" onerror="this.parentElement.innerHTML='<div class=\\\"text-center text-gray-500\\\"><p class=\\\"text-sm\\\">이미지를 불러올 수 없습니다</p></div>'">
-                                            <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">저장됨</div>
-                                        </div>
-                                    \`;
+                                    if (imageUrl) {
+                                        previewDiv.innerHTML = \`
+                                            <div class="relative">
+                                                <img src="\${imageUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" 
+                                                     onerror="console.error('이미지 로드 실패:', this.src); this.parentElement.innerHTML='<div class=\\\"text-center text-gray-500\\\"><p class=\\\"text-sm\\\">이미지를 불러올 수 없습니다</p></div>'"
+                                                     onload="console.log('이미지 로드 성공:', this.src)">
+                                                <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    저장됨
+                                                </div>
+                                            </div>
+                                        \`;
+                                    } else {
+                                        console.error('이미지 URL을 생성할 수 없습니다');
+                                        previewDiv.innerHTML = \`
+                                            <div class="text-center text-gray-500">
+                                                <p class="text-sm">이미지 URL 생성 실패</p>
+                                            </div>
+                                        \`;
+                                    }
                                 } else {
-                                    console.log('저장된 명함 이미지가 없습니다');
+                                    console.log('저장된 명함 이미지가 없습니다:', error);
+                                    if (error) {
+                                        console.error('파일 목록 조회 오류:', error);
+                                    }
                                 }
                             }
                         } catch (error) {
@@ -2125,26 +2165,56 @@ async function renderAccountPage() {
 
                             console.log('업로드 성공:', data);
 
-                            // Public URL 생성
-                            const { data: { publicUrl } } = window.supabaseClient
-                                .storage
-                                .from('business_cards')
-                                .getPublicUrl(filePath);
-
-                            console.log('Public URL:', publicUrl);
+                            // Public URL 생성 시도
+                            let finalImageUrl = null;
+                            try {
+                                const { data: { publicUrl } } = window.supabaseClient
+                                    .storage
+                                    .from('business_cards')
+                                    .getPublicUrl(filePath);
+                                finalImageUrl = publicUrl;
+                                console.log('Public URL:', finalImageUrl);
+                            } catch (urlError) {
+                                console.warn('Public URL 생성 실패, Signed URL 시도:', urlError);
+                                // Public URL이 실패하면 Signed URL 시도
+                                try {
+                                    const { data: { signedUrl }, error: signedError } = await window.supabaseClient
+                                        .storage
+                                        .from('business_cards')
+                                        .createSignedUrl(filePath, 3600);
+                                    
+                                    if (!signedError && signedUrl) {
+                                        finalImageUrl = signedUrl;
+                                        console.log('Signed URL:', finalImageUrl);
+                                    }
+                                } catch (signedUrlError) {
+                                    console.error('Signed URL 생성 실패:', signedUrlError);
+                                }
+                            }
 
                             // 최종 미리보기 업데이트
-                            previewDiv.innerHTML = \`
-                                <div class="relative">
-                                    <img src="\${publicUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" onerror="this.parentElement.innerHTML='<div class=\\\"text-center text-red-500\\\"><p class=\\\"text-sm\\\">이미지 로드 실패</p></div>'">
-                                    <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                        </svg>
-                                        저장됨
+                            if (finalImageUrl) {
+                                previewDiv.innerHTML = \`
+                                    <div class="relative">
+                                        <img src="\${finalImageUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" 
+                                             onerror="console.error('이미지 로드 실패:', this.src); this.parentElement.innerHTML='<div class=\\\"text-center text-red-500\\\"><p class=\\\"text-sm\\\">이미지 로드 실패</p></div>'"
+                                             onload="console.log('이미지 로드 성공:', this.src)">
+                                        <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            저장됨
+                                        </div>
                                     </div>
-                                </div>
-                            \`;
+                                \`;
+                            } else {
+                                console.error('이미지 URL을 생성할 수 없습니다');
+                                previewDiv.innerHTML = \`
+                                    <div class="text-center text-red-500">
+                                        <p class="text-sm">이미지 URL 생성 실패</p>
+                                    </div>
+                                \`;
+                            }
 
                             // 기존 파일 삭제 (같은 사용자의 다른 명함 이미지)
                             try {
@@ -2172,6 +2242,10 @@ async function renderAccountPage() {
 
                             // URL 정리
                             URL.revokeObjectURL(previewUrl);
+
+                            // 업로드 성공 후 이미지 다시 로드하여 확실히 반영
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            await loadExistingCard();
 
                             showToast('명함 이미지가 업로드되었습니다.', 'success');
                         } catch (error) {
