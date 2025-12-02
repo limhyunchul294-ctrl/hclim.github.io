@@ -1890,60 +1890,6 @@ async function renderAccountPage() {
                     </div>
                 </div>
             </div>
-
-            <script>
-                // 실시간 카운트다운 (30분 세션 기준)
-                (function() {
-                    const loginTimeKey = 'session_login_time';
-                    const sessionDuration = 30 * 60 * 1000; // 30분
-                    const countdownEl = document.getElementById('session-countdown');
-                    
-                    if (countdownEl) {
-                        const interval = setInterval(() => {
-                            const loginTime = localStorage.getItem(loginTimeKey);
-                            if (!loginTime) {
-                                clearInterval(interval);
-                                countdownEl.textContent = '만료됨';
-                                countdownEl.classList.add('text-red-600');
-                                return;
-                            }
-                            
-                            const now = Date.now();
-                            const loginTimestamp = parseInt(loginTime);
-                            const elapsedTime = now - loginTimestamp;
-                            const remaining = sessionDuration - elapsedTime;
-                            
-                            if (remaining <= 0) {
-                                clearInterval(interval);
-                                countdownEl.textContent = '만료됨';
-                                countdownEl.classList.add('text-red-600');
-                                // 자동 로그아웃
-                                setTimeout(() => {
-                                    if (window.handleLogout) {
-                                        window.handleLogout();
-                                    }
-                                }, 1000);
-                                return;
-                            }
-                            
-                            const minutes = Math.floor(remaining / 60000);
-                            const seconds = Math.floor((remaining % 60000) / 1000);
-                            
-                            // 10분 이하면 빨간색으로 변경
-                            if (minutes <= 10) {
-                                countdownEl.classList.remove('text-purple-600');
-                                countdownEl.classList.add('text-red-600');
-                            } else {
-                                countdownEl.classList.remove('text-red-600');
-                                countdownEl.classList.add('text-purple-600');
-                            }
-                            
-                            countdownEl.textContent = minutes + '분 ' + seconds + '초';
-                        }, 1000);
-                    }
-                })();
-
-            <\/script>
         `;
     } catch (error) {
         console.error('계정 정보 로드 오류:', error);
@@ -1955,6 +1901,57 @@ async function renderAccountPage() {
                 </div>
             </div>
         `;
+    }
+}
+
+// 세션 카운트다운 초기화 함수
+function initSessionCountdown() {
+    const loginTimeKey = 'session_login_time';
+    const sessionDuration = 30 * 60 * 1000; // 30분
+    const countdownEl = document.getElementById('session-countdown');
+    
+    if (countdownEl) {
+        const interval = setInterval(() => {
+            const loginTime = localStorage.getItem(loginTimeKey);
+            if (!loginTime) {
+                clearInterval(interval);
+                countdownEl.textContent = '만료됨';
+                countdownEl.classList.add('text-red-600');
+                return;
+            }
+            
+            const now = Date.now();
+            const loginTimestamp = parseInt(loginTime);
+            const elapsedTime = now - loginTimestamp;
+            const remaining = sessionDuration - elapsedTime;
+            
+            if (remaining <= 0) {
+                clearInterval(interval);
+                countdownEl.textContent = '만료됨';
+                countdownEl.classList.add('text-red-600');
+                // 자동 로그아웃
+                setTimeout(() => {
+                    if (window.handleLogout) {
+                        window.handleLogout();
+                    }
+                }, 1000);
+                return;
+            }
+            
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            
+            // 10분 이하면 빨간색으로 변경
+            if (minutes <= 10) {
+                countdownEl.classList.remove('text-purple-600');
+                countdownEl.classList.add('text-red-600');
+            } else {
+                countdownEl.classList.remove('text-red-600');
+                countdownEl.classList.add('text-purple-600');
+            }
+            
+            countdownEl.textContent = minutes + '분 ' + seconds + '초';
+        }, 1000);
     }
 }
 
@@ -2828,9 +2825,10 @@ async function initBusinessCardUpload() {
                                 mainContent.innerHTML = result;
                                 mainContent.classList.add('page-transition');
                                 
-                                // 계정 페이지인 경우 명함 이미지 업로드 초기화
+                                // 계정 페이지인 경우 초기화 함수들 호출
                                 if (path === '/account') {
                                     await initBusinessCardUpload();
+                                    initSessionCountdown();
                                 }
                             } catch (error) {
                                 console.error('라우트 핸들러 오류:', error);
