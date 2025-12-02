@@ -1943,36 +1943,53 @@ async function renderAccountPage() {
                     }
                 })();
 
-                // 명함 이미지 업로드 및 압축
-                (async function() {
-                    // DOM이 완전히 로드될 때까지 대기
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    
-                    const uploadInput = document.getElementById('business-card-upload');
-                    const previewDiv = document.getElementById('business-card-preview');
-                    
-                    if (!uploadInput || !previewDiv) {
-                        console.error('명함 이미지 업로드 요소를 찾을 수 없습니다:', { uploadInput, previewDiv });
-                        return;
-                    }
-                    
-                    // Supabase 클라이언트 확인
-                    if (!window.supabaseClient) {
-                        console.error('window.supabaseClient가 초기화되지 않았습니다.');
-                        previewDiv.innerHTML = \`
-                            <div class="text-center text-red-500">
-                                <p class="text-sm">Supabase 클라이언트 초기화 오류</p>
-                                <p class="text-xs mt-1">페이지를 새로고침해주세요</p>
-                            </div>
-                        \`;
-                        return;
-                    }
-                    
-                    console.log('명함 이미지 업로드 모듈 초기화 완료');
-                    
-                    // 토스트 메시지 표시 함수
-                    function showToast(message, type = 'success') {
-                        const toast = document.createElement('div');
+            </script>
+        `;
+    } catch (error) {
+        console.error('계정 정보 로드 오류:', error);
+        return `
+            <div class="max-w-2xl mx-auto p-6">
+                <h1 class="text-2xl font-bold text-gray-900 mb-6">내 정보</h1>
+                <div class="bg-white rounded-xl shadow-soft p-6">
+                    <p class="text-red-500 text-center">계정 정보를 불러올 수 없습니다.</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// 명함 이미지 업로드 초기화 함수 (DOM 삽입 후 호출)
+async function initBusinessCardUpload() {
+    console.log('명함 이미지 업로드 초기화 시작');
+    
+    // DOM이 완전히 로드될 때까지 대기
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const uploadInput = document.getElementById('business-card-upload');
+    const previewDiv = document.getElementById('business-card-preview');
+    
+    if (!uploadInput || !previewDiv) {
+        console.error('명함 이미지 업로드 요소를 찾을 수 없습니다:', { uploadInput, previewDiv });
+        return;
+    }
+    
+    // Supabase 클라이언트 확인
+    if (!window.supabaseClient) {
+        console.error('window.supabaseClient가 초기화되지 않았습니다.');
+        previewDiv.innerHTML = `
+            <div class="text-center text-red-500">
+                <p class="text-sm">Supabase 클라이언트 초기화 오류</p>
+                <p class="text-xs mt-1">페이지를 새로고침해주세요</p>
+            </div>
+        `;
+        return;
+    }
+    
+    console.log('명함 이미지 업로드 모듈 초기화 완료');
+    
+    // 토스트 메시지 표시 함수
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
                         toast.className = \`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white font-medium transition-all transform translate-x-0 opacity-100\`;
                         toast.style.backgroundColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
                         toast.textContent = message;
@@ -1994,18 +2011,40 @@ async function renderAccountPage() {
                                 const userId = session.user.id;
                                 console.log('명함 이미지 로드 시도:', userId);
                                 
-                                // Supabase Storage에서 명함 이미지 조회
-                                const { data: files, error } = await window.supabaseClient
-                                    .storage
-                                    .from('business_cards')
-                                    .list(userId, {
-                                        limit: 1,
-                                        sortBy: { column: 'created_at', order: 'desc' }
-                                    });
+                                // Supabase Storage에서 명함 이미지 조회 (여러 버킷 이름 시도)
+                                const bucketNames = ['business_cards', 'BUSINESS_CARDS', 'Business_Cards'];
+                                let files = null;
+                                let error = null;
+                                let successfulBucket = null;
                                 
-                                console.log('명함 이미지 조회 결과:', { files, error });
+                                for (const bucketName of bucketNames) {
+                                    try {
+                                        console.log(\`버킷 '\${bucketName}'에서 파일 목록 조회 시도...\`);
+                                        const result = await window.supabaseClient
+                                            .storage
+                                            .from(bucketName)
+                                            .list(userId, {
+                                                limit: 1,
+                                                sortBy: { column: 'created_at', order: 'desc' }
+                                            });
+                                        
+                                        if (!result.error && result.data) {
+                                            files = result.data;
+                                            error = result.error;
+                                            successfulBucket = bucketName;
+                                            console.log(\`버킷 '\${bucketName}' 조회 성공:\`, files);
+                                            break;
+                                        } else {
+                                            console.warn(\`버킷 '\${bucketName}' 조회 실패:\`, result.error);
+                                        }
+                                    } catch (bucketError) {
+                                        console.warn(\`버킷 '\${bucketName}' 조회 중 오류:\`, bucketError);
+                                    }
+                                }
                                 
-                                if (!error && files && files.length > 0) {
+                                console.log('명함 이미지 조회 결과:', { files, error, successfulBucket });
+                                
+                                if (!error && files && files.length > 0 && successfulBucket) {
                                     const filePath = userId + '/' + files[0].name;
                                     
                                     // Public URL 시도
@@ -2013,22 +2052,22 @@ async function renderAccountPage() {
                                     try {
                                         const { data: { publicUrl } } = window.supabaseClient
                                             .storage
-                                            .from('business_cards')
+                                            .from(successfulBucket)
                                             .getPublicUrl(filePath);
                                         imageUrl = publicUrl;
-                                        console.log('명함 이미지 Public URL:', imageUrl);
+                                        console.log(\`명함 이미지 Public URL (버킷: \${successfulBucket}):\`, imageUrl);
                                     } catch (urlError) {
                                         console.warn('Public URL 생성 실패, Signed URL 시도:', urlError);
                                         // Public URL이 실패하면 Signed URL 시도
                                         try {
                                             const { data: { signedUrl }, error: signedError } = await window.supabaseClient
                                                 .storage
-                                                .from('business_cards')
+                                                .from(successfulBucket)
                                                 .createSignedUrl(filePath, 3600);
                                             
                                             if (!signedError && signedUrl) {
                                                 imageUrl = signedUrl;
-                                                console.log('명함 이미지 Signed URL:', imageUrl);
+                                                console.log(\`명함 이미지 Signed URL (버킷: \${successfulBucket}):\`, imageUrl);
                                             }
                                         } catch (signedUrlError) {
                                             console.error('Signed URL 생성 실패:', signedUrlError);
@@ -2213,13 +2252,33 @@ async function renderAccountPage() {
                                 console.warn('버킷 확인 중 오류 (계속 진행):', bucketCheckError);
                             }
 
-                            const { data: uploadData, error: uploadError } = await window.supabaseClient
-                                .storage
-                                .from('business_cards')
-                                .upload(filePath, compressedBlob, {
-                                    cacheControl: '3600',
-                                    upsert: true
-                                });
+                            // 버킷 이름 확인 및 시도 (대소문자 문제 대응)
+                            let uploadResult = null;
+                            const bucketNames = ['business_cards', 'BUSINESS_CARDS', 'Business_Cards'];
+                            
+                            for (const bucketName of bucketNames) {
+                                try {
+                                    console.log(\`버킷 '\${bucketName}'로 업로드 시도...\`);
+                                    uploadResult = await window.supabaseClient
+                                        .storage
+                                        .from(bucketName)
+                                        .upload(filePath, compressedBlob, {
+                                            cacheControl: '3600',
+                                            upsert: true
+                                        });
+                                    
+                                    if (!uploadResult.error) {
+                                        console.log(\`업로드 성공 (버킷: \${bucketName}):\`, uploadResult.data);
+                                        break;
+                                    } else {
+                                        console.warn(\`버킷 '\${bucketName}' 업로드 실패:\`, uploadResult.error);
+                                    }
+                                } catch (bucketError) {
+                                    console.warn(\`버킷 '\${bucketName}' 시도 중 오류:\`, bucketError);
+                                }
+                            }
+                            
+                            const { data: uploadData, error: uploadError } = uploadResult || { data: null, error: new Error('모든 버킷 이름 시도 실패') };
 
                             if (uploadError) {
                                 console.error('업로드 오류 상세:', {
@@ -2255,11 +2314,14 @@ async function renderAccountPage() {
                             // 이미지 URL 생성 (여러 방법 시도)
                             let finalImageUrl = null;
                             
+                            // 업로드 성공한 버킷 이름 사용 (또는 기본값)
+                            const successfulBucket = uploadData?.path ? 'business_cards' : 'business_cards';
+                            
                             // 방법 1: Public URL 시도
                             try {
                                 const { data: { publicUrl } } = window.supabaseClient
                                     .storage
-                                    .from('business_cards')
+                                    .from(successfulBucket)
                                     .getPublicUrl(filePath);
                                 finalImageUrl = publicUrl;
                                 console.log('Public URL 생성 성공:', finalImageUrl);
@@ -2272,7 +2334,7 @@ async function renderAccountPage() {
                                 try {
                                     const { data: { signedUrl }, error: signedError } = await window.supabaseClient
                                         .storage
-                                        .from('business_cards')
+                                        .from(successfulBucket)
                                         .createSignedUrl(filePath, 3600);
                                     
                                     if (!signedError && signedUrl) {
@@ -2289,25 +2351,34 @@ async function renderAccountPage() {
                             // 방법 3: 파일 목록에서 다시 조회하여 URL 생성
                             if (!finalImageUrl) {
                                 console.log('파일 목록에서 다시 조회 시도...');
-                                const { data: files, error: listError } = await window.supabaseClient
-                                    .storage
-                                    .from('business_cards')
-                                    .list(userId, {
-                                        limit: 1,
-                                        sortBy: { column: 'created_at', order: 'desc' }
-                                    });
+                                const bucketNamesToTry = [successfulBucket, 'business_cards', 'BUSINESS_CARDS'];
                                 
-                                if (!listError && files && files.length > 0) {
-                                    const latestFilePath = userId + '/' + files[0].name;
+                                for (const bucketName of bucketNamesToTry) {
                                     try {
-                                        const { data: { publicUrl } } = window.supabaseClient
+                                        const { data: files, error: listError } = await window.supabaseClient
                                             .storage
-                                            .from('business_cards')
-                                            .getPublicUrl(latestFilePath);
-                                        finalImageUrl = publicUrl;
-                                        console.log('재조회 Public URL:', finalImageUrl);
-                                    } catch (retryError) {
-                                        console.error('재조회 URL 생성 실패:', retryError);
+                                            .from(bucketName)
+                                            .list(userId, {
+                                                limit: 1,
+                                                sortBy: { column: 'created_at', order: 'desc' }
+                                            });
+                                        
+                                        if (!listError && files && files.length > 0) {
+                                            const latestFilePath = userId + '/' + files[0].name;
+                                            try {
+                                                const { data: { publicUrl } } = window.supabaseClient
+                                                    .storage
+                                                    .from(bucketName)
+                                                    .getPublicUrl(latestFilePath);
+                                                finalImageUrl = publicUrl;
+                                                console.log(\`재조회 Public URL (버킷: \${bucketName}):\`, finalImageUrl);
+                                                break;
+                                            } catch (retryError) {
+                                                console.error(\`재조회 URL 생성 실패 (버킷: \${bucketName}):\`, retryError);
+                                            }
+                                        }
+                                    } catch (bucketListError) {
+                                        console.warn(\`버킷 '\${bucketName}' 목록 조회 실패:\`, bucketListError);
                                     }
                                 }
                             }
@@ -2340,14 +2411,33 @@ async function renderAccountPage() {
                                 \`;
                             }
 
+                            // 업로드 성공한 버킷 이름 찾기
+                            const uploadBucket = uploadData?.path ? 'business_cards' : 'business_cards';
+                            
                             // 기존 파일 삭제 (같은 사용자의 다른 명함 이미지)
                             try {
-                                const { data: oldFiles } = await window.supabaseClient
-                                    .storage
-                                    .from('business_cards')
-                                    .list(userId);
+                                const bucketNamesToTry = [uploadBucket, 'business_cards', 'BUSINESS_CARDS'];
+                                let oldFiles = null;
+                                let deleteBucket = null;
                                 
-                                if (oldFiles && oldFiles.length > 1) {
+                                for (const bucketName of bucketNamesToTry) {
+                                    try {
+                                        const { data } = await window.supabaseClient
+                                            .storage
+                                            .from(bucketName)
+                                            .list(userId);
+                                        
+                                        if (data) {
+                                            oldFiles = data;
+                                            deleteBucket = bucketName;
+                                            break;
+                                        }
+                                    } catch (listError) {
+                                        console.warn(\`버킷 '\${bucketName}' 목록 조회 실패:\`, listError);
+                                    }
+                                }
+                                
+                                if (oldFiles && oldFiles.length > 1 && deleteBucket) {
                                     const filesToDelete = oldFiles
                                         .filter(f => f.name !== fileName)
                                         .map(f => userId + '/' + f.name);
@@ -2355,9 +2445,9 @@ async function renderAccountPage() {
                                     if (filesToDelete.length > 0) {
                                         await window.supabaseClient
                                             .storage
-                                            .from('business_cards')
+                                            .from(deleteBucket)
                                             .remove(filesToDelete);
-                                        console.log('기존 파일 삭제 완료:', filesToDelete);
+                                        console.log(\`기존 파일 삭제 완료 (버킷: \${deleteBucket}):\`, filesToDelete);
                                     }
                                 }
                             } catch (deleteError) {
@@ -2737,6 +2827,11 @@ async function renderAccountPage() {
                                 const result = await route(param);
                                 mainContent.innerHTML = result;
                                 mainContent.classList.add('page-transition');
+                                
+                                // 계정 페이지인 경우 명함 이미지 업로드 초기화
+                                if (path === '/account') {
+                                    await initBusinessCardUpload();
+                                }
                             } catch (error) {
                                 console.error('라우트 핸들러 오류:', error);
                                 mainContent.innerHTML = '<p class="text-red-500">페이지 로드 중 오류가 발생했습니다.</p>';
