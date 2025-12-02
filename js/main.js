@@ -2216,34 +2216,41 @@ async function initBusinessCardUpload() {
                             const userId = session.user.id;
                             const fileExt = file.name.split('.').pop() || 'jpg';
                             
-                            // 파일명 생성: 업체명-이름.확장자 (URL-safe)
+                            // 파일명 생성: 업체명-이름.확장자 (영문/숫자/하이픈만 사용)
+                            // Supabase Storage는 파일 경로에 특수문자나 인코딩된 문자를 제한하므로 영문만 사용
                             let fileName = 'business-card.' + fileExt;
                             if (userInfo?.affiliation && userInfo?.name) {
-                                // 한글을 URL-safe하게 인코딩 (공백은 하이픈으로, 특수문자는 제거)
+                                // 한글과 특수문자를 제거하고 영문/숫자/하이픈만 사용
                                 const affiliation = userInfo.affiliation.trim()
-                                    .replace(/\s+/g, '-')
-                                    .replace(/[^\w가-힣\-]/g, '');
+                                    .replace(/[^a-zA-Z0-9\s\-]/g, '') // 한글 및 특수문자 제거
+                                    .replace(/\s+/g, '-') // 공백을 하이픈으로
+                                    .toLowerCase(); // 소문자로 변환
                                 const name = userInfo.name.trim()
-                                    .replace(/\s+/g, '-')
-                                    .replace(/[^\w가-힣\-]/g, '');
+                                    .replace(/[^a-zA-Z0-9\s\-]/g, '') // 한글 및 특수문자 제거
+                                    .replace(/\s+/g, '-') // 공백을 하이픈으로
+                                    .toLowerCase(); // 소문자로 변환
+                                
                                 if (affiliation && name) {
-                                    // 파일명은 한글을 그대로 사용하되, 경로는 인코딩
                                     fileName = `${affiliation}-${name}.${fileExt}`;
+                                } else if (name) {
+                                    fileName = `${name}.${fileExt}`;
+                                } else if (affiliation) {
+                                    fileName = `${affiliation}.${fileExt}`;
                                 }
                             } else if (userInfo?.name) {
                                 const name = userInfo.name.trim()
-                                    .replace(/\s+/g, '-')
-                                    .replace(/[^\w가-힣\-]/g, '');
+                                    .replace(/[^a-zA-Z0-9\s\-]/g, '') // 한글 및 특수문자 제거
+                                    .replace(/\s+/g, '-') // 공백을 하이픈으로
+                                    .toLowerCase(); // 소문자로 변환
                                 if (name) {
                                     fileName = `${name}.${fileExt}`;
                                 }
                             }
                             
-                            // 파일 경로 생성 시 파일명 부분만 인코딩
-                            const encodedFileName = encodeURIComponent(fileName).replace(/%2F/g, '-');
-                            const filePath = userId + '/' + encodedFileName;
+                            // 파일 경로 생성 (인코딩 불필요 - 이미 영문/숫자/하이픈만 사용)
+                            const filePath = userId + '/' + fileName;
                             
-                            console.log('파일명 생성:', { fileName, encodedFileName, filePath });
+                            console.log('파일명 생성:', { fileName, filePath, userInfo: { affiliation: userInfo?.affiliation, name: userInfo?.name } });
 
                             console.log('Storage 업로드 시작:', { 
                                 filePath, 
