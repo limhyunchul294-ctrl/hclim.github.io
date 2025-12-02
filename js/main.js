@@ -1952,9 +1952,23 @@ async function renderAccountPage() {
                     const previewDiv = document.getElementById('business-card-preview');
                     
                     if (!uploadInput || !previewDiv) {
-                        console.warn('명함 이미지 업로드 요소를 찾을 수 없습니다');
+                        console.error('명함 이미지 업로드 요소를 찾을 수 없습니다:', { uploadInput, previewDiv });
                         return;
                     }
+                    
+                    // Supabase 클라이언트 확인
+                    if (!window.supabaseClient) {
+                        console.error('window.supabaseClient가 초기화되지 않았습니다.');
+                        previewDiv.innerHTML = \`
+                            <div class="text-center text-red-500">
+                                <p class="text-sm">Supabase 클라이언트 초기화 오류</p>
+                                <p class="text-xs mt-1">페이지를 새로고침해주세요</p>
+                            </div>
+                        \`;
+                        return;
+                    }
+                    
+                    console.log('명함 이미지 업로드 모듈 초기화 완료');
                     
                     // 토스트 메시지 표시 함수
                     function showToast(message, type = 'success') {
@@ -2097,15 +2111,34 @@ async function renderAccountPage() {
 
                     // 파일 업로드 공통 함수
                     async function handleFileUpload(file) {
-                        if (!file) return;
+                        console.log('handleFileUpload 호출됨:', { file, fileName: file?.name, fileType: file?.type, fileSize: file?.size });
+                        
+                        if (!file) {
+                            console.error('파일이 없습니다');
+                            return;
+                        }
 
                         // 이미지 파일만 허용
                         if (!file.type.startsWith('image/')) {
+                            console.warn('이미지 파일이 아닙니다:', file.type);
                             showToast('이미지 파일만 업로드 가능합니다.', 'error');
                             return;
                         }
 
+                        // Supabase 클라이언트 재확인
+                        if (!window.supabaseClient) {
+                            console.error('업로드 시점에 supabaseClient가 없습니다');
+                            showToast('Supabase 클라이언트 오류. 페이지를 새로고침해주세요.', 'error');
+                            return;
+                        }
+
                         try {
+                            console.log('업로드 시작 - 파일 정보:', {
+                                name: file.name,
+                                type: file.type,
+                                size: file.size,
+                                lastModified: file.lastModified
+                            });
                             // 로딩 표시
                             previewDiv.innerHTML = \`
                                 <div class="text-center py-8">
@@ -2148,7 +2181,37 @@ async function renderAccountPage() {
                             const fileName = timestamp + '-business-card.' + fileExt;
                             const filePath = userId + '/' + fileName;
 
-                            console.log('업로드 시작:', { filePath, userId, fileSize: compressedBlob.size });
+                            console.log('Storage 업로드 시작:', { 
+                                filePath, 
+                                userId, 
+                                fileSize: compressedBlob.size,
+                                bucket: 'business_cards',
+                                supabaseClient: !!window.supabaseClient
+                            });
+
+                            // Storage 버킷 존재 확인
+                            try {
+                                const { data: buckets, error: bucketError } = await window.supabaseClient
+                                    .storage
+                                    .listBuckets();
+                                
+                                console.log('사용 가능한 버킷 목록:', buckets);
+                                
+                                const businessCardsBucket = buckets?.find(b => 
+                                    b.name === 'business_cards' || 
+                                    b.name === 'BUSINESS_CARDS' ||
+                                    b.name.toLowerCase() === 'business_cards'
+                                );
+                                
+                                if (!businessCardsBucket) {
+                                    console.error('business_cards 버킷을 찾을 수 없습니다. 사용 가능한 버킷:', buckets?.map(b => b.name));
+                                    throw new Error('business_cards 버킷을 찾을 수 없습니다');
+                                }
+                                
+                                console.log('버킷 확인 완료:', businessCardsBucket);
+                            } catch (bucketCheckError) {
+                                console.warn('버킷 확인 중 오류 (계속 진행):', bucketCheckError);
+                            }
 
                             const { data: uploadData, error: uploadError } = await window.supabaseClient
                                 .storage
@@ -2159,8 +2222,29 @@ async function renderAccountPage() {
                                 });
 
                             if (uploadError) {
-                                console.error('업로드 오류:', uploadError);
-                                throw uploadError;
+                                console.error('업로드 오류 상세:', {
+                                    error: uploadError,
+                                    message: uploadError.message,
+                                    statusCode: uploadError.statusCode,
+                                    errorCode: uploadError.errorCode,
+                                    filePath,
+                                    userId,
+                                    bucket: 'business_cards'
+                                });
+                                
+                                // 더 자세한 에러 메시지 제공
+                                let errorMessage = '업로드 실패: ';
+                                if (uploadError.message) {
+                                    errorMessage += uploadError.message;
+                                } else if (uploadError.statusCode === 403) {
+                                    errorMessage += '권한이 없습니다. Storage 버킷 권한을 확인해주세요.';
+                                } else if (uploadError.statusCode === 404) {
+                                    errorMessage += '버킷을 찾을 수 없습니다.';
+                                } else {
+                                    errorMessage += '알 수 없는 오류가 발생했습니다.';
+                                }
+                                
+                                throw new Error(errorMessage);
                             }
 
                             console.log('업로드 성공:', uploadData);
@@ -2287,10 +2371,26 @@ async function renderAccountPage() {
                             showToast('명함 이미지가 업로드되었습니다.', 'success');
                         } catch (error) {
                             console.error('명함 이미지 업로드 오류:', error);
-                            showToast('업로드 실패: ' + (error.message || '알 수 없는 오류'), 'error');
+                            console.error('에러 스택:', error.stack);
+                            
+                            const errorMessage = error.message || '알 수 없는 오류';
+                            showToast('업로드 실패: ' + errorMessage, 'error');
+                            
+                            // 에러 상세 정보를 미리보기 영역에 표시 (개발용)
+                            previewDiv.innerHTML = \`
+                                <div class="text-center text-red-500 p-4">
+                                    <p class="text-sm font-medium">업로드 실패</p>
+                                    <p class="text-xs mt-1">\${errorMessage}</p>
+                                    <p class="text-xs mt-2 text-gray-400">콘솔에서 자세한 오류를 확인하세요</p>
+                                </div>
+                            \`;
                             
                             // 기존 이미지 다시 로드 시도
-                            await loadExistingCard();
+                            try {
+                                await loadExistingCard();
+                            } catch (loadError) {
+                                console.error('기존 이미지 로드 실패:', loadError);
+                            }
                         }
                     }
 
