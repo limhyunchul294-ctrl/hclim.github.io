@@ -2243,6 +2243,8 @@ async function initBusinessCardUpload() {
                             const encodedFileName = encodeURIComponent(fileName).replace(/%2F/g, '-');
                             const filePath = userId + '/' + encodedFileName;
                             
+                            console.log('파일명 생성:', { fileName, encodedFileName, filePath });
+                            
                             const filePath = userId + '/' + fileName;
 
                             console.log('Storage 업로드 시작:', { 
