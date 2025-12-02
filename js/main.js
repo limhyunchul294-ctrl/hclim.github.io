@@ -1990,17 +1990,17 @@ async function initBusinessCardUpload() {
     // 토스트 메시지 표시 함수
     function showToast(message, type = 'success') {
         const toast = document.createElement('div');
-                        toast.className = \`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white font-medium transition-all transform translate-x-0 opacity-100\`;
-                        toast.style.backgroundColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
-                        toast.textContent = message;
-                        document.body.appendChild(toast);
-                        
-                        setTimeout(() => {
-                            toast.style.opacity = '0';
-                            toast.style.transform = 'translateX(100%)';
-                            setTimeout(() => toast.remove(), 300);
-                        }, 3000);
-                    }
+        toast.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white font-medium transition-all transform translate-x-0 opacity-100`;
+        toast.style.backgroundColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
                     
                     // 기존 명함 이미지 로드
                     async function loadExistingCard() {
@@ -2019,7 +2019,7 @@ async function initBusinessCardUpload() {
                                 
                                 for (const bucketName of bucketNames) {
                                     try {
-                                        console.log(\`버킷 '\${bucketName}'에서 파일 목록 조회 시도...\`);
+                                        console.log(`버킷 '${bucketName}'에서 파일 목록 조회 시도...`);
                                         const result = await window.supabaseClient
                                             .storage
                                             .from(bucketName)
@@ -2032,13 +2032,13 @@ async function initBusinessCardUpload() {
                                             files = result.data;
                                             error = result.error;
                                             successfulBucket = bucketName;
-                                            console.log(\`버킷 '\${bucketName}' 조회 성공:\`, files);
+                                            console.log(`버킷 '${bucketName}' 조회 성공:`, files);
                                             break;
                                         } else {
-                                            console.warn(\`버킷 '\${bucketName}' 조회 실패:\`, result.error);
+                                            console.warn(`버킷 '${bucketName}' 조회 실패:`, result.error);
                                         }
                                     } catch (bucketError) {
-                                        console.warn(\`버킷 '\${bucketName}' 조회 중 오류:\`, bucketError);
+                                        console.warn(`버킷 '${bucketName}' 조회 중 오류:`, bucketError);
                                     }
                                 }
                                 
@@ -2055,7 +2055,7 @@ async function initBusinessCardUpload() {
                                             .from(successfulBucket)
                                             .getPublicUrl(filePath);
                                         imageUrl = publicUrl;
-                                        console.log(\`명함 이미지 Public URL (버킷: \${successfulBucket}):\`, imageUrl);
+                                        console.log(`명함 이미지 Public URL (버킷: ${successfulBucket}):`, imageUrl);
                                     } catch (urlError) {
                                         console.warn('Public URL 생성 실패, Signed URL 시도:', urlError);
                                         // Public URL이 실패하면 Signed URL 시도
@@ -2067,7 +2067,7 @@ async function initBusinessCardUpload() {
                                             
                                             if (!signedError && signedUrl) {
                                                 imageUrl = signedUrl;
-                                                console.log(\`명함 이미지 Signed URL (버킷: \${successfulBucket}):\`, imageUrl);
+                                                console.log(`명함 이미지 Signed URL (버킷: ${successfulBucket}):`, imageUrl);
                                             }
                                         } catch (signedUrlError) {
                                             console.error('Signed URL 생성 실패:', signedUrlError);
@@ -2075,7 +2075,7 @@ async function initBusinessCardUpload() {
                                     }
                                     
                                     if (imageUrl) {
-                                        previewDiv.innerHTML = \`
+                                        previewDiv.innerHTML = `
                                             <div class="relative">
                                                 <img src="\${imageUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" 
                                                      onerror="console.error('이미지 로드 실패:', this.src); this.parentElement.innerHTML='<div class=\\\"text-center text-gray-500\\\"><p class=\\\"text-sm\\\">이미지를 불러올 수 없습니다</p></div>'"
@@ -2090,7 +2090,7 @@ async function initBusinessCardUpload() {
                                         \`;
                                     } else {
                                         console.error('이미지 URL을 생성할 수 없습니다');
-                                        previewDiv.innerHTML = \`
+                                        previewDiv.innerHTML = `
                                             <div class="text-center text-gray-500">
                                                 <p class="text-sm">이미지 URL 생성 실패</p>
                                             </div>
@@ -2179,7 +2179,7 @@ async function initBusinessCardUpload() {
                                 lastModified: file.lastModified
                             });
                             // 로딩 표시
-                            previewDiv.innerHTML = \`
+                            previewDiv.innerHTML = `
                                 <div class="text-center py-8">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
                                     <p class="text-sm text-gray-600">이미지 압축 중...</p>
@@ -2201,7 +2201,7 @@ async function initBusinessCardUpload() {
                             
                             // 압축된 이미지 미리보기
                             const previewUrl = URL.createObjectURL(compressedBlob);
-                            previewDiv.innerHTML = \`
+                            previewDiv.innerHTML = `
                                 <div class="text-center">
                                     <img src="\${previewUrl}" alt="명함 이미지 미리보기" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto mb-2">
                                     <p class="text-xs text-gray-500">압축 완료 (\${compressionRatio}% 감소) - 업로드 중...</p>
@@ -2258,7 +2258,7 @@ async function initBusinessCardUpload() {
                             
                             for (const bucketName of bucketNames) {
                                 try {
-                                    console.log(\`버킷 '\${bucketName}'로 업로드 시도...\`);
+                                    console.log(`버킷 '${bucketName}'로 업로드 시도...`);
                                     uploadResult = await window.supabaseClient
                                         .storage
                                         .from(bucketName)
@@ -2268,13 +2268,13 @@ async function initBusinessCardUpload() {
                                         });
                                     
                                     if (!uploadResult.error) {
-                                        console.log(\`업로드 성공 (버킷: \${bucketName}):\`, uploadResult.data);
+                                        console.log(`업로드 성공 (버킷: ${bucketName}):`, uploadResult.data);
                                         break;
                                     } else {
-                                        console.warn(\`버킷 '\${bucketName}' 업로드 실패:\`, uploadResult.error);
+                                        console.warn(`버킷 '${bucketName}' 업로드 실패:`, uploadResult.error);
                                     }
                                 } catch (bucketError) {
-                                    console.warn(\`버킷 '\${bucketName}' 시도 중 오류:\`, bucketError);
+                                    console.warn(`버킷 '${bucketName}' 시도 중 오류:`, bucketError);
                                 }
                             }
                             
@@ -2371,14 +2371,14 @@ async function initBusinessCardUpload() {
                                                     .from(bucketName)
                                                     .getPublicUrl(latestFilePath);
                                                 finalImageUrl = publicUrl;
-                                                console.log(\`재조회 Public URL (버킷: \${bucketName}):\`, finalImageUrl);
+                                                console.log(`재조회 Public URL (버킷: ${bucketName}):`, finalImageUrl);
                                                 break;
                                             } catch (retryError) {
-                                                console.error(\`재조회 URL 생성 실패 (버킷: \${bucketName}):\`, retryError);
+                                                console.error(`재조회 URL 생성 실패 (버킷: ${bucketName}):`, retryError);
                                             }
                                         }
                                     } catch (bucketListError) {
-                                        console.warn(\`버킷 '\${bucketName}' 목록 조회 실패:\`, bucketListError);
+                                        console.warn(`버킷 '${bucketName}' 목록 조회 실패:`, bucketListError);
                                     }
                                 }
                             }
@@ -2388,7 +2388,7 @@ async function initBusinessCardUpload() {
 
                             // 최종 미리보기 업데이트
                             if (finalImageUrl) {
-                                previewDiv.innerHTML = \`
+                                previewDiv.innerHTML = `
                                     <div class="relative">
                                         <img src="\${finalImageUrl}" alt="명함 이미지" class="max-w-full max-h-64 rounded-lg shadow-md mx-auto" 
                                              onerror="console.error('이미지 로드 실패:', this.src); this.parentElement.innerHTML='<div class=\\\"text-center text-red-500\\\"><p class=\\\"text-sm\\\">이미지 로드 실패</p></div>'"
@@ -2403,7 +2403,7 @@ async function initBusinessCardUpload() {
                                 \`;
                             } else {
                                 console.error('모든 URL 생성 방법 실패');
-                                previewDiv.innerHTML = \`
+                                previewDiv.innerHTML = `
                                     <div class="text-center text-red-500">
                                         <p class="text-sm">이미지 URL 생성 실패</p>
                                         <p class="text-xs mt-1">업로드는 완료되었지만 표시할 수 없습니다.</p>
@@ -2433,7 +2433,7 @@ async function initBusinessCardUpload() {
                                             break;
                                         }
                                     } catch (listError) {
-                                        console.warn(\`버킷 '\${bucketName}' 목록 조회 실패:\`, listError);
+                                        console.warn(`버킷 '${bucketName}' 목록 조회 실패:`, listError);
                                     }
                                 }
                                 
@@ -2447,7 +2447,7 @@ async function initBusinessCardUpload() {
                                             .storage
                                             .from(deleteBucket)
                                             .remove(filesToDelete);
-                                        console.log(\`기존 파일 삭제 완료 (버킷: \${deleteBucket}):\`, filesToDelete);
+                                        console.log(`기존 파일 삭제 완료 (버킷: ${deleteBucket}):`, filesToDelete);
                                     }
                                 }
                             } catch (deleteError) {
@@ -2467,7 +2467,7 @@ async function initBusinessCardUpload() {
                             showToast('업로드 실패: ' + errorMessage, 'error');
                             
                             // 에러 상세 정보를 미리보기 영역에 표시 (개발용)
-                            previewDiv.innerHTML = \`
+                            previewDiv.innerHTML = `
                                 <div class="text-center text-red-500 p-4">
                                     <p class="text-sm font-medium">업로드 실패</p>
                                     <p class="text-xs mt-1">\${errorMessage}</p>
