@@ -1,6 +1,29 @@
 -- 등급 업그레이드 요청 테이블 생성
 -- 사용자가 등급 업그레이드를 요청하고 관리자가 승인/거부할 수 있는 시스템
 
+-- updated_at 자동 업데이트 함수 확인 (없으면 생성)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- public.users 테이블에 grade 컬럼 추가 (없으면)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_schema='public' AND table_name='users' AND column_name='grade') THEN
+    ALTER TABLE public.users ADD COLUMN grade VARCHAR(20);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_schema='public' AND table_name='users' AND column_name='updated_at') THEN
+    ALTER TABLE public.users ADD COLUMN updated_at TIMESTAMPTZ DEFAULT NOW();
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS grade_upgrade_requests (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -33,6 +56,13 @@ CREATE TRIGGER update_grade_upgrade_requests_updated_at
 
 -- RLS 정책
 ALTER TABLE grade_upgrade_requests ENABLE ROW LEVEL SECURITY;
+
+-- 기존 정책 삭제
+DROP POLICY IF EXISTS "Users can view their own requests" ON grade_upgrade_requests;
+DROP POLICY IF EXISTS "Users can insert their own requests" ON grade_upgrade_requests;
+DROP POLICY IF EXISTS "Users can update their pending requests" ON grade_upgrade_requests;
+DROP POLICY IF EXISTS "Admins can view all requests" ON grade_upgrade_requests;
+DROP POLICY IF EXISTS "Admins can update all requests" ON grade_upgrade_requests;
 
 -- 사용자는 자신의 요청만 조회 가능
 CREATE POLICY "Users can view their own requests"
@@ -85,10 +115,18 @@ BEGIN
     -- 상태가 'approved'로 변경되고 이전에는 'pending'이었을 때만 실행
     IF NEW.status = 'approved' AND OLD.status = 'pending' THEN
         -- 사용자 등급 업데이트
-        UPDATE public.users
-        SET grade = NEW.requested_grade,
-            updated_at = NOW()
-        WHERE auth_user_id = NEW.user_id;
+        -- updated_at 컬럼이 있으면 업데이트, 없으면 grade만 업데이트
+        BEGIN
+            UPDATE public.users
+            SET grade = NEW.requested_grade,
+                updated_at = NOW()
+            WHERE auth_user_id = NEW.user_id;
+        EXCEPTION WHEN OTHERS THEN
+            -- updated_at 컬럼이 없으면 grade만 업데이트
+            UPDATE public.users
+            SET grade = NEW.requested_grade
+            WHERE auth_user_id = NEW.user_id;
+        END;
         
         -- 검토 정보 업데이트
         NEW.reviewed_by = auth.uid();
