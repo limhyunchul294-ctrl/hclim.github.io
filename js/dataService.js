@@ -313,20 +313,57 @@ window.dataService = {
     },
 
     /**
-     * 공지사항 작성 권한 확인 (관리자 또는 본사 소속)
+     * 공지사항 작성 권한 확인 (관리자만)
      */
     async canManageNotices() {
         try {
             const userInfo = await window.authService?.getUserInfo();
             if (!userInfo) return false;
 
-            // 관리자이거나 본사 소속이면 권한 있음
-            const isAdmin = userInfo.role === 'admin';
-            const isHeadquarters = userInfo.affiliation === '본사';
-            
-            return isAdmin || isHeadquarters;
+            // 관리자만 권한 있음
+            return userInfo.role === 'admin';
         } catch (error) {
             console.error('❌ canManageNotices 오류:', error.message);
+            return false;
+        }
+    },
+
+    /**
+     * 커뮤니티 게시글 작성 권한 확인 (Silver Label 이상 또는 관리자)
+     */
+    async canCreateCommunityPost() {
+        try {
+            const userInfo = await window.authService?.getUserInfo();
+            if (!userInfo) return false;
+
+            // 관리자는 모든 권한
+            if (userInfo.role === 'admin') return true;
+
+            // Silver Label 이상만 게시글 작성 가능
+            const grade = userInfo.grade?.toLowerCase();
+            return grade === 'silver' || grade === 'black';
+        } catch (error) {
+            console.error('❌ canCreateCommunityPost 오류:', error.message);
+            return false;
+        }
+    },
+
+    /**
+     * 커뮤니티 댓글 작성 권한 확인 (Blue Label 이상 또는 관리자)
+     */
+    async canCreateComment() {
+        try {
+            const userInfo = await window.authService?.getUserInfo();
+            if (!userInfo) return false;
+
+            // 관리자는 모든 권한
+            if (userInfo.role === 'admin') return true;
+
+            // Blue Label 이상은 댓글 작성 가능
+            const grade = userInfo.grade?.toLowerCase();
+            return grade === 'blue' || grade === 'silver' || grade === 'black';
+        } catch (error) {
+            console.error('❌ canCreateComment 오류:', error.message);
             return false;
         }
     },

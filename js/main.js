@@ -1429,16 +1429,28 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                     </div>
                 `).join('');
 
+                // 게시글 작성 권한 확인
+                const canCreatePost = await window.dataService?.canCreateCommunityPost() || false;
+
                 return `
                     <div class="max-w-5xl mx-auto p-6">
                         <div class="flex items-center justify-between mb-6">
                             <h1 class="text-2xl font-bold text-gray-900">커뮤니티</h1>
+                            ${canCreatePost ? `
                             <button onclick="openCommunityEditor()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                 </svg>
                                 글 작성
                             </button>
+                            ` : `
+                            <div class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed flex items-center gap-2" title="Silver Label 이상만 게시글 작성이 가능합니다">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                글 작성
+                            </div>
+                            `}
                         </div>
                         <div class="mb-4 flex gap-2">
                             <button onclick="filterCommunityPosts('all')" class="category-filter px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm" data-category="all">
@@ -1465,9 +1477,15 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                     </svg>
                                     <p class="text-gray-500 text-lg mb-2">아직 게시글이 없습니다</p>
                                     <p class="text-gray-400 text-sm mb-6">첫 번째 게시글을 작성해보세요!</p>
+                                    ${canCreatePost ? `
                                     <button onclick="openCommunityEditor()" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
                                         첫 게시글 작성하기
                                     </button>
+                                    ` : `
+                                    <div class="px-6 py-3 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed inline-block" title="Silver Label 이상만 게시글 작성이 가능합니다">
+                                        첫 게시글 작성하기
+                                    </div>
+                                    `}
                                 </div>
                             `}
                         </div>
@@ -1530,6 +1548,9 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                 const session = await window.authSession?.getSession();
                 const isAuthor = post.author_id === session?.user?.id;
                 const isAdmin = userInfo?.role === 'admin';
+                
+                // 댓글 작성 권한 확인
+                const canCreateComment = await window.dataService?.canCreateComment() || false;
 
                 const manageButtons = (isAuthor || isAdmin) ? `
                     <div class="flex gap-2 mt-4">
@@ -1650,6 +1671,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                     `;
                                 }).join('')}
                             </div>
+                            ${canCreateComment ? `
                             <div class="border-t border-gray-200 pt-4">
                                 <textarea 
                                     id="comment-input" 
@@ -1662,6 +1684,16 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                     댓글 작성
                                 </button>
                             </div>
+                            ` : `
+                            <div class="border-t border-gray-200 pt-4">
+                                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                                    <p class="text-sm text-yellow-800 font-medium mb-1">⚠️ 댓글 작성 권한이 없습니다</p>
+                                    <p class="text-xs text-yellow-700">
+                                        ${userInfo?.grade ? `현재 등급(${userInfo.grade})으로는 댓글 작성이 제한됩니다.` : '등록된 사용자만 댓글을 작성할 수 있습니다.'}
+                                    </p>
+                                </div>
+                            </div>
+                            `}
                         </div>
                     </div>
                 `;
@@ -1754,14 +1786,34 @@ async function renderAccountPage() {
                                         ${userInfo?.grade === 'black' ? '⚫ 블랙 라벨' : userInfo?.grade === 'silver' ? '⚪ 실버 라벨' : userInfo?.grade === 'blue' ? '🔵 블루 라벨' : '등급 없음'}
                                     </span>
                                 </div>
-                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
-                                    <p class="font-semibold mb-1">등급별 접근 권한:</p>
-                                    <ul class="space-y-1 list-disc list-inside">
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 mb-3">
+                                    <p class="font-semibold mb-2">등급별 접근 권한:</p>
+                                    <ul class="space-y-1 list-disc list-inside mb-2">
                                         <li><strong>블루 라벨:</strong> 정비지침서, TSB</li>
                                         <li><strong>실버 라벨:</strong> 정비지침서, 전장회로도, 와이어링 커넥터, TSB</li>
                                         <li><strong>블랙 라벨:</strong> 모든 기술문서 접근 가능</li>
                                     </ul>
+                                    <div class="mt-2 pt-2 border-t border-blue-300">
+                                        <p class="font-semibold mb-1">게시판 권한:</p>
+                                        <ul class="space-y-1 list-disc list-inside">
+                                            <li><strong>블루 라벨:</strong> 공지사항 조회, 커뮤니티 조회, 댓글 작성</li>
+                                            <li><strong>실버 라벨:</strong> 공지사항 조회, 커뮤니티 조회/작성, 댓글 작성</li>
+                                            <li><strong>블랙 라벨:</strong> 공지사항 조회, 커뮤니티 조회/작성, 댓글 작성</li>
+                                            <li><strong>관리자:</strong> 모든 권한 (공지사항 작성/수정/삭제 포함)</li>
+                                        </ul>
+                                    </div>
                                 </div>
+                                ${userInfo?.role !== 'admin' ? `
+                                <button 
+                                    onclick="openGradeUpgradeRequest()" 
+                                    class="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                    등급 업그레이드 요청
+                                </button>
+                                ` : ''}
                             </div>
                         </div>
                         <div class="mt-4 pt-4 border-t border-gray-200">
@@ -3388,6 +3440,23 @@ async function initBusinessCardUpload() {
         
         async function addComment(postId) {
             try {
+                // 댓글 작성 권한 확인 (Blue Label 이상)
+                const canCreate = await window.dataService?.canCreateComment();
+                if (!canCreate) {
+                    const userInfo = await window.authService?.getUserInfo();
+                    const grade = userInfo?.grade?.toLowerCase();
+                    let message = '댓글 작성 권한이 없습니다.';
+                    
+                    if (!grade) {
+                        message += '\n\n등록된 사용자만 댓글을 작성할 수 있습니다.';
+                    } else if (grade !== 'blue' && grade !== 'silver' && grade !== 'black') {
+                        message += '\n\nBlue Label 이상만 댓글을 작성할 수 있습니다.';
+                    }
+                    
+                    showToast(message, 'error');
+                    return;
+                }
+                
                 const commentInput = document.getElementById('comment-input');
                 const content = commentInput?.value?.trim();
                 
@@ -3464,16 +3533,35 @@ async function initBusinessCardUpload() {
             try {
                 let post = null;
                 if (postId) {
+                    // 수정 모드: 작성자 확인
                     post = await window.dataService?.getCommunityPostById(postId);
                     if (!post) {
                         showToast('게시글을 찾을 수 없습니다.', 'error');
                         return;
                     }
                     
-                    // 작성자 확인
                     const session = await window.authSession?.getSession();
-                    if (post.author_id !== session?.user?.id) {
+                    const userInfo = await window.authService?.getUserInfo();
+                    const isAuthor = post.author_id === session?.user?.id;
+                    const isAdmin = userInfo?.role === 'admin';
+                    
+                    if (!isAuthor && !isAdmin) {
                         showToast('수정 권한이 없습니다.', 'error');
+                        return;
+                    }
+                } else {
+                    // 작성 모드: Silver Label 이상 권한 확인
+                    const canCreate = await window.dataService?.canCreateCommunityPost();
+                    if (!canCreate) {
+                        const userInfo = await window.authService?.getUserInfo();
+                        const grade = userInfo?.grade?.toLowerCase();
+                        let message = '게시글 작성 권한이 없습니다.';
+                        
+                        if (!grade || grade === 'blue') {
+                            message += '\n\nSilver Label 이상만 게시글을 작성할 수 있습니다.';
+                        }
+                        
+                        showToast(message, 'error');
                         return;
                     }
                 }
@@ -3702,6 +3790,234 @@ async function initBusinessCardUpload() {
             }
         }
 
+        // ---- 13. 권한 업그레이드 요청 팝업 ----
+        
+        /**
+         * 권한 업그레이드 요청 팝업 열기
+         */
+        async function openGradeUpgradeRequest() {
+            try {
+                const userInfo = await window.authService?.getUserInfo();
+                const session = await window.authSession?.getSession();
+                
+                if (!userInfo || !session) {
+                    showToast('사용자 정보를 불러올 수 없습니다.', 'error');
+                    return;
+                }
+                
+                const currentGrade = userInfo.grade?.toLowerCase() || '없음';
+                const gradeOptions = {
+                    '없음': { next: 'blue', label: '블루 라벨', description: '정비지침서, TSB 접근 + 커뮤니티 댓글 작성' },
+                    'blue': { next: 'silver', label: '실버 라벨', description: '전장회로도, 와이어링 커넥터 접근 + 커뮤니티 게시글 작성' },
+                    'silver': { next: 'black', label: '블랙 라벨', description: '모든 기술문서 접근 가능' }
+                };
+                
+                const nextGrade = gradeOptions[currentGrade];
+                if (!nextGrade) {
+                    showToast('더 이상 업그레이드할 등급이 없습니다.', 'info');
+                    return;
+                }
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+                modal.id = 'grade-upgrade-modal';
+                
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div class="p-6 border-b">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-2xl font-bold text-gray-900">등급 업그레이드 요청</h2>
+                                <button onclick="closeGradeUpgradeRequest()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <form id="grade-upgrade-form" class="p-6">
+                            <div class="mb-6">
+                                <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 mb-4">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div class="px-3 py-1 bg-white rounded-lg border-2 border-purple-300">
+                                            <span class="text-sm font-semibold text-purple-700">현재 등급</span>
+                                        </div>
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                        </svg>
+                                        <div class="px-3 py-1 bg-purple-600 text-white rounded-lg">
+                                            <span class="text-sm font-semibold">${nextGrade.label}</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-700">${nextGrade.description}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">요청자 정보</label>
+                                <div class="space-y-2">
+                                    <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" 
+                                           value="${userInfo.name || '정보 없음'}" readonly>
+                                    <input type="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" 
+                                           value="${session.user.email || '정보 없음'}" readonly>
+                                    <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" 
+                                           value="${userInfo.affiliation || '정보 없음'}" readonly>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">요청 사유 *</label>
+                                <textarea 
+                                    id="upgrade-reason" 
+                                    required 
+                                    rows="5"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                                    placeholder="등급 업그레이드가 필요한 이유를 작성해주세요.&#10;예: 정비 업무를 위해 전장회로도 접근이 필요합니다."
+                                ></textarea>
+                                <p class="text-xs text-gray-500 mt-1">상세한 사유를 작성하시면 승인 가능성이 높아집니다.</p>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">연락처 (선택사항)</label>
+                                <input 
+                                    type="tel" 
+                                    id="upgrade-contact" 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                                    placeholder="010-1234-5678"
+                                    value="${userInfo.phone || ''}"
+                                >
+                            </div>
+                            
+                            <div class="flex gap-2 justify-end">
+                                <button 
+                                    type="button" 
+                                    onclick="closeGradeUpgradeRequest()" 
+                                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                                >
+                                    취소
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    class="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-medium"
+                                >
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                        </svg>
+                                        요청 전송
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // 폼 제출 이벤트
+                document.getElementById('grade-upgrade-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await submitGradeUpgradeRequest(userInfo, session, currentGrade, nextGrade);
+                });
+                
+            } catch (error) {
+                console.error('권한 업그레이드 요청 팝업 오류:', error);
+                showToast('요청 팝업을 열 수 없습니다.', 'error');
+            }
+        }
+        
+        /**
+         * 권한 업그레이드 요청 팝업 닫기
+         */
+        function closeGradeUpgradeRequest() {
+            const modal = document.getElementById('grade-upgrade-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        /**
+         * 권한 업그레이드 요청 제출
+         */
+        async function submitGradeUpgradeRequest(userInfo, session, currentGrade, nextGrade) {
+            try {
+                const reason = document.getElementById('upgrade-reason')?.value?.trim();
+                const contact = document.getElementById('upgrade-contact')?.value?.trim();
+                
+                if (!reason) {
+                    showToast('요청 사유를 입력해주세요.', 'error');
+                    return;
+                }
+                
+                // 요청 데이터 준비
+                const requestData = {
+                    user_id: session.user.id,
+                    user_name: userInfo.name || '정보 없음',
+                    user_email: session.user.email,
+                    user_affiliation: userInfo.affiliation || '',
+                    current_grade: currentGrade,
+                    requested_grade: nextGrade.next,
+                    reason: reason,
+                    contact: contact || userInfo.phone || '',
+                    status: 'pending',
+                    created_at: new Date().toISOString()
+                };
+                
+                // 데이터베이스에 저장
+                if (window.supabaseClient) {
+                    const { error } = await window.supabaseClient
+                        .from('grade_upgrade_requests')
+                        .insert([requestData]);
+                    
+                    if (error) {
+                        // 테이블이 없으면 생성 시도
+                        if (error.code === 'PGRST106' || error.message?.includes('does not exist')) {
+                            showToast('요청 테이블이 없습니다. 관리자에게 문의해주세요.', 'error');
+                            console.error('grade_upgrade_requests 테이블이 없습니다. SQL 마이그레이션을 실행해주세요.');
+                            return;
+                        }
+                        throw error;
+                    }
+                }
+                
+                // 이메일 전송 (Supabase Edge Function 호출)
+                try {
+                    const { error: emailError } = await window.supabaseClient.functions.invoke('send-grade-upgrade-email', {
+                        body: {
+                            to: 'admin@evkmc.com', // 관리자 이메일 (환경변수로 설정 가능)
+                            subject: `[등급 업그레이드 요청] ${userInfo.name}님의 ${nextGrade.label} 요청`,
+                            html: `
+                                <h2>등급 업그레이드 요청</h2>
+                                <p><strong>요청자:</strong> ${userInfo.name} (${session.user.email})</p>
+                                <p><strong>소속:</strong> ${userInfo.affiliation || '정보 없음'}</p>
+                                <p><strong>현재 등급:</strong> ${currentGrade === '없음' ? '등급 없음' : currentGrade}</p>
+                                <p><strong>요청 등급:</strong> ${nextGrade.label}</p>
+                                <p><strong>연락처:</strong> ${contact || userInfo.phone || '정보 없음'}</p>
+                                <h3>요청 사유:</h3>
+                                <p>${reason.replace(/\n/g, '<br>')}</p>
+                                <hr>
+                                <p><small>이 요청은 시스템에서 자동으로 생성되었습니다.</small></p>
+                            `
+                        }
+                    });
+                    
+                    if (emailError) {
+                        console.warn('이메일 전송 실패 (요청은 저장됨):', emailError);
+                        // 이메일 전송 실패해도 요청은 저장되었으므로 성공으로 처리
+                    }
+                } catch (emailError) {
+                    console.warn('이메일 전송 함수 호출 실패 (요청은 저장됨):', emailError);
+                    // Edge Function이 없어도 요청은 저장되었으므로 성공으로 처리
+                }
+                
+                showToast('등급 업그레이드 요청이 전송되었습니다. 관리자 검토 후 연락드리겠습니다.', 'success');
+                closeGradeUpgradeRequest();
+                
+            } catch (error) {
+                console.error('권한 업그레이드 요청 제출 오류:', error);
+                showToast(error.message || '요청 전송에 실패했습니다.', 'error');
+            }
+        }
+
         // ---- 13. 전역 함수 등록 ----
         window.handleLogout = handleLogout;
         window.downloadSecureFile = downloadSecureFile;
@@ -3718,6 +4034,9 @@ async function initBusinessCardUpload() {
         window.deleteCommunityPost = deleteCommunityPost;
         window.refreshSession = refreshSession;
         window.toggleNavDropdown = toggleNavDropdown;
+        window.openGradeUpgradeRequest = openGradeUpgradeRequest;
+        window.closeGradeUpgradeRequest = closeGradeUpgradeRequest;
+        window.submitGradeUpgradeRequest = submitGradeUpgradeRequest;
 
         // ---- 12. 앱 시작 ----
         initApp();
