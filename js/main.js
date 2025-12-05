@@ -1091,6 +1091,9 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
         // ---- 6. 페이지 렌더링 함수 ----
 
         function renderHomePage() {
+            // 드롭다운이 아닌 일반 링크만 필터링 (게시판 제외)
+            const homeLinks = NAV_LINKS.filter(link => link.type !== 'dropdown' && link.href);
+            
             return `
                 <div class="max-w-4xl mx-auto p-6">
                     <div class="mb-8">
@@ -1099,7 +1102,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                        ${NAV_LINKS.slice(0, 6).map(link => `
+                        ${homeLinks.map(link => `
                             <a href="${link.href}" class="block p-6 bg-white rounded-xl shadow-soft hover:shadow-lg transition-all duration-200 border border-gray-100">
                                 <div class="flex items-center mb-3">
                                     <svg class="w-6 h-6 text-brand mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1110,6 +1113,26 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 <p class="text-gray-600 text-sm">관련 문서 및 정보를 확인하세요</p>
                             </a>
                         `).join('')}
+                        
+                        <!-- 게시판 카드 (드롭다운 대신 직접 링크) -->
+                        <div class="p-6 bg-white rounded-xl shadow-soft hover:shadow-lg transition-all duration-200 border border-gray-100">
+                            <div class="flex items-center mb-3">
+                                <svg class="w-6 h-6 text-brand mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                <h3 class="text-lg font-semibold text-gray-900">게시판</h3>
+                            </div>
+                            <div class="space-y-2">
+                                <a href="#/notices" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700 hover:text-blue-600">
+                                    <span class="font-medium">📢 공지사항</span>
+                                    <span class="text-gray-500 text-xs ml-2">중요 공지 확인</span>
+                                </a>
+                                <a href="#/community" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700 hover:text-blue-600">
+                                    <span class="font-medium">💬 커뮤니티</span>
+                                    <span class="text-gray-500 text-xs ml-2">자유로운 소통</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="bg-white rounded-xl shadow-soft p-6">
@@ -2832,6 +2855,10 @@ async function initBusinessCardUpload() {
                         
                         // 홈 페이지 렌더링
                         mainContent.innerHTML = await renderHomePage();
+                        // 홈 페이지 렌더링 후 공지사항 로드
+                        setTimeout(() => {
+                            renderRecentNotices();
+                        }, 100);
                         return;
                     }
                 }
@@ -2909,6 +2936,10 @@ async function initBusinessCardUpload() {
                             
                             // 홈 페이지 렌더링
                             mainContent.innerHTML = await renderHomePage();
+                            // 홈 페이지 렌더링 후 공지사항 로드
+                            setTimeout(() => {
+                                renderRecentNotices();
+                            }, 100);
                             return;
                         }
                     }
@@ -2922,6 +2953,13 @@ async function initBusinessCardUpload() {
                                 const result = await route(param);
                                 mainContent.innerHTML = result;
                                 mainContent.classList.add('page-transition');
+                                
+                                // 홈 페이지인 경우 공지사항 로드
+                                if (path === '/home' || path === '') {
+                                    setTimeout(() => {
+                                        renderRecentNotices();
+                                    }, 100);
+                                }
                                 
                                 // 계정 페이지인 경우 초기화 함수들 호출
                                 if (path === '/account') {
@@ -2982,15 +3020,14 @@ async function initBusinessCardUpload() {
             const container = document.getElementById('recent-notices-container');
             if (!container) return;
 
+            // 로딩 표시
             container.innerHTML = skeletonLoadingHTML();
 
             try {
-                const notices = await window.dataService?.getNotices(3) || [
-                    { id: 1, title: '시스템 정기 점검 안내', category: '중요', created_at: '2024-01-15' },
-                    { id: 2, title: '새로운 기능 업데이트', category: '일반', created_at: '2024-01-10' },
-                    { id: 3, title: '정비 매뉴얼 업데이트', category: '업데이트', created_at: '2024-01-05' }
-                ];
+                // 공지사항 가져오기 (최대 3개)
+                const notices = await window.dataService?.getNotices(3) || [];
 
+                // 로딩 완료 후 결과 표시
                 if (notices && notices.length > 0) {
                     container.innerHTML = notices.map(notice => `
                         <div class="border-b border-gray-100 pb-3 mb-3 last:border-b-0">
@@ -3002,11 +3039,13 @@ async function initBusinessCardUpload() {
                         </div>
                     `).join('');
                 } else {
-                    container.innerHTML = '<p class="text-gray-500 text-center py-4">공지사항이 없습니다.</p>';
+                    // 공지사항이 없을 때 로딩 애니메이션 제거하고 메시지 표시
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4">등록된 공지사항이 없습니다.</p>';
                 }
             } catch (error) {
                 console.error('공지사항 로드 오류:', error);
-                container.innerHTML = '<p class="text-red-500 text-center py-4">공지사항을 불러올 수 없습니다.</p>';
+                // 에러 발생 시에도 로딩 애니메이션 제거
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">공지사항을 불러올 수 없습니다.</p>';
             }
         }
 
@@ -3980,8 +4019,12 @@ async function initBusinessCardUpload() {
                 }
                 
                 // 이메일 전송 (Supabase Edge Function 호출)
+                let emailSent = false;
+                let emailError = null;
+                let errorDetails = null;
+                
                 try {
-                    const { error: emailError } = await window.supabaseClient.functions.invoke('send-grade-upgrade-email', {
+                    const { data, error: emailErrorResponse } = await window.supabaseClient.functions.invoke('send-grade-upgrade-email', {
                         body: {
                             to: 'admin@evkmc.com', // 관리자 이메일 (환경변수로 설정 가능)
                             subject: `[등급 업그레이드 요청] ${userInfo.name}님의 ${nextGrade.label} 요청`,
@@ -4000,16 +4043,133 @@ async function initBusinessCardUpload() {
                         }
                     });
                     
-                    if (emailError) {
-                        console.warn('이메일 전송 실패 (요청은 저장됨):', emailError);
-                        // 이메일 전송 실패해도 요청은 저장되었으므로 성공으로 처리
+                    if (emailErrorResponse) {
+                        emailError = emailErrorResponse;
+                        errorDetails = emailErrorResponse;
+                        
+                        console.error('❌ 이메일 전송 실패:', emailErrorResponse);
+                        console.error('에러 타입:', emailErrorResponse.constructor?.name);
+                        console.error('에러 메시지:', emailErrorResponse.message);
+                        
+                        // Edge Function의 에러 응답 본문 파싱 시도
+                        try {
+                            // Supabase Functions 에러의 경우 context에 응답 본문이 있을 수 있음
+                            if (emailErrorResponse.context?.response) {
+                                const responseText = await emailErrorResponse.context.response.text();
+                                try {
+                                    const responseJson = JSON.parse(responseText);
+                                    errorDetails = {
+                                        ...errorDetails,
+                                        responseBody: responseJson
+                                    };
+                                    console.error('📧 Edge Function 응답 본문:', responseJson);
+                                } catch {
+                                    errorDetails = {
+                                        ...errorDetails,
+                                        responseBody: responseText
+                                    };
+                                    console.error('📧 Edge Function 응답 본문 (텍스트):', responseText);
+                                }
+                            }
+                        } catch (parseError) {
+                            console.error('응답 본문 파싱 실패:', parseError);
+                        }
+                        
+                        // 에러 응답 본문 확인 시도
+                        if (emailErrorResponse.context) {
+                            console.error('에러 컨텍스트:', emailErrorResponse.context);
+                            if (!errorDetails.responseBody) {
+                                errorDetails = emailErrorResponse.context;
+                            }
+                        }
+                        
+                        // Supabase Functions 에러의 경우 추가 정보 확인
+                        if (emailErrorResponse.message) {
+                            console.error('전체 에러 객체:', JSON.stringify(emailErrorResponse, null, 2));
+                        }
+                    } else if (data) {
+                        emailSent = true;
+                        console.log('✅ 이메일 전송 성공:', data);
                     }
-                } catch (emailError) {
-                    console.warn('이메일 전송 함수 호출 실패 (요청은 저장됨):', emailError);
-                    // Edge Function이 없어도 요청은 저장되었으므로 성공으로 처리
+                } catch (emailErrorResponse) {
+                    emailError = emailErrorResponse;
+                    errorDetails = emailErrorResponse;
+                    console.error('❌ 이메일 전송 함수 호출 실패:', emailErrorResponse);
+                    console.error('에러 타입:', emailErrorResponse.constructor?.name);
+                    console.error('에러 메시지:', emailErrorResponse.message);
+                    console.error('전체 에러:', emailErrorResponse);
                 }
                 
-                showToast('등급 업그레이드 요청이 전송되었습니다. 관리자 검토 후 연락드리겠습니다.', 'success');
+                // 결과 메시지 표시
+                if (emailSent) {
+                    showToast('등급 업그레이드 요청이 전송되었습니다. 관리자 검토 후 연락드리겠습니다.', 'success');
+                } else {
+                    // 이메일 전송 실패해도 요청은 저장되었으므로 성공으로 처리
+                    if (emailError) {
+                        console.warn('⚠️ 이메일 전송 실패 상세:', emailError);
+                        console.warn('⚠️ 에러 상세 정보:', errorDetails);
+                        
+                        // 구체적인 에러 메시지 표시
+                        let errorMessage = '요청이 저장되었습니다.';
+                        let errorHint = '';
+                        
+                        // 에러 메시지 분석
+                        const errorMsg = emailError.message || '';
+                        const errorStr = JSON.stringify(emailError) || '';
+                        const responseError = errorDetails?.responseBody?.error || '';
+                        const responseDetails = errorDetails?.responseBody?.details || '';
+                        
+                        console.error('📧 이메일 전송 실패 상세 분석:', {
+                            message: errorMsg,
+                            responseError,
+                            responseDetails,
+                            fullError: emailError
+                        });
+                        
+                        if (errorMsg.includes('RESEND_API_KEY') || errorStr.includes('RESEND_API_KEY') || responseError.includes('RESEND_API_KEY') || responseDetails.includes('RESEND_API_KEY')) {
+                            errorMessage += ' (이메일 서비스 설정 필요)';
+                            errorHint = 'Resend API 키가 설정되지 않았습니다.\n\n해결 방법:\n1. Supabase Dashboard 접속\n2. Edge Functions > send-grade-upgrade-email 선택\n3. Settings 탭 > Secrets 섹션\n4. RESEND_API_KEY 추가 (Resend.com에서 발급받은 키)\n5. Edge Function 재배포';
+                            console.info('💡', errorHint);
+                        } else if (errorMsg.includes('Function not found') || errorMsg.includes('404')) {
+                            errorMessage += ' (Edge Function 배포 필요)';
+                            errorHint = 'Edge Function이 배포되지 않았습니다. 배포 가이드를 참고하세요.';
+                            console.info('💡', errorHint);
+                        } else if (errorMsg.includes('500') || errorStr.includes('500') || responseError) {
+                            errorMessage += ' (서버 오류 발생)';
+                            const specificError = responseError || '알 수 없는 오류';
+                            errorHint = `Edge Function에서 500 에러가 발생했습니다.\n\n에러: ${specificError}\n\n확인 방법:\n1. Supabase Dashboard > Edge Functions\n2. send-grade-upgrade-email 함수 선택\n3. Logs 탭에서 최근 에러 확인\n\n가능한 원인:\n- Resend API 키 미설정 또는 잘못됨\n- Resend 도메인 미인증\n- Edge Function 코드 오류`;
+                            console.error('💡', errorHint);
+                            console.error('💡 가능한 원인:');
+                            console.error('   1. Resend API 키가 설정되지 않음');
+                            console.error('   2. Resend API 키가 잘못됨');
+                            console.error('   3. 도메인이 인증되지 않음 (현재는 onboarding@resend.dev 사용 중)');
+                            console.error('   4. Edge Function 코드 오류');
+                            if (responseDetails) {
+                                console.error('   상세:', responseDetails);
+                            }
+                        } else if (errorMsg.includes('CORS') || errorStr.includes('CORS')) {
+                            errorMessage += ' (CORS 오류)';
+                            errorHint = 'CORS 설정 문제입니다. Edge Function 코드를 확인하세요.';
+                            console.error('💡', errorHint);
+                        } else {
+                            errorMessage += ' (이메일 전송 실패)';
+                            errorHint = 'Supabase Dashboard > Edge Functions > send-grade-upgrade-email > Logs에서 에러 로그를 확인하세요.\n\n로그 확인 방법:\n1. Supabase Dashboard 접속\n2. Edge Functions 메뉴 클릭\n3. send-grade-upgrade-email 함수 선택\n4. Logs 탭에서 최근 에러 메시지 확인';
+                            console.error('💡', errorHint);
+                            console.error('💡 전체 에러 정보:', {
+                                message: emailError.message,
+                                name: emailError.name,
+                                stack: emailError.stack,
+                                context: errorDetails,
+                                responseBody: errorDetails?.responseBody
+                            });
+                        }
+                        
+                        showToast(errorMessage, 'info');
+                    } else {
+                        showToast('요청이 저장되었습니다. 관리자가 확인 후 연락드리겠습니다.', 'success');
+                    }
+                }
+                
                 closeGradeUpgradeRequest();
                 
             } catch (error) {

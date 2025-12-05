@@ -89,3 +89,5 @@ curl -X POST http://localhost:54321/functions/v1/send-grade-upgrade-email \
 - 이메일 전송 실패 시에도 요청은 정상적으로 저장됩니다
 - 관리자는 Supabase Dashboard에서 요청을 확인하고 승인/거부할 수 있습니다
 
+
+
