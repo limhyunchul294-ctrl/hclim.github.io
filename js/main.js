@@ -5204,19 +5204,39 @@ async function initBusinessCardUpload() {
                     </div>
                     <div class="flex gap-2 mt-4">
                         <button 
-                            onclick="skipOnboarding()" 
+                            id="onboarding-skip-btn"
                             class="flex-1 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
                             tabindex="0">
                             건너뛰기
                         </button>
                         <button 
-                            onclick="nextOnboardingStep()" 
+                            id="onboarding-next-btn"
                             class="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                             tabindex="0">
                             ${stepIndex === steps.length - 1 ? '완료' : '다음'}
                         </button>
                     </div>
                 `;
+                
+                // 버튼 이벤트 리스너 추가 (onclick 대신)
+                const skipBtn = tooltip.querySelector('#onboarding-skip-btn');
+                const nextBtn = tooltip.querySelector('#onboarding-next-btn');
+                
+                if (skipBtn) {
+                    skipBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        skip();
+                    });
+                }
+                
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        nextStep();
+                    });
+                }
                 
                 // 툴팁 위치 설정
                 const tooltipRect = tooltip.getBoundingClientRect();

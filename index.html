@@ -113,6 +113,7 @@
     /* 네비게이션 언더라인 효과 */
     .nav-link { 
       position: relative;
+      white-space: nowrap;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       align-items: center;
@@ -591,7 +592,7 @@
       <div class="flex items-center gap-4">
         <a href="#/home" class="text-xl md:text-2xl font-semibold tracking-tight">EVKMC A/S</a>
       </div>
-      <nav id="desktop-nav" class="hidden md:flex items-center gap-7 text-[15px]"></nav>
+      <nav id="desktop-nav" class="hidden md:flex items-center gap-7 text-[15px] flex-nowrap"></nav>
       <div class="flex items-center gap-3">
         <div id="auth-container"></div>
         <!-- 모바일 메뉴 버튼 -->
