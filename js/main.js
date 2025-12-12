@@ -4971,7 +4971,7 @@ async function initBusinessCardUpload() {
                 <div class="p-2 border-b border-gray-200 flex items-center justify-between">
                     <span class="text-xs font-medium text-gray-700">최근 검색어</span>
                     <button 
-                        onclick="deleteAllSearchHistory()" 
+                        id="delete-all-search-history-btn"
                         class="text-xs text-gray-500 hover:text-gray-700"
                         tabindex="0"
                         aria-label="전체 삭제">
@@ -4979,22 +4979,22 @@ async function initBusinessCardUpload() {
                     </button>
                 </div>
                 <div class="py-1">
-                    ${history.map((item) => {
-                        const escapedItem = item.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                    ${history.map((item, index) => {
+                        const safeItem = item.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                         return `
                         <div class="flex items-center justify-between px-3 py-2 hover:bg-gray-50 cursor-pointer group">
                             <button 
-                                onclick="selectSearchHistory('${escapedItem}')"
-                                class="flex-1 text-left text-sm text-gray-700 hover:text-blue-600"
+                                data-search-item="${index}"
+                                class="search-history-item flex-1 text-left text-sm text-gray-700 hover:text-blue-600"
                                 tabindex="0">
                                 <svg class="w-4 h-4 inline-block mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
-                                ${item}
+                                ${safeItem}
                             </button>
                             <button 
-                                onclick="deleteSearchHistoryItem('${escapedItem}')"
-                                class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-opacity"
+                                data-delete-item="${index}"
+                                class="delete-history-item opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-opacity"
                                 tabindex="0"
                                 aria-label="삭제">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -5009,6 +5009,29 @@ async function initBusinessCardUpload() {
             
             searchContainer.style.position = 'relative';
             searchContainer.appendChild(historyDropdown);
+            
+            // 검색 히스토리 항목 클릭 이벤트
+            historyDropdown.querySelectorAll('.search-history-item').forEach((btn, index) => {
+                btn.addEventListener('click', () => {
+                    selectSearchHistory(history[index]);
+                });
+            });
+            
+            // 삭제 버튼 클릭 이벤트
+            historyDropdown.querySelectorAll('.delete-history-item').forEach((btn, index) => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteSearchHistoryItem(history[index]);
+                });
+            });
+            
+            // 전체 삭제 버튼 이벤트
+            const deleteAllBtn = historyDropdown.querySelector('#delete-all-search-history-btn');
+            if (deleteAllBtn) {
+                deleteAllBtn.addEventListener('click', () => {
+                    deleteAllSearchHistory();
+                });
+            }
             
             // 입력 필드 포커스 시 히스토리 표시
             inputElement.addEventListener('focus', () => {
