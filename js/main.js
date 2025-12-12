@@ -4882,7 +4882,204 @@ async function initBusinessCardUpload() {
         window.closeGradeUpgradeRequest = closeGradeUpgradeRequest;
         window.submitGradeUpgradeRequest = submitGradeUpgradeRequest;
 
-        // ---- 11-3. 첫 방문 온보딩 가이드 ----
+        // ---- 11-3. 검색 히스토리 기능 ----
+        
+        const SEARCH_HISTORY_KEY = 'evkmc_search_history';
+        const MAX_SEARCH_HISTORY = 10;
+        
+        /**
+         * 검색 히스토리 저장
+         * @param {string} query - 검색어
+         */
+        function saveSearchHistory(query) {
+            if (!query || query.trim().length === 0) return;
+            
+            try {
+                let history = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]');
+                
+                // 중복 제거
+                history = history.filter(item => item.toLowerCase() !== query.toLowerCase());
+                
+                // 최신 검색어를 맨 앞에 추가
+                history.unshift(query);
+                
+                // 최대 개수 제한
+                if (history.length > MAX_SEARCH_HISTORY) {
+                    history = history.slice(0, MAX_SEARCH_HISTORY);
+                }
+                
+                localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+            } catch (error) {
+                console.error('검색 히스토리 저장 오류:', error);
+            }
+        }
+        
+        /**
+         * 검색 히스토리 가져오기
+         * @returns {Array<string>} 검색 히스토리 배열
+         */
+        function getSearchHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]');
+            } catch (error) {
+                console.error('검색 히스토리 로드 오류:', error);
+                return [];
+            }
+        }
+        
+        /**
+         * 검색 히스토리 삭제
+         * @param {string} query - 삭제할 검색어 (선택사항, 없으면 전체 삭제)
+         */
+        function deleteSearchHistory(query = null) {
+            try {
+                if (query) {
+                    let history = getSearchHistory();
+                    history = history.filter(item => item.toLowerCase() !== query.toLowerCase());
+                    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+                } else {
+                    localStorage.removeItem(SEARCH_HISTORY_KEY);
+                }
+            } catch (error) {
+                console.error('검색 히스토리 삭제 오류:', error);
+            }
+        }
+        
+        /**
+         * 검색 히스토리 UI 표시
+         * @param {HTMLElement} inputElement - 검색 입력 요소
+         */
+        function showSearchHistory(inputElement) {
+            // 기존 히스토리 UI 제거
+            const existingHistory = document.getElementById('search-history-dropdown');
+            if (existingHistory) {
+                existingHistory.remove();
+            }
+            
+            const history = getSearchHistory();
+            if (history.length === 0) return;
+            
+            const searchContainer = inputElement.closest('.tree-search');
+            if (!searchContainer) return;
+            
+            // 히스토리 드롭다운 생성
+            const historyDropdown = document.createElement('div');
+            historyDropdown.id = 'search-history-dropdown';
+            historyDropdown.className = 'absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto';
+            
+            historyDropdown.innerHTML = `
+                <div class="p-2 border-b border-gray-200 flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-700">최근 검색어</span>
+                    <button 
+                        onclick="deleteAllSearchHistory()" 
+                        class="text-xs text-gray-500 hover:text-gray-700"
+                        tabindex="0"
+                        aria-label="전체 삭제">
+                        전체 삭제
+                    </button>
+                </div>
+                <div class="py-1">
+                    ${history.map((item) => {
+                        const escapedItem = item.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                        return `
+                        <div class="flex items-center justify-between px-3 py-2 hover:bg-gray-50 cursor-pointer group">
+                            <button 
+                                onclick="selectSearchHistory('${escapedItem}')"
+                                class="flex-1 text-left text-sm text-gray-700 hover:text-blue-600"
+                                tabindex="0">
+                                <svg class="w-4 h-4 inline-block mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                ${item}
+                            </button>
+                            <button 
+                                onclick="deleteSearchHistoryItem('${escapedItem}')"
+                                class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-opacity"
+                                tabindex="0"
+                                aria-label="삭제">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                    }).join('')}
+                </div>
+            `;
+            
+            searchContainer.style.position = 'relative';
+            searchContainer.appendChild(historyDropdown);
+            
+            // 입력 필드 포커스 시 히스토리 표시
+            inputElement.addEventListener('focus', () => {
+                if (history.length > 0 && !document.getElementById('search-history-dropdown')) {
+                    showSearchHistory(inputElement);
+                }
+            });
+            
+            // 외부 클릭 시 히스토리 숨기기
+            document.addEventListener('click', (e) => {
+                if (!searchContainer.contains(e.target)) {
+                    const dropdown = document.getElementById('search-history-dropdown');
+                    if (dropdown) {
+                        dropdown.remove();
+                    }
+                }
+            });
+        }
+        
+        /**
+         * 검색 히스토리 항목 선택
+         * @param {string} query - 선택한 검색어
+         */
+        function selectSearchHistory(query) {
+            const searchInput = document.querySelector('.tree-search input');
+            if (searchInput) {
+                searchInput.value = query;
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                searchInput.focus();
+            }
+            
+            // 히스토리 드롭다운 제거
+            const dropdown = document.getElementById('search-history-dropdown');
+            if (dropdown) {
+                dropdown.remove();
+            }
+        }
+        
+        /**
+         * 검색 히스토리 항목 삭제
+         * @param {string} query - 삭제할 검색어
+         */
+        function deleteSearchHistoryItem(query) {
+            deleteSearchHistory(query);
+            
+            // UI 업데이트
+            const searchInput = document.querySelector('.tree-search input');
+            if (searchInput) {
+                showSearchHistory(searchInput);
+            }
+        }
+        
+        /**
+         * 검색 히스토리 전체 삭제
+         */
+        function deleteAllSearchHistory() {
+            deleteSearchHistory();
+            
+            // UI 제거
+            const dropdown = document.getElementById('search-history-dropdown');
+            if (dropdown) {
+                dropdown.remove();
+            }
+        }
+        
+        // 전역 함수로 등록
+        window.selectSearchHistory = selectSearchHistory;
+        window.deleteSearchHistoryItem = deleteSearchHistoryItem;
+        window.deleteAllSearchHistory = deleteAllSearchHistory;
+
+        // ---- 11-4. 첫 방문 온보딩 가이드 ----
         
         /**
          * 첫 방문 여부 확인 및 온보딩 가이드 표시
