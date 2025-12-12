@@ -68,6 +68,48 @@
     body { overflow-x: hidden; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
     .x-anim { transition: all .2s ease; }
     
+    /* 키보드 접근성 - 포커스 스타일 */
+    *:focus {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
+    }
+    
+    *:focus:not(:focus-visible) {
+      outline: none;
+    }
+    
+    *:focus-visible {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
+    }
+    
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+    
+    /* 스킵 링크 (스크린 리더용) */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: #3b82f6;
+      color: white;
+      padding: 8px 16px;
+      text-decoration: none;
+      z-index: 10000;
+      border-radius: 0 0 4px 0;
+    }
+    
+    .skip-link:focus {
+      top: 0;
+    }
+    
     /* 네비게이션 언더라인 효과 */
     .nav-link { 
       position: relative;
@@ -134,6 +176,66 @@
     
     .nav-dropdown-item {
       white-space: nowrap;
+    }
+    
+    /* 모바일 네비게이션 스타일 */
+    #mobile-nav {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-in-out;
+    }
+    
+    #mobile-nav.open {
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .mobile-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      color: #475569;
+      text-decoration: none;
+      border-radius: 0.5rem;
+      transition: all 0.2s ease;
+      font-size: 0.9375rem;
+    }
+    
+    .mobile-nav-item:hover,
+    .mobile-nav-item.active {
+      background-color: #f1f5f9;
+      color: #111827;
+    }
+    
+    .mobile-nav-dropdown {
+      margin-left: 1.5rem;
+      margin-top: 0.25rem;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-in-out;
+    }
+    
+    .mobile-nav-dropdown.open {
+      max-height: 300px;
+    }
+    
+    .mobile-nav-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem 1rem;
+      padding-left: 2.5rem;
+      color: #64748b;
+      text-decoration: none;
+      border-radius: 0.5rem;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+    }
+    
+    .mobile-nav-dropdown-item:hover {
+      background-color: #f1f5f9;
+      color: #111827;
     }
     
     /* 페이지 전환 애니메이션 */
@@ -384,6 +486,81 @@
       font-size: 11px;
       font-weight: 600;
     }
+
+    /* 온보딩 가이드 스타일 */
+    .onboarding-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10000;
+      pointer-events: none;
+    }
+
+    .onboarding-tooltip {
+      position: absolute;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 320px;
+      z-index: 10001;
+      pointer-events: auto;
+      animation: tooltipFadeIn 0.3s ease-out;
+    }
+
+    @keyframes tooltipFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .onboarding-tooltip::before {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+      border: 10px solid transparent;
+    }
+
+    .onboarding-tooltip.top::before {
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-top-color: white;
+    }
+
+    .onboarding-tooltip.bottom::before {
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-bottom-color: white;
+    }
+
+    .onboarding-tooltip.left::before {
+      right: -20px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-left-color: white;
+    }
+
+    .onboarding-tooltip.right::before {
+      left: -20px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-right-color: white;
+    }
+
+    .onboarding-highlight {
+      position: relative;
+      z-index: 10002;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 0 8px rgba(59, 130, 246, 0.3);
+      border-radius: 8px;
+    }
   </style>
 </head>
 <body class="bg-gray-100 text-slate-800">
@@ -406,18 +583,43 @@
 
   <div id="toast-container"></div>
 
+  <!-- 스킵 링크 (키보드 접근성) -->
+  <a href="#main-content" class="skip-link">본문으로 건너뛰기</a>
+
   <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
     <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-4">
         <a href="#/home" class="text-xl md:text-2xl font-semibold tracking-tight">EVKMC A/S</a>
       </div>
       <nav id="desktop-nav" class="hidden md:flex items-center gap-7 text-[15px]"></nav>
-      <div id="auth-container"></div>
+      <div class="flex items-center gap-3">
+        <div id="auth-container"></div>
+        <!-- 모바일 메뉴 버튼 -->
+        <button 
+          id="mobile-menu-btn" 
+          class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-brand"
+          aria-label="메뉴 열기"
+          aria-expanded="false"
+          aria-controls="mobile-nav"
+        >
+          <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
     </div>
+    <!-- 모바일 네비게이션 메뉴 -->
+    <nav 
+      id="mobile-nav" 
+      class="md:hidden hidden border-t border-slate-200 bg-white max-h-0 overflow-hidden transition-all duration-300 ease-in-out"
+      aria-label="모바일 메뉴"
+    >
+      <div class="px-4 py-3 flex flex-col gap-1"></div>
+    </nav>
   </header>
 
   <main id="app" class="relative mx-auto max-w-7xl px-4 py-8">
-    <div id="main-content">
+    <div id="main-content" role="main" aria-label="메인 콘텐츠">
       <div class="flex items-center justify-center min-h-96">
         <div class="text-center">
           <div class="spinner mx-auto mb-4"></div>

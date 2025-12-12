@@ -197,23 +197,78 @@ if (window.__APP_INIT__) {
         }
 
         // ---- 4. 유틸리티 함수 ----
-        function showToast(message, type = 'info') {
+        /**
+         * 토스트 알림 표시
+         * @param {string} message - 메시지
+         * @param {string} type - 타입 (success, error, info)
+         * @param {number} duration - 표시 시간 (ms)
+         * @param {Object} options - 추가 옵션 (retryCallback: 재시도 함수, details: 상세 정보)
+         */
+        function showToast(message, type = 'info', duration = 3000, options = {}) {
             const container = document.querySelector('.toast-container') || createToastContainer();
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
+            toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+            toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
             
             const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ⓘ';
+            
+            let actionButton = '';
+            if (options.retryCallback && type === 'error') {
+                actionButton = `
+                    <button 
+                        onclick="(() => { ${options.retryCallback.toString()}(); this.closest('.toast').remove(); })()"
+                        class="ml-2 px-2 py-1 text-xs bg-white bg-opacity-20 hover:bg-opacity-30 rounded transition-colors"
+                        aria-label="재시도">
+                        재시도
+                    </button>
+                `;
+            }
+            
+            let detailsSection = '';
+            if (options.details) {
+                detailsSection = `
+                    <div class="mt-2 text-xs opacity-90">
+                        ${options.details}
+                    </div>
+                `;
+            }
+            
             toast.innerHTML = `
                 <span class="text-lg">${icon}</span>
-                <span>${message}</span>
+                <div class="flex-1">
+                    <span>${message}</span>
+                    ${detailsSection}
+                </div>
+                ${actionButton}
             `;
             
             container.appendChild(toast);
             setTimeout(() => toast.classList.add('show'), 100);
-            setTimeout(() => {
+            
+            const hideTimeout = setTimeout(() => {
                 toast.classList.remove('show');
-                setTimeout(() => container.removeChild(toast), 300);
-            }, 3000);
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        container.removeChild(toast);
+                    }
+                }, 300);
+            }, duration);
+            
+            // 재시도 버튼이 있으면 토스트를 더 오래 표시
+            if (options.retryCallback) {
+                clearTimeout(hideTimeout);
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.classList.remove('show');
+                        setTimeout(() => {
+                            if (toast.parentElement) {
+                                container.removeChild(toast);
+                            }
+                        }, 300);
+                    }
+                }, 10000); // 10초로 연장
+            }
         }
 
         function createToastContainer() {
@@ -281,10 +336,16 @@ async function handleLogout() {
             // 5. Supabase 로그아웃
             await window.authSession.logout();
             // authSession.logout()에서 자동으로 login.html로 리다이렉트됨
-        } catch (error) {
-            console.error('❌ 로그아웃 오류:', error);
-            showToast('로그아웃 중 오류가 발생했습니다.', 'error');
-        }
+            } catch (error) {
+                console.error('❌ 로그아웃 오류:', error);
+                const errorDetails = error.message || '세션 정보를 초기화하는 중 오류가 발생했습니다.';
+                showToast(
+                    '로그아웃 중 오류가 발생했습니다.', 
+                    'error',
+                    5000,
+                    { details: errorDetails }
+                );
+            }
     }
 }
 
@@ -356,8 +417,14 @@ async function handleLogout() {
                 const minutes = Math.floor(remainingTime / 60000);
                 const seconds = Math.floor((remainingTime % 60000) / 1000);
 
+                // 5분 남을 때 토스트 경고 표시 (10분 경고는 유지)
+                if (minutes === 5 && seconds === 0 && !sessionWarningShown) {
+                    console.log(`⚠️ 세션 만료 5분 전 경고: ${minutes}분 남음`);
+                    showSessionWarningToast(minutes, seconds);
+                }
+                
                 // 10분 남을 때 팝업 표시
-                if (minutes <= 10 && minutes > 0 && !sessionWarningShown) {
+                if (minutes <= 10 && minutes > 5 && !sessionWarningShown) {
                     console.log(`⚠️ 세션 만료 경고: ${minutes}분 ${seconds}초 남음`);
                     showSessionWarning(minutes, seconds);
                     sessionWarningShown = true;
@@ -371,7 +438,24 @@ async function handleLogout() {
         }
 
         /**
-         * 세션 경고 팝업 표시
+         * 세션 만료 5분 전 토스트 경고
+         */
+        function showSessionWarningToast(minutes, seconds) {
+            showToast(
+                `세션이 ${minutes}분 후 만료됩니다.`,
+                'error',
+                8000,
+                {
+                    details: '세션을 갱신하여 작업을 계속하세요.',
+                    retryCallback: async () => {
+                        await refreshSessionManually();
+                    }
+                }
+            );
+        }
+
+        /**
+         * 세션 경고 팝업 표시 (10분 전)
          */
         function showSessionWarning(minutes, seconds) {
             const modal = document.createElement('div');
@@ -388,16 +472,27 @@ async function handleLogout() {
                     </div>
                     <p class="text-gray-700 mb-6">
                         세션이 곧 만료됩니다. (<strong id="session-warning-time">${minutes}분 ${seconds}초</strong> 남음)<br>
-                        세션을 갱신하시겠습니까?
+                        세션을 갱신하여 작업을 계속하세요.
                     </p>
                     <div class="flex gap-3">
-                        <button onclick="refreshSessionFromWarning()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <button 
+                            onclick="refreshSessionFromWarning()" 
+                            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                            tabindex="0"
+                            aria-label="세션 갱신">
                             세션 갱신
                         </button>
-                        <button onclick="closeSessionWarning()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                        <button 
+                            onclick="closeSessionWarning()" 
+                            class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                            tabindex="0"
+                            aria-label="나중에">
                             나중에
                         </button>
                     </div>
+                    <p class="text-xs text-gray-500 mt-3 text-center">
+                        세션이 만료되면 자동으로 로그아웃됩니다.
+                    </p>
                 </div>
             `;
 
@@ -531,7 +626,17 @@ async function handleLogout() {
                 // Supabase 세션 갱신
                 const newSession = await window.authSession?.refreshSession();
                 if (!newSession) {
-                    showToast('세션 갱신에 실패했습니다.', 'error');
+                    showToast(
+                        '세션 갱신에 실패했습니다.', 
+                        'error',
+                        5000,
+                        { 
+                            details: '인증 토큰이 만료되었거나 유효하지 않습니다. 다시 로그인해주세요.',
+                            retryCallback: async () => {
+                                window.location.href = 'login.html';
+                            }
+                        }
+                    );
                     return;
                 }
 
@@ -546,7 +651,18 @@ async function handleLogout() {
                 await updateAuthUI();
             } catch (error) {
                 console.error('세션 갱신 오류:', error);
-                showToast('세션 갱신에 실패했습니다.', 'error');
+                const errorDetails = error.message || '인증 서버와 통신하는 중 오류가 발생했습니다.';
+                showToast(
+                    '세션 갱신에 실패했습니다.', 
+                    'error',
+                    5000,
+                    { 
+                        details: errorDetails,
+                        retryCallback: async () => {
+                            await refreshSessionManually();
+                        }
+                    }
+                );
             }
         }
 
@@ -792,7 +908,17 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
     const userInfo = await window.authService?.getUserInfo();
     
     if (!userInfo) {
-        showToast('사용자 인증 정보가 없습니다.', 'error');
+        showToast(
+            '사용자 인증 정보가 없습니다.', 
+            'error',
+            5000,
+            { 
+                details: '로그인 세션이 만료되었거나 유효하지 않습니다. 다시 로그인해주세요.',
+                retryCallback: () => {
+                    window.location.href = 'login.html';
+                }
+            }
+        );
         return null;
     }
     const dateString = new Date().toLocaleDateString('ko-KR');
@@ -869,7 +995,17 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
     try {
         const token = await window.authSession.getAccessToken();
         if (!token) {
-            showToast('유효한 세션 토큰이 없습니다.', 'error');
+            showToast(
+                '유효한 세션 토큰이 없습니다.', 
+                'error',
+                5000,
+                { 
+                    details: '인증 토큰이 만료되었습니다. 다시 로그인해주세요.',
+                    retryCallback: () => {
+                        window.location.href = 'login.html';
+                    }
+                }
+            );
             return null;
         }
         
@@ -926,7 +1062,28 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
         
     } catch (e) {
         console.error("❌ Fetch 통신 오류:", e);
-        showToast('서버 통신 오류가 발생했습니다.', 'error');
+        
+        // 네트워크 오류인지 확인
+        const isNetworkError = e instanceof TypeError && e.message.includes('fetch');
+        const errorDetails = isNetworkError 
+            ? '인터넷 연결을 확인해주세요.'
+            : e.message || '알 수 없는 오류가 발생했습니다.';
+        
+        // 재시도 함수
+        const retryFunction = async () => {
+            showToast('다시 시도 중...', 'info', 2000);
+            return await getWatermarkedFileUrl(bucketName, fileName, pageRange);
+        };
+        
+        showToast(
+            '서버 통신 오류가 발생했습니다.', 
+            'error', 
+            5000,
+            {
+                retryCallback: retryFunction,
+                details: errorDetails
+            }
+        );
         return null;
     }
 }
@@ -1188,8 +1345,14 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                         <div class="lg:col-span-1">
                             <div class="bg-white rounded-xl shadow-soft p-4 sticky top-4">
-                                <div class="tree-search mb-4">
-                                    <input type="text" placeholder="검색..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
+                                <div class="tree-search mb-4" style="position: relative;">
+                                    <input 
+                                        type="text" 
+                                        placeholder="검색..." 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                                        onfocus="showSearchHistory(this)"
+                                        tabindex="0"
+                                        aria-label="문서 검색">
                                 </div>
                                 <div id="tree-container" class="max-h-[calc(100vh-200px)] overflow-y-auto">
                                     ${renderTree(treeData)}
@@ -1239,18 +1402,63 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                 // 관리 권한 확인
                 const canManage = await window.dataService?.canManageNotices() || false;
 
-                const noticesHTML = notices.map(notice => `
-                    <div class="bg-white rounded-xl shadow-soft p-6 mb-4 border border-gray-100">
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">${notice.category || '일반'}</span>
-                            <span class="text-sm text-gray-500">${new Date(notice.created_at).toLocaleDateString()}</span>
+                const noticesHTML = notices.map(notice => {
+                    // 중요도 배지 (category에 따라)
+                    const importanceBadge = notice.category === '중요' || notice.category === '긴급' 
+                        ? '<span class="inline-flex items-center px-2 py-1 text-xs font-bold text-red-700 bg-red-100 rounded-full mr-2">⚠️ 중요</span>'
+                        : notice.category === '업데이트'
+                        ? '<span class="inline-flex items-center px-2 py-1 text-xs font-bold text-yellow-700 bg-yellow-100 rounded-full mr-2">🔄 업데이트</span>'
+                        : '';
+                    
+                    // 조회수 (view_count 또는 views)
+                    const viewCount = notice.view_count || notice.views || 0;
+                    
+                    // 작성자 정보
+                    const authorName = notice.author_name || notice.author || '관리자';
+                    const authorAffiliation = notice.author_affiliation || '';
+                    
+                    // 작성 시간 포맷팅
+                    const createdDate = new Date(notice.created_at);
+                    const isToday = createdDate.toDateString() === new Date().toDateString();
+                    const dateStr = isToday 
+                        ? `오늘 ${createdDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`
+                        : createdDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                    
+                    return `
+                        <div class="bg-white rounded-xl shadow-soft p-6 mb-4 border border-gray-100 hover:border-blue-200 transition-colors">
+                            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    ${importanceBadge}
+                                    <span class="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">${notice.category || '일반'}</span>
+                                </div>
+                                <span class="text-xs text-gray-500">${dateStr}</span>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2 cursor-pointer hover:text-blue-600 transition-colors" onclick="viewNotice(${notice.id})">
+                                ${notice.title}
+                            </h3>
+                            <p class="text-gray-600 text-sm mb-3">${(notice.content || '내용이 없습니다.').substring(0, 150)}${(notice.content || '').length > 150 ? '...' : ''}</p>
+                            <div class="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
+                                <div class="flex items-center gap-3">
+                                    <span class="flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                        </svg>
+                                        ${authorName}${authorAffiliation ? ` (${authorAffiliation})` : ''}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                        조회 ${viewCount.toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2 cursor-pointer hover:text-blue-600" onclick="viewNotice(${notice.id})">
-                            ${notice.title}
-                        </h3>
-                        <p class="text-gray-600 text-sm">${(notice.content || '내용이 없습니다.').substring(0, 150)}${(notice.content || '').length > 150 ? '...' : ''}</p>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
 
                 const writeButton = canManage ? `
                     <button onclick="openNoticeEditor()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
@@ -1396,40 +1604,74 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                     posts = [];
                 }
                 
-                const postsHTML = posts.map(post => `
-                    <div class="bg-white rounded-xl shadow-soft p-6 mb-4 border border-gray-100 hover:shadow-md transition-shadow">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs px-3 py-1 bg-purple-100 text-purple-800 rounded-full font-medium">
-                                    ${post.category || '질문'}
-                                </span>
-                                ${post.is_solved ? '<span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">✓ 해결됨</span>' : ''}
+                const postsHTML = posts.map(post => {
+                    // 작성자 정보
+                    const authorName = post.author_name || post.author || '익명';
+                    const authorAffiliation = post.author_affiliation || '';
+                    
+                    // 조회수, 댓글 수
+                    const viewCount = post.view_count || post.views || 0;
+                    const commentCount = post.comment_count || (post.comments ? post.comments.length : 0);
+                    
+                    // 작성 시간 포맷팅
+                    const createdDate = new Date(post.created_at);
+                    const isToday = createdDate.toDateString() === new Date().toDateString();
+                    const isYesterday = new Date(createdDate.getTime() + 86400000).toDateString() === new Date().toDateString();
+                    let dateStr = '';
+                    if (isToday) {
+                        dateStr = `오늘 ${createdDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
+                    } else if (isYesterday) {
+                        dateStr = `어제 ${createdDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
+                    } else {
+                        dateStr = createdDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                    }
+                    
+                    // 카테고리별 색상
+                    const categoryColors = {
+                        '질문': 'bg-blue-100 text-blue-800',
+                        '정비팁': 'bg-green-100 text-green-800',
+                        '문제해결': 'bg-orange-100 text-orange-800',
+                        '자료공유': 'bg-purple-100 text-purple-800'
+                    };
+                    const categoryColor = categoryColors[post.category] || 'bg-gray-100 text-gray-800';
+                    
+                    return `
+                        <div class="bg-white rounded-xl shadow-soft p-6 mb-4 border border-gray-100 hover:border-purple-200 hover:shadow-md transition-all">
+                            <div class="flex items-start justify-between mb-3 flex-wrap gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-xs px-3 py-1 ${categoryColor} rounded-full font-medium">
+                                        ${post.category || '질문'}
+                                    </span>
+                                    ${post.is_solved ? '<span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium">✓ 해결됨</span>' : ''}
+                                    ${post.is_pinned ? '<span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">📌 고정</span>' : ''}
+                                </div>
+                                <span class="text-xs text-gray-500">${dateStr}</span>
                             </div>
-                            <span class="text-sm text-gray-500">${new Date(post.created_at).toLocaleDateString()}</span>
-                        </div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2 cursor-pointer hover:text-purple-600" onclick="viewCommunityPost(${post.id})">
-                            ${post.title}
-                        </h3>
-                        <p class="text-gray-600 text-sm mb-4 line-clamp-2">
-                            ${(post.content || '내용이 없습니다.').substring(0, 150)}${(post.content || '').length > 150 ? '...' : ''}
-                        </p>
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-4 text-sm text-gray-500">
-                                <span class="flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                    </svg>
-                                    ${post.author_name || '익명'}
-                                </span>
-                                <span class="flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                    </svg>
-                                    ${post.views || 0}
-                                </span>
-                                <span class="flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2 cursor-pointer hover:text-purple-600 transition-colors" onclick="viewCommunityPost(${post.id})">
+                                ${post.title}
+                            </h3>
+                            <p class="text-gray-600 text-sm mb-4 line-clamp-2">
+                                ${(post.content || '내용이 없습니다.').substring(0, 150)}${(post.content || '').length > 150 ? '...' : ''}
+                            </p>
+                            <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                                <div class="flex items-center gap-4 text-xs text-gray-500">
+                                    <span class="flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                        </svg>
+                                        ${authorName}${authorAffiliation ? ` (${authorAffiliation})` : ''}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-4 text-xs text-gray-500">
+                                    <span class="flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                        조회 ${viewCount.toLocaleString()}
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
                                     </svg>
                                     ${post.likes_count || 0}
@@ -2595,15 +2837,63 @@ async function initBusinessCardUpload() {
                             console.error('명함 이미지 업로드 오류:', error);
                             console.error('에러 스택:', error.stack);
                             
-                            const errorMessage = error.message || '알 수 없는 오류';
-                            showToast('업로드 실패: ' + errorMessage, 'error');
+                            // 에러 타입별 상세 메시지
+                            let errorMessage = '알 수 없는 오류가 발생했습니다.';
+                            let errorDetails = '';
                             
-                            // 에러 상세 정보를 미리보기 영역에 표시 (개발용)
+                            if (error.message) {
+                                if (error.message.includes('413') || error.message.includes('too large')) {
+                                    errorMessage = '파일 크기가 너무 큽니다.';
+                                    errorDetails = '파일 크기는 1MB 이하여야 합니다. 이미지를 압축하거나 다른 이미지를 사용해주세요.';
+                                } else if (error.message.includes('415') || error.message.includes('type')) {
+                                    errorMessage = '지원하지 않는 파일 형식입니다.';
+                                    errorDetails = 'JPEG, PNG, WebP 형식만 지원됩니다.';
+                                } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
+                                    errorMessage = '인증 오류가 발생했습니다.';
+                                    errorDetails = '로그인 세션이 만료되었을 수 있습니다. 페이지를 새로고침해주세요.';
+                                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                                    errorMessage = '네트워크 오류가 발생했습니다.';
+                                    errorDetails = '인터넷 연결을 확인하고 다시 시도해주세요.';
+                                } else {
+                                    errorMessage = error.message;
+                                    errorDetails = '콘솔에서 자세한 오류를 확인하세요.';
+                                }
+                            }
+                            
+                            // 재시도 함수
+                            const retryFunction = async () => {
+                                const file = uploadInput.files?.[0];
+                                if (file) {
+                                    await handleFileUpload(file);
+                                } else {
+                                    showToast('파일을 다시 선택해주세요.', 'error');
+                                }
+                            };
+                            
+                            showToast(
+                                '업로드 실패: ' + errorMessage,
+                                'error',
+                                6000,
+                                {
+                                    retryCallback: retryFunction,
+                                    details: errorDetails
+                                }
+                            );
+                            
+                            // 에러 상세 정보를 미리보기 영역에 표시
                             previewDiv.innerHTML = `
                                 <div class="text-center text-red-500 p-4">
+                                    <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
                                     <p class="text-sm font-medium">업로드 실패</p>
                                     <p class="text-xs mt-1">${errorMessage}</p>
-                                    <p class="text-xs mt-2 text-gray-400">콘솔에서 자세한 오류를 확인하세요</p>
+                                    ${errorDetails ? `<p class="text-xs mt-2 text-gray-400">${errorDetails}</p>` : ''}
+                                    <button 
+                                        onclick="document.getElementById('business-card-upload').click()"
+                                        class="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                                        다시 시도
+                                    </button>
                                 </div>
                             `;
                             
@@ -2984,10 +3274,32 @@ async function initBusinessCardUpload() {
         }
 
         function highlightNav(hash) {
+            const normalizedHash = hash.replace('#', '');
+            
+            // 데스크톱 네비게이션 하이라이트
             document.querySelectorAll('.nav-link').forEach(link => {
+                const href = link.getAttribute('href');
                 link.classList.remove('nav-active');
-                if (link.getAttribute('href') === hash) {
+                if (href && href.replace('#', '') === normalizedHash) {
                     link.classList.add('nav-active');
+                }
+            });
+            
+            // 모바일 네비게이션 하이라이트
+            document.querySelectorAll('.mobile-nav-item').forEach(item => {
+                const href = item.getAttribute('href');
+                item.classList.remove('active');
+                if (href && href.replace('#', '') === normalizedHash) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // 모바일 드롭다운 아이템 하이라이트
+            document.querySelectorAll('.mobile-nav-dropdown-item').forEach(item => {
+                const href = item.getAttribute('href');
+                item.classList.remove('active');
+                if (href && href.replace('#', '') === normalizedHash) {
+                    item.classList.add('active');
                 }
             });
         }
@@ -3230,6 +3542,9 @@ async function initBusinessCardUpload() {
         // ---- 9. 이벤트 리스너 ----
 
         function setupEventListeners() {
+            // 키보드 접근성 초기화
+            setupKeyboardAccessibility();
+            
             // 링크 클릭
             document.addEventListener('click', (e) => {
                 const link = e.target.closest('a[href^="#"]');
@@ -3271,10 +3586,13 @@ async function initBusinessCardUpload() {
                 }
             });
 
-            // 검색
+            // 검색 (검색 히스토리 포함)
             document.addEventListener('input', (e) => {
                 if (e.target.matches('.tree-search input')) {
                     const query = e.target.value.toLowerCase();
+                    saveSearchHistory(query);
+                    showSearchHistory(e.target);
+                    
                     const treeItems = document.querySelectorAll('.tree-item');
                     
                     treeItems.forEach(item => {
@@ -3343,7 +3661,11 @@ async function initBusinessCardUpload() {
                                     <button 
                                         id="${dropdownId}-btn"
                                         class="nav-link text-slate-600 hover:text-slate-900 flex items-center gap-2 cursor-pointer"
-                                        onclick="toggleNavDropdown('${dropdownId}')">
+                                        onclick="toggleNavDropdown('${dropdownId}')"
+                                        tabindex="0"
+                                        aria-expanded="false"
+                                        aria-haspopup="true"
+                                        aria-label="${link.label} 메뉴">
                                         <svg class="w-4 h-4 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             ${link.icon}
                                         </svg>
@@ -3354,11 +3676,15 @@ async function initBusinessCardUpload() {
                                     </button>
                                     <div 
                                         id="${dropdownId}"
-                                        class="nav-dropdown-menu hidden absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-[160px] z-50">
+                                        class="nav-dropdown-menu hidden absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-[160px] z-50"
+                                        role="menu">
                                         ${link.items.map(item => `
                                             <a 
                                                 href="${item.href}" 
-                                                class="nav-dropdown-item block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2 transition-colors">
+                                                class="nav-dropdown-item block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2 transition-colors"
+                                                role="menuitem"
+                                                tabindex="0"
+                                                aria-label="${item.label}">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     ${item.icon}
                                                 </svg>
@@ -3370,11 +3696,78 @@ async function initBusinessCardUpload() {
                             `;
                         } else {
                             return `
-                                <a href="${link.href}" class="nav-link text-slate-600 hover:text-slate-900 flex items-center gap-2">
-                                    <svg class="w-4 h-4 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <a 
+                                    href="${link.href}" 
+                                    class="nav-link text-slate-600 hover:text-slate-900 flex items-center gap-2"
+                                    tabindex="0"
+                                    aria-label="${link.label}">
+                                    <svg class="w-4 h-4 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         ${link.icon}
                                     </svg>
                                     ${link.label}
+                                </a>
+                            `;
+                        }
+                    }).join('');
+                }
+
+                // 모바일 네비게이션 렌더링
+                const mobileNav = document.getElementById('mobile-nav');
+                const mobileNavContent = mobileNav?.querySelector('div');
+                if (mobileNav && mobileNavContent) {
+                    mobileNavContent.innerHTML = NAV_LINKS.map(link => {
+                        if (link.type === 'dropdown') {
+                            const mobileDropdownId = `mobile-dropdown-${link.label.replace(/\s+/g, '-').toLowerCase()}`;
+                            return `
+                                <div>
+                                    <button 
+                                        class="mobile-nav-item w-full text-left justify-between"
+                                        onclick="toggleMobileNavDropdown('${mobileDropdownId}')"
+                                        tabindex="0"
+                                        aria-expanded="false"
+                                        aria-controls="${mobileDropdownId}"
+                                        aria-label="${link.label} 메뉴">
+                                        <div class="flex items-center gap-3">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                ${link.icon}
+                                            </svg>
+                                            <span>${link.label}</span>
+                                        </div>
+                                        <svg class="w-4 h-4 mobile-dropdown-arrow transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </button>
+                                    <div 
+                                        id="${mobileDropdownId}"
+                                        class="mobile-nav-dropdown">
+                                        ${link.items.map(item => `
+                                            <a 
+                                                href="${item.href}" 
+                                                class="mobile-nav-dropdown-item"
+                                                onclick="closeMobileNav()"
+                                                tabindex="0"
+                                                aria-label="${item.label}">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    ${item.icon}
+                                                </svg>
+                                                ${item.label}
+                                            </a>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            return `
+                                <a 
+                                    href="${link.href}" 
+                                    class="mobile-nav-item"
+                                    onclick="closeMobileNav()"
+                                    tabindex="0"
+                                    aria-label="${link.label}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        ${link.icon}
+                                    </svg>
+                                    <span>${link.label}</span>
                                 </a>
                             `;
                         }
@@ -3401,6 +3794,9 @@ async function initBusinessCardUpload() {
                 setTimeout(() => {
                     hideSplashScreen();
                     showToast('환영합니다!', 'success');
+                    
+                    // 첫 방문 온보딩 가이드 표시
+                    checkAndShowOnboarding();
                 }, 1500);
                 
                 console.log('✅ 앱 초기화 완료');
@@ -3420,6 +3816,7 @@ async function initBusinessCardUpload() {
         function toggleNavDropdown(dropdownId) {
             const dropdown = document.getElementById(dropdownId);
             const container = dropdown?.closest('.nav-dropdown-container');
+            const button = document.getElementById(`${dropdownId}-btn`);
             
             // 모든 드롭다운 닫기
             document.querySelectorAll('.nav-dropdown-menu').forEach(menu => {
@@ -3427,6 +3824,10 @@ async function initBusinessCardUpload() {
                     menu.classList.remove('show');
                     menu.classList.add('hidden');
                     menu.closest('.nav-dropdown-container')?.classList.remove('active');
+                    const otherButton = document.getElementById(`${menu.id}-btn`);
+                    if (otherButton) {
+                        otherButton.setAttribute('aria-expanded', 'false');
+                    }
                 }
             });
             
@@ -3437,12 +3838,18 @@ async function initBusinessCardUpload() {
                     dropdown.classList.remove('hidden');
                     setTimeout(() => dropdown.classList.add('show'), 10);
                     container.classList.add('active');
+                    if (button) {
+                        button.setAttribute('aria-expanded', 'true');
+                    }
                 } else {
                     dropdown.classList.remove('show');
                     setTimeout(() => {
                         dropdown.classList.add('hidden');
                         container.classList.remove('active');
                     }, 200);
+                    if (button) {
+                        button.setAttribute('aria-expanded', 'false');
+                    }
                 }
             }
         }
@@ -3455,10 +3862,287 @@ async function initBusinessCardUpload() {
                     setTimeout(() => {
                         menu.classList.add('hidden');
                         menu.closest('.nav-dropdown-container')?.classList.remove('active');
+                        const button = document.getElementById(`${menu.id}-btn`);
+                        if (button) {
+                            button.setAttribute('aria-expanded', 'false');
+                        }
                     }, 200);
                 });
             }
         });
+
+        // ---- 11-1. 모바일 네비게이션 메뉴 ----
+        
+        /**
+         * 모바일 메뉴 토글
+         */
+        function toggleMobileNav() {
+            const mobileNav = document.getElementById('mobile-nav');
+            const menuBtn = document.getElementById('mobile-menu-btn');
+            
+            if (!mobileNav || !menuBtn) return;
+            
+            const isOpen = mobileNav.classList.contains('open');
+            
+            if (isOpen) {
+                closeMobileNav();
+            } else {
+                openMobileNav();
+            }
+        }
+        
+        /**
+         * 모바일 메뉴 열기
+         */
+        function openMobileNav() {
+            const mobileNav = document.getElementById('mobile-nav');
+            const menuBtn = document.getElementById('mobile-menu-btn');
+            
+            if (!mobileNav || !menuBtn) return;
+            
+            mobileNav.classList.remove('hidden');
+            mobileNav.classList.add('open');
+            menuBtn.setAttribute('aria-expanded', 'true');
+            menuBtn.setAttribute('aria-label', '메뉴 닫기');
+            
+            // 햄버거 아이콘을 X 아이콘으로 변경
+            const icon = menuBtn.querySelector('svg');
+            if (icon) {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+            }
+        }
+        
+        /**
+         * 모바일 메뉴 닫기
+         */
+        function closeMobileNav() {
+            const mobileNav = document.getElementById('mobile-nav');
+            const menuBtn = document.getElementById('mobile-menu-btn');
+            
+            if (!mobileNav || !menuBtn) return;
+            
+            mobileNav.classList.remove('open');
+            setTimeout(() => {
+                mobileNav.classList.add('hidden');
+            }, 300);
+            
+            menuBtn.setAttribute('aria-expanded', 'false');
+            menuBtn.setAttribute('aria-label', '메뉴 열기');
+            
+            // X 아이콘을 햄버거 아이콘으로 변경
+            const icon = menuBtn.querySelector('svg');
+            if (icon) {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>';
+            }
+            
+            // 모바일 드롭다운도 모두 닫기
+            document.querySelectorAll('.mobile-nav-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('open');
+                const button = dropdown.previousElementSibling;
+                if (button && button.tagName === 'BUTTON') {
+                    button.setAttribute('aria-expanded', 'false');
+                    const arrow = button.querySelector('.mobile-dropdown-arrow');
+                    if (arrow) {
+                        arrow.style.transform = 'rotate(0deg)';
+                    }
+                }
+            });
+        }
+        
+        /**
+         * 모바일 네비게이션 드롭다운 토글
+         */
+        function toggleMobileNavDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            const button = dropdown?.previousElementSibling;
+            
+            if (!dropdown || !button) return;
+            
+            const isOpen = dropdown.classList.contains('open');
+            
+            // 다른 드롭다운 닫기
+            document.querySelectorAll('.mobile-nav-dropdown').forEach(d => {
+                if (d.id !== dropdownId) {
+                    d.classList.remove('open');
+                    const otherButton = d.previousElementSibling;
+                    if (otherButton && otherButton.tagName === 'BUTTON') {
+                        otherButton.setAttribute('aria-expanded', 'false');
+                        const arrow = otherButton.querySelector('.mobile-dropdown-arrow');
+                        if (arrow) {
+                            arrow.style.transform = 'rotate(0deg)';
+                        }
+                    }
+                }
+            });
+            
+            // 현재 드롭다운 토글
+            if (isOpen) {
+                dropdown.classList.remove('open');
+                button.setAttribute('aria-expanded', 'false');
+                const arrow = button.querySelector('.mobile-dropdown-arrow');
+                if (arrow) {
+                    arrow.style.transform = 'rotate(0deg)';
+                }
+            } else {
+                dropdown.classList.add('open');
+                button.setAttribute('aria-expanded', 'true');
+                const arrow = button.querySelector('.mobile-dropdown-arrow');
+                if (arrow) {
+                    arrow.style.transform = 'rotate(180deg)';
+                }
+            }
+        }
+        
+        // 전역 함수로 등록
+        window.toggleMobileNav = toggleMobileNav;
+        window.closeMobileNav = closeMobileNav;
+        window.toggleMobileNavDropdown = toggleMobileNavDropdown;
+        
+        // 모바일 메뉴 버튼 이벤트 리스너
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuBtn = document.getElementById('mobile-menu-btn');
+            if (menuBtn) {
+                menuBtn.addEventListener('click', toggleMobileNav);
+                // 키보드 접근성: Enter/Space로 토글
+                menuBtn.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleMobileNav();
+                    }
+                });
+            }
+            
+            // 모바일 메뉴 외부 클릭 시 닫기
+            document.addEventListener('click', (e) => {
+                const mobileNav = document.getElementById('mobile-nav');
+                const menuBtn = document.getElementById('mobile-menu-btn');
+                
+                if (mobileNav && menuBtn && 
+                    !mobileNav.contains(e.target) && 
+                    !menuBtn.contains(e.target) &&
+                    mobileNav.classList.contains('open')) {
+                    closeMobileNav();
+                }
+            });
+        });
+
+        // ---- 11-2. 키보드 접근성 개선 ----
+        
+        /**
+         * 전역 키보드 이벤트 핸들러
+         */
+        function setupKeyboardAccessibility() {
+            // Esc 키로 모달/드롭다운 닫기
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    // 모바일 메뉴 닫기
+                    const mobileNav = document.getElementById('mobile-nav');
+                    if (mobileNav && mobileNav.classList.contains('open')) {
+                        closeMobileNav();
+                        e.preventDefault();
+                        return;
+                    }
+                    
+                    // 데스크톱 드롭다운 닫기
+                    document.querySelectorAll('.nav-dropdown-menu.show').forEach(menu => {
+                        menu.classList.remove('show');
+                        setTimeout(() => {
+                            menu.classList.add('hidden');
+                            menu.closest('.nav-dropdown-container')?.classList.remove('active');
+                            const button = document.getElementById(`${menu.id}-btn`);
+                            if (button) {
+                                button.setAttribute('aria-expanded', 'false');
+                            }
+                        }, 200);
+                    });
+                    
+                    // 모바일 드롭다운 닫기
+                    document.querySelectorAll('.mobile-nav-dropdown.open').forEach(dropdown => {
+                        dropdown.classList.remove('open');
+                        const button = dropdown.previousElementSibling;
+                        if (button && button.tagName === 'BUTTON') {
+                            button.setAttribute('aria-expanded', 'false');
+                            const arrow = button.querySelector('.mobile-dropdown-arrow');
+                            if (arrow) {
+                                arrow.style.transform = 'rotate(0deg)';
+                            }
+                        }
+                    });
+                    
+                    // 세션 경고 모달 닫기
+                    const sessionWarning = document.getElementById('session-warning-modal');
+                    if (sessionWarning) {
+                        closeSessionWarning();
+                    }
+                }
+            });
+            
+            // 모든 버튼에 키보드 이벤트 추가 (Enter/Space)
+            document.addEventListener('keydown', (e) => {
+                const target = e.target;
+                
+                // 버튼이 포커스되어 있고 Enter 또는 Space 키를 눌렀을 때
+                if ((target.tagName === 'BUTTON' || target.getAttribute('role') === 'button') && 
+                    (e.key === 'Enter' || e.key === ' ')) {
+                    // 기본 동작이 이미 있는 경우 (onclick 등)는 그대로 두고,
+                    // 기본 동작이 없는 경우에만 클릭 이벤트 트리거
+                    if (!target.onclick && !target.getAttribute('onclick')) {
+                        e.preventDefault();
+                        target.click();
+                    }
+                }
+            });
+            
+            // 드롭다운 버튼에 키보드 접근성 추가
+            document.addEventListener('keydown', (e) => {
+                const target = e.target;
+                
+                // 드롭다운 버튼에서 화살표 키 처리
+                if (target.classList.contains('nav-link') && target.closest('.nav-dropdown-container')) {
+                    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        const container = target.closest('.nav-dropdown-container');
+                        const dropdownId = container.querySelector('.nav-dropdown-menu')?.id;
+                        if (dropdownId) {
+                            toggleNavDropdown(dropdownId);
+                            // 첫 번째 메뉴 아이템에 포커스
+                            setTimeout(() => {
+                                const firstItem = document.querySelector(`#${dropdownId} .nav-dropdown-item`);
+                                if (firstItem) {
+                                    firstItem.focus();
+                                }
+                            }, 100);
+                        }
+                    }
+                }
+                
+                // 드롭다운 메뉴 내에서 화살표 키로 네비게이션
+                if (target.classList.contains('nav-dropdown-item')) {
+                    const items = Array.from(target.parentElement.querySelectorAll('.nav-dropdown-item'));
+                    const currentIndex = items.indexOf(target);
+                    
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        const nextIndex = (currentIndex + 1) % items.length;
+                        items[nextIndex].focus();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        const prevIndex = (currentIndex - 1 + items.length) % items.length;
+                        items[prevIndex].focus();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        const container = target.closest('.nav-dropdown-container');
+                        const button = container.querySelector('button');
+                        if (button) {
+                            button.focus();
+                            toggleNavDropdown(container.querySelector('.nav-dropdown-menu').id);
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 키보드 접근성 초기화 (앱 초기화 시 호출됨)
 
         // ---- 12. 커뮤니티 관련 전역 함수 ----
         
@@ -4197,6 +4881,198 @@ async function initBusinessCardUpload() {
         window.openGradeUpgradeRequest = openGradeUpgradeRequest;
         window.closeGradeUpgradeRequest = closeGradeUpgradeRequest;
         window.submitGradeUpgradeRequest = submitGradeUpgradeRequest;
+
+        // ---- 11-3. 첫 방문 온보딩 가이드 ----
+        
+        /**
+         * 첫 방문 여부 확인 및 온보딩 가이드 표시
+         */
+        function checkAndShowOnboarding() {
+            const onboardingKey = 'evkmc_onboarding_completed';
+            const hasCompletedOnboarding = localStorage.getItem(onboardingKey) === 'true';
+            
+            if (!hasCompletedOnboarding) {
+                // 2초 후 온보딩 시작 (페이지 로드 완료 대기)
+                setTimeout(() => {
+                    startOnboarding();
+                }, 2000);
+            }
+        }
+        
+        /**
+         * 온보딩 가이드 시작
+         */
+        function startOnboarding() {
+            const steps = [
+                {
+                    target: 'header',
+                    title: '환영합니다! 👋',
+                    content: 'EVKMC A/S 정비 포털에 오신 것을 환영합니다. 주요 기능을 간단히 안내해드리겠습니다.',
+                    position: 'bottom'
+                },
+                {
+                    target: '#desktop-nav, #mobile-menu-btn',
+                    title: '네비게이션 메뉴',
+                    content: '상단 메뉴에서 정비지침서, 전장회로도, 게시판 등 다양한 기능에 접근할 수 있습니다.',
+                    position: 'bottom'
+                },
+                {
+                    target: '#main-content',
+                    title: '홈 화면',
+                    content: '홈 화면에서 빠르게 주요 기능에 접근하고 최근 공지사항을 확인할 수 있습니다.',
+                    position: 'top'
+                },
+                {
+                    target: '#auth-container',
+                    title: '내 정보',
+                    content: '우측 상단에서 세션 정보를 확인하고, 내 정보 페이지에서 계정 정보와 등급을 확인할 수 있습니다.',
+                    position: 'left'
+                }
+            ];
+            
+            let currentStep = 0;
+            let overlay = null;
+            let tooltip = null;
+            
+            function showStep(stepIndex) {
+                if (stepIndex >= steps.length) {
+                    completeOnboarding();
+                    return;
+                }
+                
+                const step = steps[stepIndex];
+                const targetElement = document.querySelector(step.target);
+                
+                if (!targetElement) {
+                    // 요소를 찾을 수 없으면 다음 단계로
+                    showStep(stepIndex + 1);
+                    return;
+                }
+                
+                // 오버레이 생성
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.className = 'onboarding-overlay';
+                    document.body.appendChild(overlay);
+                }
+                
+                // 기존 툴팁 제거
+                if (tooltip) {
+                    tooltip.remove();
+                }
+                
+                // 타겟 요소 하이라이트
+                const rect = targetElement.getBoundingClientRect();
+                targetElement.classList.add('onboarding-highlight');
+                
+                // 툴팁 생성
+                tooltip = document.createElement('div');
+                tooltip.className = `onboarding-tooltip ${step.position}`;
+                
+                const progress = Math.round(((stepIndex + 1) / steps.length) * 100);
+                
+                tooltip.innerHTML = `
+                    <div class="mb-3">
+                        <h3 class="text-lg font-bold text-gray-900 mb-1">${step.title}</h3>
+                        <p class="text-sm text-gray-600">${step.content}</p>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex-1 bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full transition-all" style="width: ${progress}%"></div>
+                        </div>
+                        <span class="text-xs text-gray-500">${stepIndex + 1}/${steps.length}</span>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button 
+                            onclick="skipOnboarding()" 
+                            class="flex-1 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                            tabindex="0">
+                            건너뛰기
+                        </button>
+                        <button 
+                            onclick="nextOnboardingStep()" 
+                            class="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                            tabindex="0">
+                            ${stepIndex === steps.length - 1 ? '완료' : '다음'}
+                        </button>
+                    </div>
+                `;
+                
+                // 툴팁 위치 설정
+                const tooltipRect = tooltip.getBoundingClientRect();
+                let top = 0;
+                let left = 0;
+                
+                switch (step.position) {
+                    case 'top':
+                        top = rect.top - tooltipRect.height - 20;
+                        left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+                        break;
+                    case 'bottom':
+                        top = rect.bottom + 20;
+                        left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+                        break;
+                    case 'left':
+                        top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+                        left = rect.left - tooltipRect.width - 20;
+                        break;
+                    case 'right':
+                        top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+                        left = rect.right + 20;
+                        break;
+                }
+                
+                // 화면 밖으로 나가지 않도록 조정
+                if (left < 10) left = 10;
+                if (left + tooltipRect.width > window.innerWidth - 10) {
+                    left = window.innerWidth - tooltipRect.width - 10;
+                }
+                if (top < 10) top = 10;
+                if (top + tooltipRect.height > window.innerHeight - 10) {
+                    top = window.innerHeight - tooltipRect.height - 10;
+                }
+                
+                tooltip.style.top = `${top}px`;
+                tooltip.style.left = `${left}px`;
+                document.body.appendChild(tooltip);
+                
+                // 스크롤하여 타겟 요소가 보이도록
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            
+            function nextStep() {
+                // 하이라이트 제거
+                document.querySelectorAll('.onboarding-highlight').forEach(el => {
+                    el.classList.remove('onboarding-highlight');
+                });
+                currentStep++;
+                showStep(currentStep);
+            }
+            
+            function skip() {
+                completeOnboarding();
+            }
+            
+            function completeOnboarding() {
+                // 하이라이트 제거
+                document.querySelectorAll('.onboarding-highlight').forEach(el => {
+                    el.classList.remove('onboarding-highlight');
+                });
+                
+                if (overlay) overlay.remove();
+                if (tooltip) tooltip.remove();
+                
+                localStorage.setItem('evkmc_onboarding_completed', 'true');
+                showToast('온보딩 가이드를 완료했습니다!', 'success');
+            }
+            
+            // 전역 함수로 등록
+            window.nextOnboardingStep = nextStep;
+            window.skipOnboarding = skip;
+            
+            // 첫 단계 표시
+            showStep(0);
+        }
 
         // ---- 12. 앱 시작 ----
         initApp();
