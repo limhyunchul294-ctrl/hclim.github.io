@@ -5108,10 +5108,15 @@ async function initBusinessCardUpload() {
          * 첫 방문 여부 확인 및 온보딩 가이드 표시
          */
         function checkAndShowOnboarding() {
-            const onboardingKey = 'evkmc_onboarding_completed';
-            const hasCompletedOnboarding = localStorage.getItem(onboardingKey) === 'true';
+            const onboardingCompletedKey = 'evkmc_onboarding_completed';
+            const onboardingCountKey = 'evkmc_onboarding_count';
+            const maxOnboardingCount = 3;
             
-            if (!hasCompletedOnboarding) {
+            const hasCompletedOnboarding = localStorage.getItem(onboardingCompletedKey) === 'true';
+            const currentCount = parseInt(localStorage.getItem(onboardingCountKey) || '0', 10);
+            
+            // "다시 보지 않기"를 선택하지 않았고, 3회 이내인 경우에만 표시
+            if (!hasCompletedOnboarding && currentCount < maxOnboardingCount) {
                 // 2초 후 온보딩 시작 (페이지 로드 완료 대기)
                 setTimeout(() => {
                     startOnboarding();
@@ -5202,25 +5207,36 @@ async function initBusinessCardUpload() {
                         </div>
                         <span class="text-xs text-gray-500">${stepIndex + 1}/${steps.length}</span>
                     </div>
-                    <div class="flex gap-2 mt-4">
-                        <button 
-                            id="onboarding-skip-btn"
-                            class="flex-1 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
-                            tabindex="0">
-                            건너뛰기
-                        </button>
-                        <button 
-                            id="onboarding-next-btn"
-                            class="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                            tabindex="0">
-                            ${stepIndex === steps.length - 1 ? '완료' : '다음'}
-                        </button>
+                    <div class="flex flex-col gap-2 mt-4">
+                        <div class="flex gap-2">
+                            <button 
+                                id="onboarding-skip-btn"
+                                class="flex-1 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                                tabindex="0">
+                                건너뛰기
+                            </button>
+                            <button 
+                                id="onboarding-next-btn"
+                                class="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                tabindex="0">
+                                ${stepIndex === steps.length - 1 ? '완료' : '다음'}
+                            </button>
+                        </div>
+                        ${stepIndex === steps.length - 1 ? `
+                            <button 
+                                id="onboarding-dont-show-btn"
+                                class="w-full px-4 py-2 text-xs text-gray-500 hover:text-gray-700 transition-colors border border-gray-200 rounded-lg hover:border-gray-300"
+                                tabindex="0">
+                                다시 보지 않기
+                            </button>
+                        ` : ''}
                     </div>
                 `;
                 
                 // 버튼 이벤트 리스너 추가 (onclick 대신)
                 const skipBtn = tooltip.querySelector('#onboarding-skip-btn');
                 const nextBtn = tooltip.querySelector('#onboarding-next-btn');
+                const dontShowBtn = tooltip.querySelector('#onboarding-dont-show-btn');
                 
                 if (skipBtn) {
                     skipBtn.addEventListener('click', (e) => {
@@ -5235,6 +5251,14 @@ async function initBusinessCardUpload() {
                         e.preventDefault();
                         e.stopPropagation();
                         nextStep();
+                    });
+                }
+                
+                if (dontShowBtn) {
+                    dontShowBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dontShowAgain();
                     });
                 }
                 
@@ -5272,9 +5296,25 @@ async function initBusinessCardUpload() {
                     top = window.innerHeight - tooltipRect.height - 10;
                 }
                 
+                // 툴팁을 먼저 body에 추가하여 크기 측정 가능하게 함
+                document.body.appendChild(tooltip);
+                
+                // 위치 재계산 (DOM에 추가된 후 실제 크기 측정)
+                const actualTooltipRect = tooltip.getBoundingClientRect();
+                
+                // 위치 재조정
+                if (left < 10) left = 10;
+                if (left + actualTooltipRect.width > window.innerWidth - 10) {
+                    left = window.innerWidth - actualTooltipRect.width - 10;
+                }
+                if (top < 10) top = 10;
+                if (top + actualTooltipRect.height > window.innerHeight - 10) {
+                    top = window.innerHeight - actualTooltipRect.height - 10;
+                }
+                
                 tooltip.style.top = `${top}px`;
                 tooltip.style.left = `${left}px`;
-                document.body.appendChild(tooltip);
+                tooltip.style.zIndex = '10001';
                 
                 // 스크롤하여 타겟 요소가 보이도록
                 targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -5286,14 +5326,34 @@ async function initBusinessCardUpload() {
                     el.classList.remove('onboarding-highlight');
                 });
                 currentStep++;
-                showStep(currentStep);
+                
+                // 마지막 단계를 완료한 경우
+                if (currentStep >= steps.length) {
+                    const onboardingCountKey = 'evkmc_onboarding_count';
+                    const currentCount = parseInt(localStorage.getItem(onboardingCountKey) || '0', 10);
+                    localStorage.setItem(onboardingCountKey, (currentCount + 1).toString());
+                    completeOnboarding(false);
+                } else {
+                    showStep(currentStep);
+                }
             }
             
             function skip() {
-                completeOnboarding();
+                // 건너뛰기: 카운트만 증가시키고 완료 처리하지 않음
+                const onboardingCountKey = 'evkmc_onboarding_count';
+                const currentCount = parseInt(localStorage.getItem(onboardingCountKey) || '0', 10);
+                localStorage.setItem(onboardingCountKey, (currentCount + 1).toString());
+                
+                completeOnboarding(false);
             }
             
-            function completeOnboarding() {
+            function dontShowAgain() {
+                // 다시 보지 않기: 완료 처리
+                localStorage.setItem('evkmc_onboarding_completed', 'true');
+                completeOnboarding(true);
+            }
+            
+            function completeOnboarding(isDontShow = false) {
                 // 하이라이트 제거
                 document.querySelectorAll('.onboarding-highlight').forEach(el => {
                     el.classList.remove('onboarding-highlight');
@@ -5302,17 +5362,44 @@ async function initBusinessCardUpload() {
                 if (overlay) overlay.remove();
                 if (tooltip) tooltip.remove();
                 
-                localStorage.setItem('evkmc_onboarding_completed', 'true');
-                showToast('온보딩 가이드를 완료했습니다!', 'success');
+                if (isDontShow) {
+                    showToast('온보딩 가이드를 다시 표시하지 않습니다.', 'info');
+                } else {
+                    const onboardingCountKey = 'evkmc_onboarding_count';
+                    const currentCount = parseInt(localStorage.getItem(onboardingCountKey) || '0', 10);
+                    if (currentCount >= 3) {
+                        showToast('온보딩 가이드를 완료했습니다!', 'success');
+                    } else {
+                        showToast('온보딩 가이드를 건너뛰었습니다.', 'info');
+                    }
+                }
             }
             
             // 전역 함수로 등록
             window.nextOnboardingStep = nextStep;
             window.skipOnboarding = skip;
+            window.restartOnboarding = () => {
+                localStorage.removeItem('evkmc_onboarding_completed');
+                if (overlay) overlay.remove();
+                if (tooltip) tooltip.remove();
+                document.querySelectorAll('.onboarding-highlight').forEach(el => {
+                    el.classList.remove('onboarding-highlight');
+                });
+                currentStep = 0;
+                showStep(0);
+            };
             
             // 첫 단계 표시
             showStep(0);
         }
+        
+        /**
+         * 온보딩 가이드 재시작 (개발자 콘솔에서 사용 가능)
+         */
+        window.restartOnboardingGuide = function() {
+            localStorage.removeItem('evkmc_onboarding_completed');
+            startOnboarding();
+        };
 
         // ---- 12. 앱 시작 ----
         initApp();

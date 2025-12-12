@@ -386,6 +386,7 @@
       display: flex; align-items: center; padding: 8px 12px;
       font-size: 14px; color: #374151; border-radius: 6px;
       transition: background-color 0.2s ease;
+      white-space: nowrap;
     }
     .tree-content:hover { background: rgba(59, 130, 246, 0.05); }
     .tree-children {
@@ -409,6 +410,13 @@
     .tree-item.tree-item-visited .tree-label {
       color: #9CA3AF;
       text-decoration: line-through;
+    }
+    .tree-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
     }
     .tree-search { position: relative; margin-bottom: 12px; }
     .tree-search input {
@@ -507,6 +515,11 @@
       z-index: 10001;
       pointer-events: auto;
       animation: tooltipFadeIn 0.3s ease-out;
+    }
+    
+    .onboarding-tooltip button {
+      position: relative;
+      z-index: 10002;
     }
 
     @keyframes tooltipFadeIn {
