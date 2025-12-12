@@ -1691,8 +1691,8 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 </div>
                             ` : ''}
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
 
                 // 게시글 작성 권한 확인
                 const canCreatePost = await window.dataService?.canCreateCommunityPost() || false;
