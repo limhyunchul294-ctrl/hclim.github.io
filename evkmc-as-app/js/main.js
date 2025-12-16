@@ -1258,8 +1258,17 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 <span class="text-sm text-gray-500">${new Date(notice.created_at).toLocaleString()}</span>
                             </div>
                             <h1 class="text-2xl font-bold text-gray-900 mb-6">${notice.title}</h1>
-                            <div class="prose max-w-none">
-                                <div class="text-gray-700 leading-relaxed">${window.marked ? window.marked.parse(notice.content || '내용이 없습니다.') : (notice.content || '내용이 없습니다.').replace(/\n/g, '<br>')}</div>
+                            <div class="prose prose-sm max-w-none">
+                                ${(() => {
+                                    const content = notice.content || '내용이 없습니다.';
+                                    if (typeof marked !== 'undefined' && marked && marked.parse) {
+                                        return marked.parse(content);
+                                    } else if (window.marked && window.marked.parse) {
+                                        return window.marked.parse(content);
+                                    } else {
+                                        return content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                    }
+                                })()}
                             </div>
                             ${manageButtons}
                         </div>

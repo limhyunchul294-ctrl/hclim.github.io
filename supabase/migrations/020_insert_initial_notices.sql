@@ -2,6 +2,7 @@
 -- 초기 공지사항 데이터 삽입
 -- ============================================
 -- 이 파일을 Supabase Dashboard > SQL Editor에서 실행하세요
+-- 테이블 구조: id, created_at, title, category, content, attachments, is_pinned
 
 -- 공지사항 1: 환영 메시지 (고정)
 INSERT INTO notices (title, content, category, is_pinned, created_at)
@@ -94,7 +95,7 @@ VALUES (
     NOW() - INTERVAL '5 days'
 );
 
--- 공지사항 4: 시스템 정기 점검 안내 (시간 수정: 13:00)
+-- 공지사항 4: 시스템 정기 점검 안내
 INSERT INTO notices (title, content, category, created_at)
 VALUES (
     '시스템 정기 점검 안내',
@@ -169,7 +170,7 @@ VALUES (
     NOW() - INTERVAL '2 days'
 );
 
--- 공지사항 7: 계정 보안 안내 (비밀번호 관련 내용 제거, 이메일 인증 중심)
+-- 공지사항 7: 계정 보안 안내
 INSERT INTO notices (title, content, category, created_at)
 VALUES (
     '계정 보안 안내',
@@ -199,4 +200,3 @@ SELECT
     created_at
 FROM notices
 ORDER BY is_pinned DESC, created_at DESC;
-
