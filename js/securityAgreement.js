@@ -79,9 +79,16 @@ window.securityAgreement = {
                 .eq('auth_user_id', session.user.id)
                 .select();
 
+            console.log('📊 auth_user_id 업데이트 결과:', { 
+                data: updateResult, 
+                error: updateError,
+                resultCount: updateResult?.length || 0
+            });
+
             // 방법 2: auth_user_id로 업데이트 실패 시 이메일로 시도
             if (updateError || !updateResult || updateResult.length === 0) {
                 console.log('🔄 auth_user_id로 업데이트 실패, 이메일로 재시도...');
+                console.log('📧 이메일:', session.user.email);
                 
                 if (session.user.email) {
                     const normalizedEmail = session.user.email.trim().toLowerCase();
@@ -91,33 +98,69 @@ window.securityAgreement = {
                         .ilike('email', normalizedEmail)
                         .select();
 
+                    console.log('📊 이메일 업데이트 결과:', { 
+                        data: emailResult, 
+                        error: emailError,
+                        resultCount: emailResult?.length || 0
+                    });
+
                     if (emailError) {
                         console.error('❌ 이메일로 업데이트 실패:', emailError);
+                        console.error('❌ 에러 상세:', JSON.stringify(emailError, null, 2));
+                        
                         // 방법 3: profile_id가 있으면 profile_id로 시도
                         if (userInfo.profile_id) {
-                            console.log('🔄 profile_id로 재시도...');
-                            const { error: profileError } = await window.supabaseClient
+                            console.log('🔄 profile_id로 재시도...', userInfo.profile_id);
+                            const { data: profileResult, error: profileError } = await window.supabaseClient
                                 .from('users')
                                 .update(updateData)
                                 .eq('profile_id', userInfo.profile_id)
                                 .select();
                             
+                            console.log('📊 profile_id 업데이트 결과:', { 
+                                data: profileResult, 
+                                error: profileError,
+                                resultCount: profileResult?.length || 0
+                            });
+                            
                             if (profileError) {
                                 console.error('❌ profile_id로 업데이트 실패:', profileError);
+                                console.error('❌ 에러 상세:', JSON.stringify(profileError, null, 2));
+                                return false;
+                            } else if (!profileResult || profileResult.length === 0) {
+                                console.error('❌ profile_id로 업데이트했지만 레코드가 없습니다');
                                 return false;
                             }
+                            // profile_id로 성공한 경우 updateResult 업데이트
+                            updateResult = profileResult;
                         } else {
+                            console.error('❌ profile_id도 없어 업데이트할 수 없습니다');
                             return false;
                         }
                     } else if (!emailResult || emailResult.length === 0) {
-                        console.error('❌ 업데이트된 레코드가 없습니다');
+                        console.error('❌ 이메일로 업데이트했지만 레코드가 없습니다');
+                        console.error('💡 가능한 원인:');
+                        console.error('   1. 이메일이 users 테이블에 없음');
+                        console.error('   2. RLS 정책이 업데이트를 차단함');
+                        console.error('   3. auth_user_id가 users 테이블과 연결되지 않음');
                         return false;
+                    } else {
+                        // 이메일로 성공한 경우 updateResult 업데이트
+                        updateResult = emailResult;
                     }
                 } else {
                     console.error('❌ 이메일 정보가 없어 업데이트할 수 없습니다');
                     return false;
                 }
             }
+
+            // 최종 성공 확인
+            if (!updateResult || updateResult.length === 0) {
+                console.error('❌ 모든 방법으로 업데이트 시도했지만 실패했습니다');
+                return false;
+            }
+
+            console.log('✅ 보안서약서 동의 저장 성공:', updateResult[0]);
 
             // 사용자 정보 캐시 갱신
             if (window.authService?.refreshUserInfo) {
