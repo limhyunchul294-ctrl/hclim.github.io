@@ -1,5 +1,5 @@
-# Git 커밋 및 푸시 헬퍼 스크립트 (한글 인코딩 문제 해결)
-# 사용법: .\scripts\git\commit-and-push.ps1 "커밋 메시지"
+# Git 커밋 헬퍼 스크립트 (한글 인코딩 문제 해결)
+# 사용법: .\scripts\git\commit.ps1 "커밋 메시지"
 
 param(
     [Parameter(Mandatory=$true)]
@@ -22,17 +22,6 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "✅ 커밋 완료: $Message" -ForegroundColor Green
-        
-        # 푸시 실행
-        Write-Host "🔄 원격 저장소에 푸시 중..." -ForegroundColor Yellow
-        git push origin master
-        
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "✅ 푸시 완료" -ForegroundColor Green
-        } else {
-            Write-Host "❌ 푸시 실패" -ForegroundColor Red
-            exit 1
-        }
     } else {
         Write-Host "❌ 커밋 실패" -ForegroundColor Red
         exit 1
