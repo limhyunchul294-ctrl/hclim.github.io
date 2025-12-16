@@ -1242,6 +1242,33 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                     </div>
                 ` : '';
 
+                // 마크다운 렌더링 (함수 밖에서 처리)
+                const content = notice.content || '내용이 없습니다.';
+                let contentHtml = content;
+                
+                try {
+                    // marked 라이브러리 직접 사용 (다른 코드와 동일한 방식)
+                    if (typeof marked !== 'undefined' && marked && marked.parse) {
+                        contentHtml = marked.parse(content);
+                        console.log('✅ marked.parse() 사용 성공');
+                    } else if (window.marked && window.marked.parse) {
+                        contentHtml = window.marked.parse(content);
+                        console.log('✅ window.marked.parse() 사용 성공');
+                    } else {
+                        console.warn('⚠️ marked 라이브러리를 찾을 수 없음, fallback 사용');
+                        // fallback: 간단한 마크다운 처리
+                        contentHtml = content
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\n/g, '<br>');
+                    }
+                } catch (e) {
+                    console.error('❌ 마크다운 파싱 오류:', e);
+                    // fallback
+                    contentHtml = content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br>');
+                }
+
                 return `
                     <div class="max-w-4xl mx-auto p-6">
                         <div class="mb-6">
@@ -1258,38 +1285,8 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 <span class="text-sm text-gray-500">${new Date(notice.created_at).toLocaleString()}</span>
                             </div>
                             <h1 class="text-2xl font-bold text-gray-900 mb-6">${notice.title}</h1>
-                            <div class="prose prose-sm max-w-none markdown-content">
-                                ${(() => {
-                                    const content = notice.content || '내용이 없습니다.';
-                                    let html = content;
-                                    
-                                    // marked 라이브러리 확인 및 사용
-                                    try {
-                                        // 전역 marked 확인
-                                        const markedLib = typeof marked !== 'undefined' ? marked : (typeof window !== 'undefined' && window.marked ? window.marked : null);
-                                        
-                                        if (markedLib) {
-                                            if (markedLib.parse) {
-                                                html = markedLib.parse(content);
-                                            } else if (typeof markedLib === 'function') {
-                                                html = markedLib(content);
-                                            } else if (markedLib.marked && markedLib.marked.parse) {
-                                                html = markedLib.marked.parse(content);
-                                            }
-                                        }
-                                    } catch (e) {
-                                        console.warn('마크다운 파싱 오류:', e);
-                                    }
-                                    
-                                    // marked가 없거나 실패한 경우 fallback
-                                    if (html === content) {
-                                        html = content
-                                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                            .replace(/\n/g, '<br>');
-                                    }
-                                    
-                                    return html;
-                                })()}
+                            <div class="prose prose-sm max-w-none">
+                                <div class="text-gray-700 leading-relaxed">${contentHtml}</div>
                             </div>
                             ${manageButtons}
                         </div>
