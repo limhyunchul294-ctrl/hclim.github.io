@@ -4,23 +4,27 @@
 
 -- 기존 UPDATE 정책이 있는지 확인하고 삭제 (중복 방지)
 DROP POLICY IF EXISTS "Users can update their own security agreement" ON public.users;
+DROP POLICY IF EXISTS "Users can update their own data" ON public.users;
+DROP POLICY IF EXISTS "Authenticated users can update users" ON public.users;
 
 -- 사용자가 자신의 보안서약서 동의 정보를 업데이트할 수 있는 정책 추가
+-- TO authenticated를 명시하여 인증된 사용자만 허용
 CREATE POLICY "Users can update their own security agreement"
 ON public.users
 FOR UPDATE
+TO authenticated
 USING (
-    -- auth_user_id로 자신의 레코드인지 확인
-    auth_user_id = auth.uid()
+    -- 조건 1: auth_user_id가 일치하는 경우
+    (auth_user_id IS NOT NULL AND auth_user_id = auth.uid())
     OR
-    -- 이메일로 자신의 레코드인지 확인 (auth_user_id가 없는 경우 대비)
-    email = (SELECT email FROM auth.users WHERE id = auth.uid())
+    -- 조건 2: 이메일이 일치하는 경우 (auth_user_id가 없는 경우 대비)
+    (email IS NOT NULL AND email = (SELECT email FROM auth.users WHERE id = auth.uid()))
 )
 WITH CHECK (
     -- 업데이트할 때도 동일한 조건 확인
-    auth_user_id = auth.uid()
+    (auth_user_id IS NOT NULL AND auth_user_id = auth.uid())
     OR
-    email = (SELECT email FROM auth.users WHERE id = auth.uid())
+    (email IS NOT NULL AND email = (SELECT email FROM auth.users WHERE id = auth.uid()))
 );
 
 -- 코멘트 추가

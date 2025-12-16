@@ -4,13 +4,48 @@
 SQL로 컬럼을 추가했는데도 보안서약서 동의 저장이 실패하는 경우, RLS (Row Level Security) 정책 문제일 가능성이 높습니다.
 
 ## 증상
-- 콘솔에 "업데이트된 레코드가 없습니다" 에러
+- 콘솔에 **"permission denied for table users"** (403 Forbidden) 에러
 - `auth_user_id`로 업데이트 실패
 - 이메일로 업데이트도 실패
+- "업데이트된 레코드가 없습니다" 에러
 
-## 해결 방법
+## 즉시 해결 방법
 
-### 1단계: RLS UPDATE 정책 추가
+### 방법 1: 즉시 해결 SQL 실행 (권장)
+
+Supabase Dashboard > SQL Editor에서 `supabase/fix_security_agreement_rls_immediate.sql` 파일 내용을 실행하세요.
+
+또는 아래 SQL을 직접 실행:
+
+```sql
+-- 기존 UPDATE 정책 삭제
+DROP POLICY IF EXISTS "Users can update their own security agreement" ON public.users;
+DROP POLICY IF EXISTS "Users can update their own data" ON public.users;
+DROP POLICY IF EXISTS "Authenticated users can update users" ON public.users;
+
+-- 보안서약서 동의 정보 업데이트 정책 추가
+CREATE POLICY "Users can update their own security agreement"
+ON public.users
+FOR UPDATE
+TO authenticated
+USING (
+    (auth_user_id IS NOT NULL AND auth_user_id = auth.uid())
+    OR
+    (email IS NOT NULL AND email = (SELECT email FROM auth.users WHERE id = auth.uid()))
+)
+WITH CHECK (
+    (auth_user_id IS NOT NULL AND auth_user_id = auth.uid())
+    OR
+    (email IS NOT NULL AND email = (SELECT email FROM auth.users WHERE id = auth.uid()))
+);
+
+-- RLS 활성화 확인
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+```
+
+### 방법 2: 단계별 해결
+
+#### 1단계: RLS UPDATE 정책 추가
 
 Supabase Dashboard > SQL Editor에서 다음 SQL을 실행하세요:
 
