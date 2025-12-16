@@ -3,6 +3,7 @@ import './authSession.js';
 import './authService.js';
 import './dataService.js';
 import './fileUploadService.js';
+import './securityAgreement.js';
 import { maintenanceManualTreeData, maintenanceManualMapping } from './maintenanceManualMapping.js';
 import { etmTreeData, etmMapping } from './etmMapping.js';
 
@@ -3795,8 +3796,13 @@ async function initBusinessCardUpload() {
                     hideSplashScreen();
                     showToast('환영합니다!', 'success');
                     
-                    // 첫 방문 온보딩 가이드 표시
-                    checkAndShowOnboarding();
+                    // 보안서약서 확인 및 표시
+                    window.securityAgreement?.checkAndShow();
+                    
+                    // 첫 방문 온보딩 가이드 표시 (보안서약서 동의 후)
+                    setTimeout(() => {
+                        checkAndShowOnboarding();
+                    }, 500);
                 }, 1500);
                 
                 console.log('✅ 앱 초기화 완료');
