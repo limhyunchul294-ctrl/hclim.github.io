@@ -6,10 +6,12 @@ param(
     [string]$Message
 )
 
-# UTF-8 인코딩 설정
+# UTF-8 인코딩 설정 (강제)
+$PSDefaultParameterValues['*:Encoding'] = 'utf8'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 $env:PYTHONIOENCODING = "utf-8"
+$env:LANG = "ko_KR.UTF-8"
 chcp 65001 | Out-Null
 
 # 임시 파일에 커밋 메시지 작성 (UTF-8 BOM 없이)
