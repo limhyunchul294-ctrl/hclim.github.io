@@ -1243,25 +1243,25 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                 ` : '';
 
                 // 마크다운 렌더링 (함수 밖에서 처리)
-                const content = notice.content || '내용이 없습니다.';
+                const rawContent = notice?.content;
+                const content = (rawContent !== null && rawContent !== undefined && rawContent !== 'null' && rawContent !== 'undefined') 
+                    ? String(rawContent) 
+                    : '내용이 없습니다.';
                 let contentHtml = content;
                 
                 try {
-                    // content가 유효한지 확인 (null, undefined 체크)
-                    if (!content || content === 'null' || content === 'undefined') {
-                        contentHtml = '내용이 없습니다.';
-                    } else {
-                        // marked 라이브러리 직접 사용 (다른 코드와 동일한 방식)
+                    // marked 라이브러리 직접 사용 (다른 코드와 동일한 방식)
+                    if (content && content !== '내용이 없습니다.') {
                         if (typeof marked !== 'undefined' && marked && marked.parse) {
-                            contentHtml = marked.parse(String(content));
+                            contentHtml = marked.parse(content);
                             console.log('✅ marked.parse() 사용 성공');
                         } else if (window.marked && window.marked.parse) {
-                            contentHtml = window.marked.parse(String(content));
+                            contentHtml = window.marked.parse(content);
                             console.log('✅ window.marked.parse() 사용 성공');
                         } else {
                             console.warn('⚠️ marked 라이브러리를 찾을 수 없음, fallback 사용');
                             // fallback: 간단한 마크다운 처리
-                            contentHtml = String(content)
+                            contentHtml = content
                                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                                 .replace(/\n/g, '<br>');
                         }
@@ -1269,7 +1269,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                 } catch (e) {
                     console.error('❌ 마크다운 파싱 오류:', e);
                     // fallback
-                    contentHtml = String(content || '내용이 없습니다.')
+                    contentHtml = content
                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                         .replace(/\n/g, '<br>');
                 }
