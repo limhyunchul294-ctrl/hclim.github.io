@@ -69,6 +69,11 @@ window.securityAgreement = {
             console.log('💾 보안서약서 동의 저장 시도:', {
                 auth_user_id: session.user.id,
                 email: session.user.email,
+                userInfo: {
+                    profile_id: userInfo.profile_id,
+                    auth_user_id: userInfo.auth_user_id,
+                    email: userInfo.email
+                },
                 updateData
             });
 
