@@ -1258,16 +1258,40 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 <span class="text-sm text-gray-500">${new Date(notice.created_at).toLocaleString()}</span>
                             </div>
                             <h1 class="text-2xl font-bold text-gray-900 mb-6">${notice.title}</h1>
-                            <div class="prose prose-sm max-w-none">
+                            <div class="prose prose-sm max-w-none markdown-content">
                                 ${(() => {
                                     const content = notice.content || '내용이 없습니다.';
-                                    if (typeof marked !== 'undefined' && marked && marked.parse) {
-                                        return marked.parse(content);
-                                    } else if (window.marked && window.marked.parse) {
-                                        return window.marked.parse(content);
-                                    } else {
-                                        return content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                    let html = content;
+                                    
+                                    // marked 라이브러리 확인 및 사용
+                                    try {
+                                        if (typeof marked !== 'undefined') {
+                                            if (marked.parse) {
+                                                html = marked.parse(content);
+                                            } else if (typeof marked === 'function') {
+                                                html = marked(content);
+                                            } else if (marked.marked && marked.marked.parse) {
+                                                html = marked.marked.parse(content);
+                                            }
+                                        } else if (window.marked) {
+                                            if (window.marked.parse) {
+                                                html = window.marked.parse(content);
+                                            } else if (typeof window.marked === 'function') {
+                                                html = window.marked(content);
+                                            }
+                                        }
+                                    } catch (e) {
+                                        console.warn('마크다운 파싱 오류:', e);
                                     }
+                                    
+                                    // marked가 없거나 실패한 경우 fallback
+                                    if (html === content) {
+                                        html = content
+                                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                            .replace(/\n/g, '<br>');
+                                    }
+                                    
+                                    return html;
                                 })()}
                             </div>
                             ${manageButtons}
