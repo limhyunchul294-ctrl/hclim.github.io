@@ -1265,19 +1265,16 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                     
                                     // marked 라이브러리 확인 및 사용
                                     try {
-                                        if (typeof marked !== 'undefined') {
-                                            if (marked.parse) {
-                                                html = marked.parse(content);
-                                            } else if (typeof marked === 'function') {
-                                                html = marked(content);
-                                            } else if (marked.marked && marked.marked.parse) {
-                                                html = marked.marked.parse(content);
-                                            }
-                                        } else if (window.marked) {
-                                            if (window.marked.parse) {
-                                                html = window.marked.parse(content);
-                                            } else if (typeof window.marked === 'function') {
-                                                html = window.marked(content);
+                                        // 전역 marked 확인
+                                        const markedLib = typeof marked !== 'undefined' ? marked : (typeof window !== 'undefined' && window.marked ? window.marked : null);
+                                        
+                                        if (markedLib) {
+                                            if (markedLib.parse) {
+                                                html = markedLib.parse(content);
+                                            } else if (typeof markedLib === 'function') {
+                                                html = markedLib(content);
+                                            } else if (markedLib.marked && markedLib.marked.parse) {
+                                                html = markedLib.marked.parse(content);
                                             }
                                         }
                                     } catch (e) {
@@ -2064,12 +2061,17 @@ async function renderAccountPage() {
 
                 let result;
                 if (noticeId) {
-                    // 수정
-                    result = await window.dataService?.updateNotice(noticeId, {
+                    // 수정 (updated_at 필드 제외)
+                    const updateData = {
                         title,
                         content,
                         category
-                    });
+                    };
+                    // updated_at 필드가 있으면 제거
+                    if (updateData.updated_at) {
+                        delete updateData.updated_at;
+                    }
+                    result = await window.dataService?.updateNotice(noticeId, updateData);
                     showToast('공지사항이 수정되었습니다.', 'success');
                 } else {
                     // 작성
