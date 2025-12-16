@@ -131,15 +131,29 @@ window.securityAgreement = {
                             if (profileError) {
                                 console.error('❌ profile_id로 업데이트 실패:', profileError);
                                 console.error('❌ 에러 상세:', JSON.stringify(profileError, null, 2));
+                                
+                                // RLS 정책 문제일 가능성 높음
+                                if (profileError.code === '42501' || profileError.message?.includes('permission denied')) {
+                                    console.error('💡 RLS 정책 문제로 보입니다. 다음을 확인하세요:');
+                                    console.error('   1. Supabase Dashboard > SQL Editor에서 다음 파일 실행:');
+                                    console.error('      supabase/fix_security_agreement_rls_final.sql');
+                                    console.error('   2. 정책이 제대로 추가되었는지 확인');
+                                }
                                 return false;
                             } else if (!profileResult || profileResult.length === 0) {
                                 console.error('❌ profile_id로 업데이트했지만 레코드가 없습니다');
+                                console.error('💡 가능한 원인:');
+                                console.error('   1. profile_id가 잘못되었거나 레코드가 없음');
+                                console.error('   2. RLS 정책이 업데이트를 차단함');
                                 return false;
                             }
                             // profile_id로 성공한 경우 updateResult 업데이트
                             updateResult = profileResult;
                         } else {
                             console.error('❌ profile_id도 없어 업데이트할 수 없습니다');
+                            console.error('💡 해결 방법:');
+                            console.error('   1. Supabase Dashboard에서 auth_user_id 동기화 SQL 실행');
+                            console.error('   2. 또는 관리자에게 사용자 정보 확인 요청');
                             return false;
                         }
                     } else if (!emailResult || emailResult.length === 0) {
