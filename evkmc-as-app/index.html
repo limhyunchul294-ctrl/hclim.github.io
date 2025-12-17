@@ -208,6 +208,53 @@
       pointer-events: auto;
     }
     
+    /* 튜토리얼 말풍선/툴팁 위치 조정 */
+    .tutorial-tooltip,
+    .guide-tooltip,
+    .onboarding-tooltip,
+    [class*="tooltip"],
+    [class*="popover"],
+    [class*="bubble"],
+    [id*="tooltip"],
+    [id*="popover"],
+    [id*="bubble"] {
+      position: absolute !important;
+      z-index: 10002 !important;
+      pointer-events: auto !important;
+    }
+    
+    /* 튜토리얼 3번째 단계 (홈 화면) 말풍선 위치 조정 */
+    .tutorial-step-3 .tutorial-tooltip,
+    .tutorial-step-3 .guide-tooltip,
+    .tutorial-step-3 .onboarding-tooltip,
+    [data-step="3"] .tutorial-tooltip,
+    [data-step="3"] .guide-tooltip,
+    [data-step="3"] .onboarding-tooltip {
+      top: 20px !important;
+      transform: translateY(0) !important;
+      margin-top: 0 !important;
+    }
+    
+    /* 일반적인 말풍선 위치 조정 (위로 올리기) */
+    .tutorial-tooltip[class*="bottom"],
+    .guide-tooltip[class*="bottom"],
+    .onboarding-tooltip[class*="bottom"],
+    [class*="tooltip"][class*="bottom"],
+    [class*="popover"][class*="bottom"],
+    [class*="bubble"][class*="bottom"] {
+      bottom: auto !important;
+      top: 20px !important;
+      transform: translateY(0) !important;
+    }
+    
+    /* 말풍선이 콘텐츠와 겹치지 않도록 여백 추가 */
+    .tutorial-tooltip,
+    .guide-tooltip,
+    .onboarding-tooltip {
+      margin-bottom: 20px !important;
+      max-width: 400px !important;
+    }
+    
     /* 토스트 알림 */
     .toast-container {
       position: fixed;
