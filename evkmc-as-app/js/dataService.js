@@ -407,7 +407,9 @@ window.dataService = {
             }
 
             // updated_at 필드 제거 (테이블에 컬럼이 없으면)
-            const { updated_at, ...updateData } = noticeData;
+            // 명시적으로 필드 제거
+            const updateData = { ...noticeData };
+            delete updateData.updated_at;
 
             const { data, error } = await window.supabaseClient
                 .from('notices')

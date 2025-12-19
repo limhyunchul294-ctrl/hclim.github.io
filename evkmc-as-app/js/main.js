@@ -1242,6 +1242,38 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                     </div>
                 ` : '';
 
+                // 마크다운 렌더링 (함수 밖에서 처리)
+                const rawContent = notice?.content;
+                const content = (rawContent !== null && rawContent !== undefined && rawContent !== 'null' && rawContent !== 'undefined') 
+                    ? String(rawContent) 
+                    : '내용이 없습니다.';
+                let contentHtml = content;
+                
+                try {
+                    // marked 라이브러리 직접 사용 (다른 코드와 동일한 방식)
+                    if (content && content !== '내용이 없습니다.') {
+                        if (typeof marked !== 'undefined' && marked && marked.parse) {
+                            contentHtml = marked.parse(content);
+                            console.log('✅ marked.parse() 사용 성공');
+                        } else if (window.marked && window.marked.parse) {
+                            contentHtml = window.marked.parse(content);
+                            console.log('✅ window.marked.parse() 사용 성공');
+                        } else {
+                            console.warn('⚠️ marked 라이브러리를 찾을 수 없음, fallback 사용');
+                            // fallback: 간단한 마크다운 처리
+                            contentHtml = content
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\n/g, '<br>');
+                        }
+                    }
+                } catch (e) {
+                    console.error('❌ 마크다운 파싱 오류:', e);
+                    // fallback
+                    contentHtml = content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br>');
+                }
+
                 return `
                     <div class="max-w-4xl mx-auto p-6">
                         <div class="mb-6">
@@ -1258,41 +1290,8 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 <span class="text-sm text-gray-500">${new Date(notice.created_at).toLocaleString()}</span>
                             </div>
                             <h1 class="text-2xl font-bold text-gray-900 mb-6">${notice.title}</h1>
-                            <div class="prose prose-sm max-w-none markdown-content">
-                                ${(() => {
-                                    const content = notice.content || '내용이 없습니다.';
-                                    let html = content;
-                                    
-                                    // marked 라이브러리 확인 및 사용
-                                    try {
-                                        if (typeof marked !== 'undefined') {
-                                            if (marked.parse) {
-                                                html = marked.parse(content);
-                                            } else if (typeof marked === 'function') {
-                                                html = marked(content);
-                                            } else if (marked.marked && marked.marked.parse) {
-                                                html = marked.marked.parse(content);
-                                            }
-                                        } else if (window.marked) {
-                                            if (window.marked.parse) {
-                                                html = window.marked.parse(content);
-                                            } else if (typeof window.marked === 'function') {
-                                                html = window.marked(content);
-                                            }
-                                        }
-                                    } catch (e) {
-                                        console.warn('마크다운 파싱 오류:', e);
-                                    }
-                                    
-                                    // marked가 없거나 실패한 경우 fallback
-                                    if (html === content) {
-                                        html = content
-                                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                            .replace(/\n/g, '<br>');
-                                    }
-                                    
-                                    return html;
-                                })()}
+                            <div class="prose prose-sm max-w-none">
+                                <div class="text-gray-700 leading-relaxed">${contentHtml}</div>
                             </div>
                             ${manageButtons}
                         </div>
@@ -2064,12 +2063,17 @@ async function renderAccountPage() {
 
                 let result;
                 if (noticeId) {
-                    // 수정
-                    result = await window.dataService?.updateNotice(noticeId, {
+                    // 수정 (updated_at 필드 제외)
+                    const updateData = {
                         title,
                         content,
                         category
-                    });
+                    };
+                    // updated_at 필드가 있으면 제거
+                    if (updateData.updated_at) {
+                        delete updateData.updated_at;
+                    }
+                    result = await window.dataService?.updateNotice(noticeId, updateData);
                     showToast('공지사항이 수정되었습니다.', 'success');
                 } else {
                     // 작성
