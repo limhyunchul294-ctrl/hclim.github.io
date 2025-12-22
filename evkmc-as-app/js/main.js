@@ -3,6 +3,7 @@ import './authSession.js';
 import './authService.js';
 import './dataService.js';
 import './fileUploadService.js';
+import { escapeHtml, sanitizeHtml, parseAndSanitizeMarkdown, validators } from './securityUtils.js';
 import { maintenanceManualTreeData, maintenanceManualMapping } from './maintenanceManualMapping.js';
 import { etmTreeData, etmMapping } from './etmMapping.js';
 
@@ -1179,7 +1180,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                             <span class="text-sm text-gray-500">${new Date(notice.created_at).toLocaleDateString()}</span>
                         </div>
                         <h3 class="text-lg font-semibold text-gray-900 mb-2 cursor-pointer hover:text-blue-600" onclick="viewNotice(${notice.id})">
-                            ${notice.title}
+                            ${escapeHtml(notice.title)}
                         </h3>
                         <p class="text-gray-600 text-sm">${(notice.content || '내용이 없습니다.').substring(0, 150)}${(notice.content || '').length > 150 ? '...' : ''}</p>
                     </div>
@@ -1250,28 +1251,15 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                 let contentHtml = content;
                 
                 try {
-                    // marked 라이브러리 직접 사용 (다른 코드와 동일한 방식)
+                    // marked 라이브러리로 파싱 후 DOMPurify로 정화 (XSS 방지)
                     if (content && content !== '내용이 없습니다.') {
-                        if (typeof marked !== 'undefined' && marked && marked.parse) {
-                            contentHtml = marked.parse(content);
-                            console.log('✅ marked.parse() 사용 성공');
-                        } else if (window.marked && window.marked.parse) {
-                            contentHtml = window.marked.parse(content);
-                            console.log('✅ window.marked.parse() 사용 성공');
-                        } else {
-                            console.warn('⚠️ marked 라이브러리를 찾을 수 없음, fallback 사용');
-                            // fallback: 간단한 마크다운 처리
-                            contentHtml = content
-                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                .replace(/\n/g, '<br>');
-                        }
+                        contentHtml = parseAndSanitizeMarkdown(content);
+                        console.log('✅ 마크다운 파싱 및 정화 완료');
                     }
                 } catch (e) {
                     console.error('❌ 마크다운 파싱 오류:', e);
-                    // fallback
-                    contentHtml = content
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\n/g, '<br>');
+                    // 오류 발생 시 기본 이스케이프 처리
+                    contentHtml = escapeHtml(content).replace(/\n/g, '<br>');
                 }
 
                 return `
@@ -1289,7 +1277,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 <span class="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">${notice.category || '일반'}</span>
                                 <span class="text-sm text-gray-500">${new Date(notice.created_at).toLocaleString()}</span>
                             </div>
-                            <h1 class="text-2xl font-bold text-gray-900 mb-6">${notice.title}</h1>
+                            <h1 class="text-2xl font-bold text-gray-900 mb-6">${escapeHtml(notice.title)}</h1>
                             <div class="prose prose-sm max-w-none">
                                 <div class="text-gray-700 leading-relaxed">${contentHtml}</div>
                             </div>
@@ -1337,7 +1325,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                             <span class="text-sm text-gray-500">${new Date(post.created_at).toLocaleDateString()}</span>
                         </div>
                         <h3 class="text-lg font-semibold text-gray-900 mb-2 cursor-pointer hover:text-purple-600" onclick="viewCommunityPost(${post.id})">
-                            ${post.title}
+                            ${escapeHtml(post.title)}
                         </h3>
                         <p class="text-gray-600 text-sm mb-4 line-clamp-2">
                             ${(post.content || '내용이 없습니다.').substring(0, 150)}${(post.content || '').length > 150 ? '...' : ''}
@@ -1514,9 +1502,9 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 </div>
                                 <span class="text-sm text-gray-500">${new Date(post.created_at).toLocaleString()}</span>
                             </div>
-                            <h1 class="text-2xl font-bold text-gray-900 mb-6">${post.title}</h1>
+                            <h1 class="text-2xl font-bold text-gray-900 mb-6">${escapeHtml(post.title)}</h1>
                             <div class="prose max-w-none mb-6">
-                                <div class="text-gray-700 leading-relaxed whitespace-pre-wrap">${post.content || '내용이 없습니다.'}</div>
+                                <div class="text-gray-700 leading-relaxed">${parseAndSanitizeMarkdown(post.content || '내용이 없습니다.')}</div>
                             </div>
                             
                             ${post.attachments && post.attachments.length > 0 ? `
@@ -1590,7 +1578,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                                         <span class="font-semibold text-gray-900">${comment.author_name || '익명'}</span>
                                                         <span class="text-xs text-gray-500">${new Date(comment.created_at).toLocaleString()}</span>
                                                     </div>
-                                                    <p class="text-gray-700 whitespace-pre-wrap">${comment.content}</p>
+                                                    <p class="text-gray-700 whitespace-pre-wrap">${escapeHtml(comment.content)}</p>
                                                 </div>
                                                 ${canDeleteComment ? `
                                                     <button onclick="deleteComment(${comment.id}, ${post.id})" class="text-red-500 hover:text-red-700 text-sm">
@@ -1949,7 +1937,7 @@ async function renderAccountPage() {
                                 <span class="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded-full">${notice.category || '일반'}</span>
                                 <span class="text-xs text-gray-500">${new Date(notice.created_at).toLocaleDateString()}</span>
                             </div>
-                            <h3 class="font-medium text-gray-900 mt-1 cursor-pointer hover:text-blue-600" onclick="viewNotice(${notice.id})">${notice.title}</h3>
+                            <h3 class="font-medium text-gray-900 mt-1 cursor-pointer hover:text-blue-600" onclick="viewNotice(${notice.id})">${escapeHtml(notice.title)}</h3>
                         </div>
                     `).join('');
                 } else {
@@ -2054,8 +2042,22 @@ async function renderAccountPage() {
                 const content = document.getElementById('notice-content').value.trim();
                 const category = document.getElementById('notice-category').value;
 
-                if (!title || !content || !category) {
-                    showToast('모든 필드를 입력해주세요.', 'error');
+                // 입력 검증
+                const titleValidation = validators.title(title);
+                if (!titleValidation.valid) {
+                    showToast(titleValidation.error, 'error');
+                    return;
+                }
+
+                const contentValidation = validators.content(content);
+                if (!contentValidation.valid) {
+                    showToast(contentValidation.error, 'error');
+                    return;
+                }
+
+                const categoryValidation = validators.category(category, ['일반', '중요', '업데이트', '공지']);
+                if (!categoryValidation.valid) {
+                    showToast(categoryValidation.error, 'error');
                     return;
                 }
 
@@ -2399,8 +2401,10 @@ async function renderAccountPage() {
                 const commentInput = document.getElementById('comment-input');
                 const content = commentInput?.value?.trim();
                 
-                if (!content) {
-                    showToast('댓글 내용을 입력해주세요.', 'error');
+                // 입력 검증
+                const contentValidation = validators.content(content, 2000); // 댓글은 최대 2000자
+                if (!contentValidation.valid) {
+                    showToast(contentValidation.error, 'error');
                     return;
                 }
                 
@@ -2451,8 +2455,8 @@ async function renderAccountPage() {
                                     </div>
                                     <span class="text-sm text-gray-500">${new Date(post.created_at).toLocaleDateString()}</span>
                                 </div>
-                                <h3 class="text-lg font-semibold text-gray-900 mb-2 cursor-pointer hover:text-purple-600" onclick="viewCommunityPost(${post.id})">${post.title}</h3>
-                                <p class="text-gray-600 text-sm mb-4 line-clamp-2">${(post.content || '').substring(0, 150)}${(post.content || '').length > 150 ? '...' : ''}</p>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2 cursor-pointer hover:text-purple-600" onclick="viewCommunityPost(${post.id})">${escapeHtml(post.title)}</h3>
+                                <p class="text-gray-600 text-sm mb-4 line-clamp-2">${escapeHtml((post.content || '').substring(0, 150))}${(post.content || '').length > 150 ? '...' : ''}</p>
                                 <div class="flex items-center gap-4 text-sm text-gray-500">
                                     <span>${post.author_name || '익명'}</span>
                                     <span>조회 ${post.views || 0}</span>
@@ -2605,8 +2609,22 @@ async function renderAccountPage() {
                 const isSolved = document.getElementById('community-is-solved').checked;
                 const filesInput = document.getElementById('community-files');
                 
-                if (!title || !content || !category) {
-                    showToast('제목, 내용, 카테고리를 모두 입력해주세요.', 'error');
+                // 입력 검증
+                const titleValidation = validators.title(title);
+                if (!titleValidation.valid) {
+                    showToast(titleValidation.error, 'error');
+                    return;
+                }
+
+                const contentValidation = validators.content(content);
+                if (!contentValidation.valid) {
+                    showToast(contentValidation.error, 'error');
+                    return;
+                }
+
+                const categoryValidation = validators.category(category, ['질문', '정보', '공유', '토론']);
+                if (!categoryValidation.valid) {
+                    showToast(categoryValidation.error, 'error');
                     return;
                 }
 

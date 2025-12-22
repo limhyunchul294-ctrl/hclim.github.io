@@ -1,0 +1,29 @@
+{
+  "name": "evkmc-as-portal",
+  "version": "1.0.0",
+  "description": "EVKMC A/S 정비 기술 문서 포털",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "prebuild": "node --input-type=commonjs -e \"const fs=require('fs');const files=['js/main.js','js/login.js','js/config.js','index.html','login.html'];let allExist=true;files.forEach(f=>{if(!fs.existsSync(f)){console.error('❌ 파일 없음:',f);allExist=false;}else{console.log('✅ 파일 존재:',f);}});if(!allExist){process.exit(1);}console.log('✅ 모든 필수 파일이 존재합니다.');\"",
+    "build": "vite build",
+    "postbuild": "node --input-type=commonjs -e \"const fs=require('fs');const dist='dist';const assets='dist/assets';if(!fs.existsSync(dist)){console.error('❌ dist 폴더 없음');process.exit(1);}if(!fs.existsSync(assets)){console.error('❌ assets 폴더 없음');process.exit(1);}const files=fs.readdirSync(assets);const jsFiles=files.filter(f=>f.endsWith('.js'));console.log('✅ 생성된 JS 파일:',jsFiles.length);jsFiles.forEach(f=>console.log('  -',f));if(jsFiles.length===0){console.error('❌ JS 번들 파일이 생성되지 않았습니다!');process.exit(1);}const hasMain=jsFiles.some(f=>f.includes('main'));const hasLogin=jsFiles.some(f=>f.includes('login'));if(!hasMain||!hasLogin){console.error('❌ main 또는 login 번들 파일이 없습니다!');process.exit(1);}console.log('✅ 빌드 결과 확인 완료!');\"",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .js,.jsx"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "dompurify": "^3.3.1",
+    "twilio": "^4.23.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.25",
+    "tailwindcss": "^3.3.0",
+    "terser": "^5.44.1",
+    "vite": "^4.4.9"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
