@@ -105,37 +105,6 @@
       transform: scale(1.1);
     }
     
-    /* 드롭다운 메뉴 스타일 */
-    .nav-dropdown-container {
-      position: relative;
-    }
-    
-    .nav-dropdown-menu {
-      opacity: 0;
-      transform: translateY(-10px);
-      transition: opacity 0.2s ease, transform 0.2s ease;
-      pointer-events: none;
-    }
-    
-    .nav-dropdown-menu.show {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-      display: block !important;
-    }
-    
-    .nav-dropdown-arrow {
-      transition: transform 0.2s ease;
-    }
-    
-    .nav-dropdown-container.active .nav-dropdown-arrow {
-      transform: rotate(180deg);
-    }
-    
-    .nav-dropdown-item {
-      white-space: nowrap;
-    }
-    
     /* 페이지 전환 애니메이션 */
     .page-transition {
       animation: fadeInUp 0.4s ease-out;
@@ -172,87 +141,6 @@
     
     .btn-primary:hover::before {
       left: 100%;
-    }
-    
-    /* 사용가이드/튜토리얼 모달 스타일 */
-    .guide-modal,
-    .tutorial-modal,
-    .onboarding-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 10000 !important;
-      pointer-events: auto;
-    }
-    
-    .guide-modal-overlay,
-    .tutorial-modal-overlay,
-    .onboarding-modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 10000;
-      pointer-events: auto;
-    }
-    
-    .guide-modal-content,
-    .tutorial-modal-content,
-    .onboarding-modal-content {
-      position: relative;
-      z-index: 10003 !important;
-      pointer-events: auto;
-    }
-    
-    /* 튜토리얼 말풍선/툴팁 위치 조정 */
-    .tutorial-tooltip,
-    .guide-tooltip,
-    .onboarding-tooltip,
-    [class*="tooltip"],
-    [class*="popover"],
-    [class*="bubble"],
-    [id*="tooltip"],
-    [id*="popover"],
-    [id*="bubble"] {
-      position: absolute !important;
-      z-index: 10002 !important;
-      pointer-events: auto !important;
-    }
-    
-    /* 튜토리얼 3번째 단계 (홈 화면) 말풍선 위치 조정 */
-    .tutorial-step-3 .tutorial-tooltip,
-    .tutorial-step-3 .guide-tooltip,
-    .tutorial-step-3 .onboarding-tooltip,
-    [data-step="3"] .tutorial-tooltip,
-    [data-step="3"] .guide-tooltip,
-    [data-step="3"] .onboarding-tooltip {
-      top: 20px !important;
-      transform: translateY(0) !important;
-      margin-top: 0 !important;
-    }
-    
-    /* 일반적인 말풍선 위치 조정 (위로 올리기) */
-    .tutorial-tooltip[class*="bottom"],
-    .guide-tooltip[class*="bottom"],
-    .onboarding-tooltip[class*="bottom"],
-    [class*="tooltip"][class*="bottom"],
-    [class*="popover"][class*="bottom"],
-    [class*="bubble"][class*="bottom"] {
-      bottom: auto !important;
-      top: 20px !important;
-      transform: translateY(0) !important;
-    }
-    
-    /* 말풍선이 콘텐츠와 겹치지 않도록 여백 추가 */
-    .tutorial-tooltip,
-    .guide-tooltip,
-    .onboarding-tooltip {
-      margin-bottom: 20px !important;
-      max-width: 400px !important;
     }
     
     /* 토스트 알림 */
@@ -465,6 +353,69 @@
       font-size: 11px;
       font-weight: 600;
     }
+
+    /* ✅ 튜토리얼/온보딩 모달 z-index 문제 완전 해결 */
+    /* 모든 onboarding 관련 요소에 대해 최고 우선순위 설정 */
+    .onboarding-overlay,
+    [class*="onboarding-overlay"],
+    [id*="onboarding-overlay"] {
+      position: fixed !important;
+      inset: 0 !important;
+      background: rgba(0, 0, 0, 0.5) !important;
+      z-index: 999998 !important;
+      pointer-events: auto !important;
+    }
+
+    .onboarding-tooltip,
+    [class*="onboarding-tooltip"],
+    [id*="onboarding-tooltip"],
+    [class*="tutorial-modal"],
+    [class*="guide-modal"] {
+      position: fixed !important;
+      background: white !important;
+      border-radius: 12px !important;
+      padding: 20px !important;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+      z-index: 999999 !important;
+      pointer-events: auto !important;
+      isolation: isolate !important;
+    }
+
+    /* 모든 온보딩 버튼에 대한 강제 스타일 - 클릭 가능하도록 보장 */
+    .onboarding-tooltip button,
+    .onboarding-tooltip [role="button"],
+    #onboarding-next-btn,
+    #onboarding-skip-btn,
+    #onboarding-dont-show-btn,
+    [id*="onboarding"][id*="btn"],
+    [class*="onboarding"][class*="button"],
+    [class*="tutorial"][class*="button"],
+    [class*="guide"][class*="button"] {
+      position: relative !important;
+      z-index: 1000000 !important;
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      touch-action: manipulation !important;
+    }
+
+    .onboarding-highlight,
+    [class*="onboarding-highlight"] {
+      position: relative !important;
+      z-index: 999997 !important;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 0 8px rgba(59, 130, 246, 0.3) !important;
+      border-radius: 8px !important;
+    }
+
+    /* 온보딩 모달이 표시될 때 다른 요소들의 z-index 낮추기 */
+    body:has(.onboarding-overlay) #watermark-overlay,
+    body:has([class*="onboarding-overlay"]) #watermark-overlay {
+      z-index: 9990 !important;
+    }
+
+    body:has(.onboarding-overlay) .toast-container,
+    body:has([class*="onboarding-overlay"]) .toast-container {
+      z-index: 9991 !important;
+    }
   </style>
 </head>
 <body class="bg-gray-100 text-slate-800">
@@ -516,5 +467,107 @@
 
   <!-- ✅ 모듈 방식: main.js 하나만 로드하며, 필요한 모든 모듈은 main.js에서 import -->
   <script type="module" src="./js/main.js"></script>
+  
+  <!-- ✅ 온보딩 모달 z-index 문제 해결을 위한 강제 스타일 적용 -->
+  <script>
+    // 동적으로 생성되는 onboarding 요소에 스타일 강제 적용
+    (function() {
+      function applyOnboardingStyles(element) {
+        if (!element) return;
+        
+        // onboarding-overlay에 스타일 적용
+        if (element.classList && (
+          element.classList.contains('onboarding-overlay') ||
+          element.className && element.className.includes('onboarding-overlay')
+        )) {
+          element.style.cssText += 'position: fixed !important; inset: 0 !important; z-index: 999998 !important; pointer-events: auto !important;';
+        }
+        
+        // onboarding-tooltip에 스타일 적용
+        if (element.classList && (
+          element.classList.contains('onboarding-tooltip') ||
+          element.classList.contains('tutorial-modal') ||
+          element.classList.contains('guide-modal') ||
+          (element.className && (
+            element.className.includes('onboarding-tooltip') ||
+            element.className.includes('tutorial-modal') ||
+            element.className.includes('guide-modal')
+          ))
+        )) {
+          element.style.cssText += 'position: fixed !important; z-index: 999999 !important; pointer-events: auto !important;';
+        }
+        
+        // 모든 버튼에 스타일 적용
+        const buttons = element.querySelectorAll ? element.querySelectorAll('button, [role="button"]') : [];
+        buttons.forEach(btn => {
+          if (btn.id && btn.id.includes('onboarding')) {
+            btn.style.cssText += 'position: relative !important; z-index: 1000000 !important; pointer-events: auto !important; cursor: pointer !important;';
+          } else if (btn.closest && (btn.closest('.onboarding-tooltip') || btn.closest('[class*="onboarding"]'))) {
+            btn.style.cssText += 'position: relative !important; z-index: 1000000 !important; pointer-events: auto !important; cursor: pointer !important;';
+          }
+        });
+        
+        // 자식 요소에도 재귀적으로 적용
+        if (element.querySelectorAll) {
+          element.querySelectorAll('[class*="onboarding"], [id*="onboarding"]').forEach(child => {
+            applyOnboardingStyles(child);
+          });
+        }
+      }
+      
+      // DOM 변경 감지하여 새로 추가된 onboarding 요소에 스타일 적용
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1) { // Element node
+              applyOnboardingStyles(node);
+              // 자식 요소들도 확인
+              if (node.querySelectorAll) {
+                node.querySelectorAll('[class*="onboarding"], [id*="onboarding"], [class*="tutorial"], [class*="guide"]').forEach(child => {
+                  applyOnboardingStyles(child);
+                });
+              }
+            }
+          });
+        });
+      });
+      
+      // 페이지 로드 후 observer 시작
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+          
+          // 기존 요소에도 스타일 적용
+          document.querySelectorAll('[class*="onboarding"], [id*="onboarding"], [class*="tutorial"], [class*="guide"]').forEach(el => {
+            applyOnboardingStyles(el);
+          });
+        });
+      } else {
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+        
+        // 기존 요소에도 스타일 적용
+        document.querySelectorAll('[class*="onboarding"], [id*="onboarding"], [class*="tutorial"], [class*="guide"]').forEach(el => {
+          applyOnboardingStyles(el);
+        });
+      }
+      
+      // 버튼 클릭 이벤트를 통한 추가 보장
+      document.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target && (target.closest('.onboarding-tooltip') || target.closest('[class*="onboarding"]'))) {
+          // 클릭 가능하도록 스타일 재적용
+          if (target.tagName === 'BUTTON' || target.getAttribute('role') === 'button') {
+            target.style.cssText += 'z-index: 1000000 !important; pointer-events: auto !important; cursor: pointer !important;';
+          }
+        }
+      }, true); // capture phase에서 실행하여 다른 핸들러보다 먼저 실행
+    })();
+  </script>
 </body>
 </html>
