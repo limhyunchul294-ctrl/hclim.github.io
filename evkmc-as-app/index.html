@@ -376,7 +376,7 @@
       border-radius: 12px !important;
       padding: 20px !important;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
-      z-index: 999999 !important;
+      z-index: 100002 !important;
       pointer-events: auto !important;
       isolation: isolate !important;
     }
@@ -494,7 +494,10 @@
             element.className.includes('guide-modal')
           ))
         )) {
-          element.style.cssText += 'position: fixed !important; z-index: 999999 !important; pointer-events: auto !important;';
+          // 기존 인라인 스타일을 덮어쓰기 위해 z-index를 명시적으로 설정
+          element.style.setProperty('position', 'fixed', 'important');
+          element.style.setProperty('z-index', '100002', 'important');
+          element.style.setProperty('pointer-events', 'auto', 'important');
         }
         
         // 모든 버튼에 스타일 적용
