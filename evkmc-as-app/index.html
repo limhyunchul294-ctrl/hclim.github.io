@@ -376,7 +376,8 @@
       border-radius: 12px !important;
       padding: 20px !important;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
-      z-index: 100003 !important;
+      /* z-index는 다른 코드에서 10001로 설정되더라도, 다른 요소들을 낮춰서 상대적으로 높게 보이도록 함 */
+      z-index: 10001 !important;
       pointer-events: auto !important;
       isolation: isolate !important;
     }
@@ -407,14 +408,43 @@
     }
 
     /* 온보딩 모달이 표시될 때 다른 요소들의 z-index 낮추기 */
+    /* 이렇게 하면 onboarding-tooltip의 z-index가 10001이어도 다른 요소들보다 높게 보임 */
     body:has(.onboarding-overlay) #watermark-overlay,
-    body:has([class*="onboarding-overlay"]) #watermark-overlay {
-      z-index: 9990 !important;
+    body:has([class*="onboarding-overlay"]) #watermark-overlay,
+    body:has(.onboarding-tooltip) #watermark-overlay {
+      z-index: 1 !important;
     }
 
     body:has(.onboarding-overlay) .toast-container,
-    body:has([class*="onboarding-overlay"]) .toast-container {
-      z-index: 9991 !important;
+    body:has([class*="onboarding-overlay"]) .toast-container,
+    body:has(.onboarding-tooltip) .toast-container {
+      z-index: 2 !important;
+    }
+
+    /* main-content와 app의 z-index를 낮춰서 onboarding-tooltip보다 낮게 설정 */
+    body:has(.onboarding-overlay) #main-content,
+    body:has(.onboarding-tooltip) #main-content,
+    body:has([class*="onboarding-overlay"]) #main-content,
+    body:has([class*="onboarding-tooltip"]) #main-content {
+      z-index: 1 !important;
+      position: relative;
+    }
+
+    body:has(.onboarding-overlay) #app,
+    body:has(.onboarding-tooltip) #app,
+    body:has([class*="onboarding-overlay"]) #app,
+    body:has([class*="onboarding-tooltip"]) #app {
+      z-index: 1 !important;
+      position: relative;
+    }
+
+    /* onboarding-highlight 클래스가 있어도 z-index를 낮게 유지 */
+    body:has(.onboarding-overlay) .onboarding-highlight,
+    body:has(.onboarding-tooltip) .onboarding-highlight,
+    body:has([class*="onboarding-overlay"]) .onboarding-highlight,
+    body:has([class*="onboarding-tooltip"]) .onboarding-highlight {
+      z-index: 1 !important;
+      position: relative;
     }
   </style>
 </head>
@@ -494,10 +524,12 @@
             element.className.includes('guide-modal')
           ))
         )) {
-          // 기존 인라인 스타일을 덮어쓰기 위해 z-index를 명시적으로 설정
-          // 다른 코드가 100001로 설정해도 우리가 더 높은 값으로 덮어씀
+          // z-index는 10001로 유지하되, 다른 요소들을 낮춰서 상대적으로 높게 보이도록 함
           element.style.setProperty('position', 'fixed', 'important');
-          element.style.setProperty('z-index', '100003', 'important');
+          // 다른 코드에서 설정한 z-index를 그대로 사용하되, 다른 요소들을 낮춤
+          if (!element.style.zIndex || parseInt(element.style.zIndex) < 10001) {
+            element.style.setProperty('z-index', '10001', 'important');
+          }
           element.style.setProperty('pointer-events', 'auto', 'important');
         }
         
@@ -561,18 +593,24 @@
         });
       }
       
-      // 주기적으로 onboarding tooltip의 z-index 확인 및 수정
-      setInterval(function() {
-        document.querySelectorAll('.onboarding-tooltip, [class*="onboarding-tooltip"], [class*="tutorial-modal"], [class*="guide-modal"]').forEach(function(tooltip) {
-          const currentZIndex = window.getComputedStyle(tooltip).zIndex || tooltip.style.zIndex;
-          // 다른 코드가 100001이나 더 낮은 값으로 설정했으면 덮어쓰기
-          if (!currentZIndex || parseInt(currentZIndex) < 100003) {
-            tooltip.style.setProperty('z-index', '100003', 'important');
-            tooltip.style.setProperty('position', 'fixed', 'important');
-            tooltip.style.setProperty('pointer-events', 'auto', 'important');
+      // onboarding tooltip이 표시될 때 다른 요소들의 z-index를 낮춤
+      function lowerOtherElementsZIndex() {
+        const tooltip = document.querySelector('.onboarding-tooltip, [class*="onboarding-tooltip"]');
+        if (tooltip) {
+          // main-content, app 등의 z-index를 낮춤
+          const mainContent = document.getElementById('main-content');
+          const app = document.getElementById('app');
+          if (mainContent) {
+            mainContent.style.setProperty('z-index', '1', 'important');
           }
-        });
-      }, 100); // 100ms마다 확인
+          if (app) {
+            app.style.setProperty('z-index', '1', 'important');
+          }
+        }
+      }
+      
+      // 주기적으로 확인하여 다른 요소들의 z-index 유지
+      setInterval(lowerOtherElementsZIndex, 100);
       
       // 버튼 클릭 이벤트를 통한 추가 보장
       document.addEventListener('click', function(e) {
