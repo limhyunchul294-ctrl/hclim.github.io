@@ -376,8 +376,8 @@
       border-radius: 12px !important;
       padding: 20px !important;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
-      /* z-index는 다른 코드에서 10001로 설정되더라도, 다른 요소들을 낮춰서 상대적으로 높게 보이도록 함 */
-      z-index: 10001 !important;
+      /* z-index를 100002로 설정하여 다른 코드가 100001로 설정해도 덮어씀 */
+      z-index: 100002 !important;
       pointer-events: auto !important;
       isolation: isolate !important;
     }
@@ -524,13 +524,18 @@
             element.className.includes('guide-modal')
           ))
         )) {
-          // z-index는 10001로 유지하되, 다른 요소들을 낮춰서 상대적으로 높게 보이도록 함
+          // z-index를 100002로 강제 설정 (다른 코드가 100001로 설정해도 덮어씀)
           element.style.setProperty('position', 'fixed', 'important');
-          // 다른 코드에서 설정한 z-index를 그대로 사용하되, 다른 요소들을 낮춤
-          if (!element.style.zIndex || parseInt(element.style.zIndex) < 10001) {
-            element.style.setProperty('z-index', '10001', 'important');
-          }
+          element.style.setProperty('z-index', '100002', 'important');
           element.style.setProperty('pointer-events', 'auto', 'important');
+          
+          // 다른 요소들의 z-index를 낮춤
+          setTimeout(function() {
+            const mainContent = document.getElementById('main-content');
+            const app = document.getElementById('app');
+            if (mainContent) mainContent.style.setProperty('z-index', '1', 'important');
+            if (app) app.style.setProperty('z-index', '1', 'important');
+          }, 0);
         }
         
         // 모든 버튼에 스타일 적용
@@ -554,6 +559,7 @@
       // DOM 변경 감지하여 새로 추가된 onboarding 요소에 스타일 적용
       const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
+          // 추가된 노드 처리
           mutation.addedNodes.forEach(function(node) {
             if (node.nodeType === 1) { // Element node
               applyOnboardingStyles(node);
@@ -565,6 +571,14 @@
               }
             }
           });
+          
+          // 속성 변경 시에도 처리 (style 속성이 변경되면 다시 적용)
+          if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+            const target = mutation.target;
+            if (target && (target.classList.contains('onboarding-tooltip') || target.className.includes('onboarding-tooltip'))) {
+              applyOnboardingStyles(target);
+            }
+          }
         });
       });
       
@@ -573,7 +587,9 @@
         document.addEventListener('DOMContentLoaded', function() {
           observer.observe(document.body, {
             childList: true,
-            subtree: true
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class']
           });
           
           // 기존 요소에도 스타일 적용
@@ -593,24 +609,30 @@
         });
       }
       
-      // onboarding tooltip이 표시될 때 다른 요소들의 z-index를 낮춤
-      function lowerOtherElementsZIndex() {
+      // onboarding tooltip의 z-index를 강제로 설정하고 다른 요소들의 z-index를 낮춤
+      function enforceOnboardingZIndex() {
         const tooltip = document.querySelector('.onboarding-tooltip, [class*="onboarding-tooltip"]');
         if (tooltip) {
-          // main-content, app 등의 z-index를 낮춤
+          // tooltip의 z-index를 강제로 100002로 설정 (다른 코드가 100001로 설정해도 덮어씀)
+          const currentZIndex = tooltip.style.zIndex || window.getComputedStyle(tooltip).zIndex;
+          if (!currentZIndex || parseInt(currentZIndex) < 100002) {
+            tooltip.style.setProperty('z-index', '100002', 'important');
+            tooltip.style.setProperty('position', 'fixed', 'important');
+            tooltip.style.setProperty('pointer-events', 'auto', 'important');
+          }
+          
+          // main-content, app, header 등의 z-index를 낮춤
           const mainContent = document.getElementById('main-content');
           const app = document.getElementById('app');
-          if (mainContent) {
-            mainContent.style.setProperty('z-index', '1', 'important');
-          }
-          if (app) {
-            app.style.setProperty('z-index', '1', 'important');
-          }
+          const header = document.querySelector('header');
+          if (mainContent) mainContent.style.setProperty('z-index', '1', 'important');
+          if (app) app.style.setProperty('z-index', '1', 'important');
+          if (header) header.style.setProperty('z-index', '1', 'important');
         }
       }
       
-      // 주기적으로 확인하여 다른 요소들의 z-index 유지
-      setInterval(lowerOtherElementsZIndex, 100);
+      // 주기적으로 확인하여 z-index 강제 적용 (50ms마다 더 자주 확인)
+      setInterval(enforceOnboardingZIndex, 50);
       
       // 버튼 클릭 이벤트를 통한 추가 보장
       document.addEventListener('click', function(e) {
