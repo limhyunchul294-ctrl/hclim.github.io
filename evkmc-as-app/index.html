@@ -402,7 +402,8 @@
     .onboarding-highlight,
     [class*="onboarding-highlight"] {
       position: relative !important;
-      z-index: 999997 !important;
+      /* onboarding-tooltip이 표시될 때만 z-index를 낮추고, 기본값도 낮게 설정 */
+      z-index: 1 !important;
       box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 0 8px rgba(59, 130, 246, 0.3) !important;
       border-radius: 8px !important;
     }
@@ -675,40 +676,45 @@
       setInterval(enforceOnboardingZIndex, 10);
       
       // 버튼 클릭 이벤트를 통한 추가 보장 및 버튼 이벤트 교정
+      // 문제: skip-btn 클릭 시 next 동작이 실행되고, next-btn 클릭 시 skip 동작이 실행됨
+      // 해결: 버튼 텍스트를 기준으로 올바른 동작 수행 (텍스트가 진실의 원천)
       document.addEventListener('click', function(e) {
         const target = e.target;
+        const button = target.closest('button') || (target.tagName === 'BUTTON' ? target : null);
         
-        // onboarding 버튼 클릭 시 이벤트 교정 (버튼이 반대로 연결된 경우)
-        if (target && (target.id === 'onboarding-skip-btn' || target.id === 'onboarding-next-btn' || 
-            target.closest('#onboarding-skip-btn') || target.closest('#onboarding-next-btn'))) {
-          
-          const button = target.closest('button') || target;
-          const buttonId = button.id;
+        if (button && (button.id === 'onboarding-skip-btn' || button.id === 'onboarding-next-btn')) {
           const buttonText = button.textContent.trim();
           
           // 클릭 가능하도록 스타일 재적용
           button.style.cssText += 'z-index: 1000000 !important; pointer-events: auto !important; cursor: pointer !important;';
           
-          // 버튼 텍스트를 기준으로 올바른 동작 수행 (ID와 텍스트가 반대인 경우)
-          const skipBtn = document.getElementById('onboarding-skip-btn');
-          const nextBtn = document.getElementById('onboarding-next-btn');
+          // 버튼 텍스트를 기준으로 올바른 동작 수행
+          // 버튼 ID와 이벤트 핸들러가 반대로 연결되어 있으므로, 텍스트를 기준으로 교정
           
-          if (buttonText === '건너뛰기' && buttonId === 'onboarding-next-btn' && nextBtn) {
-            // "다음" 버튼이 "건너뛰기" 텍스트를 가지고 있으면, skip 동작 수행
+          if (buttonText === '건너뛰기') {
+            // "건너뛰기" 텍스트를 가진 버튼 클릭 시
+            // 실제로는 skip 동작을 원하는데, skip-btn을 클릭하면 next 동작이 실행됨
+            // 따라서 next-btn을 클릭해야 skip 동작이 실행됨
             e.stopImmediatePropagation();
             e.preventDefault();
-            if (skipBtn) {
-              skipBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            const nextBtn = document.getElementById('onboarding-next-btn');
+            if (nextBtn) {
+              setTimeout(function() {
+                nextBtn.click();
+              }, 10);
             }
             return false;
-          }
-          
-          if (buttonText === '다음' && buttonId === 'onboarding-skip-btn' && skipBtn) {
-            // "건너뛰기" 버튼이 "다음" 텍스트를 가지고 있으면, next 동작 수행
+          } else if (buttonText === '다음') {
+            // "다음" 텍스트를 가진 버튼 클릭 시
+            // 실제로는 next 동작을 원하는데, next-btn을 클릭하면 skip 동작이 실행됨
+            // 따라서 skip-btn을 클릭해야 next 동작이 실행됨
             e.stopImmediatePropagation();
             e.preventDefault();
-            if (nextBtn) {
-              nextBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            const skipBtn = document.getElementById('onboarding-skip-btn');
+            if (skipBtn) {
+              setTimeout(function() {
+                skipBtn.click();
+              }, 10);
             }
             return false;
           }
