@@ -376,8 +376,8 @@
       border-radius: 12px !important;
       padding: 20px !important;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
-      /* z-index를 매우 높은 값으로 설정하고 !important로 강제 적용 */
-      z-index: 2147483647 !important; /* 최대값 사용 */
+      /* z-index를 100002로 설정 */
+      z-index: 100002 !important;
       pointer-events: auto !important;
       isolation: isolate !important;
     }
@@ -503,6 +503,40 @@
   <script>
     // 동적으로 생성되는 onboarding 요소에 스타일 강제 적용
     (function() {
+      // onboarding tooltip의 style.zIndex를 재정의하여 어떤 값도 100002로 강제
+      const tooltipElements = new WeakSet();
+      
+      function protectTooltipZIndex(element) {
+        if (!element || tooltipElements.has(element)) return;
+        tooltipElements.add(element);
+        
+        let enforcedZIndex = '100002';
+        
+        // Object.defineProperty로 zIndex setter를 재정의
+        if (element.style) {
+          try {
+            Object.defineProperty(element.style, 'zIndex', {
+              get: function() {
+                return enforcedZIndex;
+              },
+              set: function(value) {
+                // 어떤 값이든 설정하려고 하면 100002로 강제 설정
+                enforcedZIndex = '100002';
+                // 실제 스타일도 업데이트
+                element.style.setProperty('z-index', '100002', 'important');
+              },
+              configurable: true,
+              enumerable: true
+            });
+            
+            // 초기값 설정
+            element.style.setProperty('z-index', '100002', 'important');
+          } catch (e) {
+            console.warn('z-index 재정의 실패:', e);
+          }
+        }
+      }
+      
       function applyOnboardingStyles(element) {
         if (!element) return;
         
@@ -525,9 +559,12 @@
             element.className.includes('guide-modal')
           ))
         )) {
-          // z-index를 최대값으로 강제 설정 (다른 코드가 어떤 값으로 설정해도 덮어씀)
+          // Object.defineProperty로 보호
+          protectTooltipZIndex(element);
+          
+          // z-index를 100002로 강제 설정
           element.style.setProperty('position', 'fixed', 'important');
-          element.style.setProperty('z-index', '2147483647', 'important');
+          element.style.setProperty('z-index', '100002', 'important');
           element.style.setProperty('pointer-events', 'auto', 'important');
           
           // 다른 요소들의 z-index를 낮춤
@@ -577,17 +614,8 @@
           if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
             const target = mutation.target;
             if (target && (target.classList.contains('onboarding-tooltip') || target.className.includes('onboarding-tooltip'))) {
-              // requestAnimationFrame을 사용하여 다른 코드보다 나중에 실행 (여러 번 중첩)
-              requestAnimationFrame(function() {
-                requestAnimationFrame(function() {
-                  requestAnimationFrame(function() {
-                    requestAnimationFrame(function() {
-                      applyOnboardingStyles(target);
-                      target.style.setProperty('z-index', '2147483647', 'important');
-                    });
-                  });
-                });
-              });
+              protectTooltipZIndex(target);
+              applyOnboardingStyles(target);
             }
           }
         });
@@ -603,13 +631,13 @@
             attributeFilter: ['style', 'class']
           });
           
-          // 기존 요소에도 스타일 적용 (requestAnimationFrame으로 지연 실행)
+          // 기존 요소에도 스타일 적용
           requestAnimationFrame(function() {
             requestAnimationFrame(function() {
               document.querySelectorAll('[class*="onboarding"], [id*="onboarding"], [class*="tutorial"], [class*="guide"]').forEach(el => {
                 applyOnboardingStyles(el);
                 if (el.classList.contains('onboarding-tooltip') || el.className.includes('onboarding-tooltip')) {
-                  el.style.setProperty('z-index', '2147483647', 'important');
+                  protectTooltipZIndex(el);
                 }
               });
             });
@@ -623,13 +651,13 @@
           attributeFilter: ['style', 'class']
         });
         
-        // 기존 요소에도 스타일 적용 (requestAnimationFrame으로 지연 실행)
+        // 기존 요소에도 스타일 적용
         requestAnimationFrame(function() {
           requestAnimationFrame(function() {
             document.querySelectorAll('[class*="onboarding"], [id*="onboarding"], [class*="tutorial"], [class*="guide"]').forEach(el => {
               applyOnboardingStyles(el);
               if (el.classList.contains('onboarding-tooltip') || el.className.includes('onboarding-tooltip')) {
-                el.style.setProperty('z-index', '100002', 'important');
+                protectTooltipZIndex(el);
               }
             });
           });
@@ -640,23 +668,13 @@
       function enforceOnboardingZIndex() {
         const tooltip = document.querySelector('.onboarding-tooltip, [class*="onboarding-tooltip"]');
         if (tooltip) {
-          // 최대값으로 즉시 설정
-          tooltip.style.setProperty('z-index', '2147483647', 'important');
+          // Object.defineProperty로 보호
+          protectTooltipZIndex(tooltip);
+          
+          // 100002로 즉시 설정
+          tooltip.style.setProperty('z-index', '100002', 'important');
           tooltip.style.setProperty('position', 'fixed', 'important');
           tooltip.style.setProperty('pointer-events', 'auto', 'important');
-          
-          // requestAnimationFrame을 여러 번 중첩하여 다른 코드보다 가장 나중에 실행되도록 보장
-          requestAnimationFrame(function() {
-            requestAnimationFrame(function() {
-              requestAnimationFrame(function() {
-                requestAnimationFrame(function() {
-                  tooltip.style.setProperty('z-index', '2147483647', 'important');
-                  tooltip.style.setProperty('position', 'fixed', 'important');
-                  tooltip.style.setProperty('pointer-events', 'auto', 'important');
-                });
-              });
-            });
-          });
           
           // main-content, app, header 등의 z-index를 낮춤
           const mainContent = document.getElementById('main-content');
@@ -668,27 +686,11 @@
         }
       }
       
-      // requestAnimationFrame을 사용하여 다른 코드보다 가장 나중에 실행되도록 보장
-      function enforceWithRAF() {
-        requestAnimationFrame(function() {
-          requestAnimationFrame(function() {
-            requestAnimationFrame(function() {
-              requestAnimationFrame(function() {
-                enforceOnboardingZIndex();
-              });
-            });
-          });
-        });
-      }
+      // 즉시 실행
+      enforceOnboardingZIndex();
       
-      // 즉시 실행 (여러 번 중첩)
-      enforceWithRAF();
-      setTimeout(enforceWithRAF, 0);
-      setTimeout(enforceWithRAF, 10);
-      setTimeout(enforceWithRAF, 50);
-      
-      // 매우 짧은 간격으로 반복 실행 (5ms마다 - 더 자주 확인)
-      setInterval(enforceOnboardingZIndex, 5);
+      // 짧은 간격으로 반복 실행 (10ms마다)
+      setInterval(enforceOnboardingZIndex, 10);
       
       // 버튼 클릭 이벤트를 통한 추가 보장 및 버튼 이벤트 교정
       // 문제: skip-btn 클릭 시 next 동작이 실행되고, next-btn 클릭 시 skip 동작이 실행됨
