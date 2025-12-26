@@ -376,8 +376,8 @@
       border-radius: 12px !important;
       padding: 20px !important;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
-      /* z-index를 100002로 설정하여 다른 코드가 100001로 설정해도 덮어씀 */
-      z-index: 100002 !important;
+      /* z-index를 매우 높은 값으로 설정하고 !important로 강제 적용 */
+      z-index: 2147483647 !important; /* 최대값 사용 */
       pointer-events: auto !important;
       isolation: isolate !important;
     }
@@ -525,9 +525,9 @@
             element.className.includes('guide-modal')
           ))
         )) {
-          // z-index를 100002로 강제 설정 (다른 코드가 100001로 설정해도 덮어씀)
+          // z-index를 최대값으로 강제 설정 (다른 코드가 어떤 값으로 설정해도 덮어씀)
           element.style.setProperty('position', 'fixed', 'important');
-          element.style.setProperty('z-index', '100002', 'important');
+          element.style.setProperty('z-index', '2147483647', 'important');
           element.style.setProperty('pointer-events', 'auto', 'important');
           
           // 다른 요소들의 z-index를 낮춤
@@ -577,11 +577,15 @@
           if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
             const target = mutation.target;
             if (target && (target.classList.contains('onboarding-tooltip') || target.className.includes('onboarding-tooltip'))) {
-              // requestAnimationFrame을 사용하여 다른 코드보다 나중에 실행
+              // requestAnimationFrame을 사용하여 다른 코드보다 나중에 실행 (여러 번 중첩)
               requestAnimationFrame(function() {
                 requestAnimationFrame(function() {
-                  applyOnboardingStyles(target);
-                  target.style.setProperty('z-index', '100002', 'important');
+                  requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                      applyOnboardingStyles(target);
+                      target.style.setProperty('z-index', '2147483647', 'important');
+                    });
+                  });
                 });
               });
             }
@@ -605,7 +609,7 @@
               document.querySelectorAll('[class*="onboarding"], [id*="onboarding"], [class*="tutorial"], [class*="guide"]').forEach(el => {
                 applyOnboardingStyles(el);
                 if (el.classList.contains('onboarding-tooltip') || el.className.includes('onboarding-tooltip')) {
-                  el.style.setProperty('z-index', '100002', 'important');
+                  el.style.setProperty('z-index', '2147483647', 'important');
                 }
               });
             });
@@ -636,17 +640,21 @@
       function enforceOnboardingZIndex() {
         const tooltip = document.querySelector('.onboarding-tooltip, [class*="onboarding-tooltip"]');
         if (tooltip) {
-          // 즉시 설정
-          tooltip.style.setProperty('z-index', '100002', 'important');
+          // 최대값으로 즉시 설정
+          tooltip.style.setProperty('z-index', '2147483647', 'important');
           tooltip.style.setProperty('position', 'fixed', 'important');
           tooltip.style.setProperty('pointer-events', 'auto', 'important');
           
-          // requestAnimationFrame을 여러 번 중첩하여 다른 코드보다 나중에 실행되도록 보장
+          // requestAnimationFrame을 여러 번 중첩하여 다른 코드보다 가장 나중에 실행되도록 보장
           requestAnimationFrame(function() {
             requestAnimationFrame(function() {
-              tooltip.style.setProperty('z-index', '100002', 'important');
-              tooltip.style.setProperty('position', 'fixed', 'important');
-              tooltip.style.setProperty('pointer-events', 'auto', 'important');
+              requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                  tooltip.style.setProperty('z-index', '2147483647', 'important');
+                  tooltip.style.setProperty('position', 'fixed', 'important');
+                  tooltip.style.setProperty('pointer-events', 'auto', 'important');
+                });
+              });
             });
           });
           
@@ -660,20 +668,27 @@
         }
       }
       
-      // requestAnimationFrame을 사용하여 다른 코드보다 나중에 실행되도록 보장
+      // requestAnimationFrame을 사용하여 다른 코드보다 가장 나중에 실행되도록 보장
       function enforceWithRAF() {
         requestAnimationFrame(function() {
           requestAnimationFrame(function() {
-            enforceOnboardingZIndex();
+            requestAnimationFrame(function() {
+              requestAnimationFrame(function() {
+                enforceOnboardingZIndex();
+              });
+            });
           });
         });
       }
       
-      // 즉시 실행
+      // 즉시 실행 (여러 번 중첩)
       enforceWithRAF();
+      setTimeout(enforceWithRAF, 0);
+      setTimeout(enforceWithRAF, 10);
+      setTimeout(enforceWithRAF, 50);
       
-      // 매우 짧은 간격으로 반복 실행 (10ms마다)
-      setInterval(enforceOnboardingZIndex, 10);
+      // 매우 짧은 간격으로 반복 실행 (5ms마다 - 더 자주 확인)
+      setInterval(enforceOnboardingZIndex, 5);
       
       // 버튼 클릭 이벤트를 통한 추가 보장 및 버튼 이벤트 교정
       // 문제: skip-btn 클릭 시 next 동작이 실행되고, next-btn 클릭 시 skip 동작이 실행됨
