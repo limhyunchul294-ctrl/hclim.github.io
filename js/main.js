@@ -5329,7 +5329,7 @@ async function initBusinessCardUpload() {
                 
                 tooltip.style.top = `${top}px`;
                 tooltip.style.left = `${left}px`;
-                tooltip.style.zIndex = '10001';
+                tooltip.style.zIndex = '10002';
                 
                 // 스크롤하여 타겟 요소가 보이도록
                 targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
