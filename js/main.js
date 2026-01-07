@@ -1048,17 +1048,36 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             const errorText = await response.text();
             console.error('❌ Edge Function 오류:', errorText);
             let errorMessage = `파일 로드 실패: ${response.status}`;
+            let errorHint = '';
+            
+            // 404 에러인 경우
+            if (response.status === 404) {
+                errorMessage = '파일을 찾을 수 없습니다 (404)';
+                errorHint = `파일 경로: ${bucketName}/${fileName}\n\n가능한 원인:\n1. Supabase Storage에 파일이 없음\n2. Edge Function이 배포되지 않음\n3. 파일명 또는 버킷명 오류\n\n확인 방법:\n- Supabase Dashboard > Storage에서 파일 존재 확인\n- Edge Functions에서 smooth-function 배포 상태 확인`;
+            }
+            
             try {
                 const errorJson = JSON.parse(errorText);
                 if (errorJson.details) {
                     errorMessage += ` - ${errorJson.details}`;
                     console.error('❌ Error details:', errorJson.details);
                 }
+                if (errorJson.error) {
+                    errorMessage += ` - ${errorJson.error}`;
+                }
             } catch (e) {
                 // JSON 파싱 실패 시 원본 텍스트 사용
                 console.error('❌ Error response:', errorText);
             }
-            showToast(errorMessage, 'error');
+            
+            showToast(
+                errorMessage, 
+                'error',
+                8000,
+                {
+                    details: errorHint || `파일: ${bucketName}/${fileName}`
+                }
+            );
             return null;
         }
         
