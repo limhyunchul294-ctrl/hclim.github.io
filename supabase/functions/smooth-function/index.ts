@@ -16,11 +16,18 @@ console.log("✅ smooth-function initialized");
 
 serve(async (req: Request) => {
   // OPTIONS 요청 처리 (CORS preflight) - 가장 먼저 처리
+  // 이 부분은 함수 실행 전에 처리되어야 함
   if (req.method === "OPTIONS") {
-    console.log("✅ OPTIONS request received, returning CORS headers");
+    console.log("✅ OPTIONS request received (CORS preflight)");
     return new Response(null, { 
       status: 200, 
-      headers: corsHeaders 
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS, HEAD, PUT, DELETE",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey, Accept",
+        "Access-Control-Max-Age": "3600",
+        "Access-Control-Allow-Credentials": "false",
+      }
     });
   }
   
@@ -29,28 +36,32 @@ serve(async (req: Request) => {
     const response = await handleRequest(req);
     
     // CORS 헤더 추가 (모든 응답에)
-    const newResponse = new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: {
-        ...Object.fromEntries(response.headers.entries()),
-        ...corsHeaders
-      }
+    const responseHeaders = new Headers(response.headers);
+    // 기존 헤더에 CORS 헤더 추가 (덮어쓰기 방지)
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      responseHeaders.set(key, value);
     });
     
-    return newResponse;
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders
+    });
   } catch (error) {
     console.error("❌ Unhandled error in serve:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("❌ Error details:", errorMessage);
+    
     return new Response(
       JSON.stringify({ 
         error: "Internal server error",
-        details: error instanceof Error ? error.message : String(error)
+        details: errorMessage
       }),
       { 
         status: 500,
         headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...corsHeaders
         }
       }
     );
