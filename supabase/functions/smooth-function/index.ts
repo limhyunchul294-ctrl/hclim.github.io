@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { decode as base64Decode } from "https://deno.land/std@0.208.0/encoding/base64.ts";
+import { Image, encode } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -251,8 +252,57 @@ async function handleRequest(req: Request): Promise<Response> {
     }
 
     const isPDF = file.toLowerCase().endsWith(".pdf");
+    const isImage = /\.(jpeg|jpg|png|gif|webp)$/i.test(file);
+    
+    // 이미지 파일 처리
+    if (isImage) {
+      console.log("🖼️ Processing image file...");
+      try {
+        const imageBytes = await fileData.arrayBuffer();
+        const imageBuffer = new Uint8Array(imageBytes);
+        
+        // 이미지에 워터마크 추가
+        const watermarkedImage = await addWatermarkToImage(
+          imageBuffer,
+          watermarkImage || null,
+          displayUsername,
+          watermark
+        );
+        
+        console.log(`✅ Image processed successfully: ${(watermarkedImage.length / 1024 / 1024).toFixed(2)} MB`);
+        
+        // Content-Type 결정
+        let contentType = "image/jpeg";
+        if (file.toLowerCase().endsWith(".png")) contentType = "image/png";
+        else if (file.toLowerCase().endsWith(".gif")) contentType = "image/gif";
+        else if (file.toLowerCase().endsWith(".webp")) contentType = "image/webp";
+        
+        return new Response(watermarkedImage.buffer, {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": contentType,
+            "Content-Disposition": `inline; filename="${file}"`,
+          },
+        });
+      } catch (error) {
+        console.error("❌ Image processing error:", error);
+        // 에러 발생 시 원본 이미지 반환
+        console.warn("⚠️ Returning original image due to processing error");
+        const bytes = await fileData.arrayBuffer();
+        return new Response(bytes, {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": fileData.type,
+            "Content-Disposition": `inline; filename="${file}"`,
+          },
+        });
+      }
+    }
+    
+    // PDF도 이미지도 아닌 경우 그대로 반환
     if (!isPDF) {
-      console.log("📄 Non-PDF file, returning as-is");
+      console.log("📄 Non-PDF/Non-Image file, returning as-is");
       const bytes = await fileData.arrayBuffer();
       return new Response(bytes, {
         headers: {
@@ -261,6 +311,93 @@ async function handleRequest(req: Request): Promise<Response> {
           "Content-Disposition": `inline; filename="${file}"`,
         },
       });
+    }
+
+    // 이미지 워터마크 추가 함수 (클라이언트에서 전달받은 워터마크 이미지 오버레이)
+    async function addWatermarkToImage(
+      imageBytes: Uint8Array,
+      watermarkImageBase64: string | null,
+      username: string,
+      watermarkText: string
+    ): Promise<Uint8Array> {
+      try {
+        // 워터마크 이미지가 없으면 원본 이미지 반환
+        if (!watermarkImageBase64) {
+          console.log("⚠️ No watermark image provided, returning original image");
+          return imageBytes;
+        }
+
+        console.log("🖼️ Starting image watermark overlay...");
+        
+        // 원본 이미지 로드
+        let sourceImage: Image;
+        try {
+          sourceImage = await Image.decode(imageBytes);
+          console.log(`✅ Source image decoded: ${sourceImage.width}x${sourceImage.height}`);
+        } catch (decodeError) {
+          console.error("❌ Failed to decode source image:", decodeError);
+          return imageBytes;
+        }
+
+        // 워터마크 이미지 디코딩
+        let watermarkImage: Image;
+        try {
+          // base64 데이터에서 data URL prefix 제거
+          const base64Data = watermarkImageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+          const watermarkBytes = base64Decode(base64Data);
+          watermarkImage = await Image.decode(watermarkBytes);
+          console.log(`✅ Watermark image decoded: ${watermarkImage.width}x${watermarkImage.height}`);
+        } catch (decodeError) {
+          console.error("❌ Failed to decode watermark image:", decodeError);
+          return imageBytes;
+        }
+
+        // 워터마크 투명도 조정 (약 20% 투명도)
+        watermarkImage = watermarkImage.opacity(0.2);
+
+        // 원본 이미지 복사 (원본 유지)
+        const watermarkedImage = sourceImage.clone();
+
+        // 워터마크를 반복 패턴으로 오버레이 (격자 형태)
+        const watermarkWidth = watermarkImage.width;
+        const watermarkHeight = watermarkImage.height;
+        const cols = Math.ceil(sourceImage.width / watermarkWidth) + 1;
+        const rows = Math.ceil(sourceImage.height / watermarkHeight) + 1;
+
+        console.log(`📐 Applying watermark pattern: ${cols}x${rows} (${cols * rows} watermarks)`);
+
+        // 워터마크를 격자 형태로 배치
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const x = col * watermarkWidth - (watermarkWidth / 4); // 약간의 오프셋으로 자연스러운 배치
+            const y = row * watermarkHeight - (watermarkHeight / 4);
+
+            // 이미지 범위 내에 있는 경우에만 워터마크 추가
+            if (x + watermarkWidth > 0 && y + watermarkHeight > 0 && 
+                x < sourceImage.width && y < sourceImage.height) {
+              try {
+                watermarkedImage.composite(watermarkImage, x, y);
+              } catch (compositeError) {
+                console.warn(`⚠️ Failed to composite watermark at (${x}, ${y}):`, compositeError);
+              }
+            }
+          }
+        }
+
+        console.log("✅ Watermark overlay completed");
+
+        // 이미지를 JPEG 형식으로 인코딩 (JPEG는 가장 호환성이 좋음)
+        const encodedImage = await encode(watermarkedImage, { format: "jpeg", quality: 90 });
+        console.log(`✅ Image encoded: ${(encodedImage.length / 1024).toFixed(2)} KB`);
+
+        return new Uint8Array(encodedImage);
+      } catch (error) {
+        console.error("❌ Image watermark error:", error);
+        console.error("❌ Error details:", error instanceof Error ? error.stack : String(error));
+        // 에러 발생 시 원본 이미지 반환
+        console.warn("⚠️ Returning original image due to watermark error");
+        return imageBytes;
+      }
     }
 
     console.log("📄 Processing PDF...");
