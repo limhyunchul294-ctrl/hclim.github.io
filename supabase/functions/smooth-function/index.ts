@@ -36,17 +36,15 @@ serve(async (req: Request) => {
     const response = await handleRequest(req);
     
     // CORS 헤더 추가 (모든 응답에)
-    const responseHeaders = new Headers(response.headers);
-    // 기존 헤더에 CORS 헤더 추가 (덮어쓰기 방지)
+    // Response 객체를 복제하고 헤더 추가
+    const newResponse = response.clone();
+    
+    // 모든 CORS 헤더를 새 Response에 추가
     Object.entries(corsHeaders).forEach(([key, value]) => {
-      responseHeaders.set(key, value);
+      newResponse.headers.set(key, value);
     });
     
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: responseHeaders
-    });
+    return newResponse;
   } catch (error) {
     console.error("❌ Unhandled error in serve:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
