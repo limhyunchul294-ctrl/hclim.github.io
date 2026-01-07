@@ -81,13 +81,13 @@ if (window.__APP_INIT__) {
             'tsb-28': { fileName: 'TSB_EVKMC_028_231030.pdf', bucket: 'tsb_documents', title: 'TSB_EVKMC_028', type: 'pdf' },
             'tsb-29': { fileName: 'TSB_EVKMC_029_231102.pdf', bucket: 'tsb_documents', title: 'TSB_EVKMC_029', type: 'pdf' },
             'tsb-30': { fileName: 'TSB_EVKMC_030_231102.pdf', bucket: 'tsb_documents', title: 'TSB_EVKMC_030', type: 'pdf' },
-            'wiring-1-1': { fileName: '메인와이어링.jpeg', bucket: 'manual', title: '메인 와이어링', type: 'image' },
-            'wiring-1-2': { fileName: '섀시 와이어링.jpeg', bucket: 'manual', title: '섀시 와이어링', type: 'image' },
-            'wiring-1-3': { fileName: '도어 와이어링.jpeg', bucket: 'manual', title: '도어 와이어링', type: 'image' },
-            'wiring-1-4': { fileName: '슬라이딩 도어 와이어링.jpeg', bucket: 'manual', title: '슬라이딩 도어 와이어링', type: 'image' },
-            'wiring-1-5': { fileName: '루프 와이어링.jpeg', bucket: 'manual', title: '루프 와이어링', type: 'image' },
-            'wiring-1-6': { fileName: '루프 익스텐션 와이어링.jpeg', bucket: 'manual', title: '루프 익스텐션 와이어링', type: 'image' },
-            'wiring-1-7': { fileName: '테일게이트 와이어링.jpeg', bucket: 'manual', title: '테일게이트 와이어링', type: 'image' },
+            'wiring-1-1': { fileName: 'Main wiring.jpeg', bucket: 'wiring_diagrams', title: '메인 와이어링', type: 'image' },
+            'wiring-1-2': { fileName: 'Chassis wiring.jpeg', bucket: 'wiring_diagrams', title: '섀시 와이어링', type: 'image' },
+            'wiring-1-3': { fileName: 'Door wiring.jpeg', bucket: 'wiring_diagrams', title: '도어 와이어링', type: 'image' },
+            'wiring-1-4': { fileName: 'Sliding Door wiring.jpeg', bucket: 'wiring_diagrams', title: '슬라이딩 도어 와이어링', type: 'image' },
+            'wiring-1-5': { fileName: 'Roof wiring.jpeg', bucket: 'wiring_diagrams', title: '루프 와이어링', type: 'image' },
+            'wiring-1-6': { fileName: 'Roof Extention wiring.jpeg', bucket: 'wiring_diagrams', title: '루프 익스텐션 와이어링', type: 'image' },
+            'wiring-1-7': { fileName: 'Tailgate wiring.jpeg', bucket: 'wiring_diagrams', title: '테일게이트 와이어링', type: 'image' },
         };
         
         // 정비지침서 매핑 병합

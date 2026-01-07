@@ -11,13 +11,35 @@ BEGIN
         WHERE table_schema = 'public' 
         AND table_name = 'documents'
     ) THEN
-        -- 기존 wiring-1-4, wiring-1-5, wiring-1-6, wiring-1-7가 이미 있는지 확인 후 추가
+        -- 기존 wiring-1-1, wiring-1-2, wiring-1-3 업데이트 (버킷 및 파일명 변경)
+        UPDATE documents
+        SET 
+            file_name = 'Main wiring.jpeg',
+            bucket = 'wiring_diagrams',
+            updated_at = NOW()
+        WHERE id = 'wiring-1-1' AND (bucket != 'wiring_diagrams' OR file_name != 'Main wiring.jpeg');
+
+        UPDATE documents
+        SET 
+            file_name = 'Chassis wiring.jpeg',
+            bucket = 'wiring_diagrams',
+            updated_at = NOW()
+        WHERE id = 'wiring-1-2' AND (bucket != 'wiring_diagrams' OR file_name != 'Chassis wiring.jpeg');
+
+        UPDATE documents
+        SET 
+            file_name = 'Door wiring.jpeg',
+            bucket = 'wiring_diagrams',
+            updated_at = NOW()
+        WHERE id = 'wiring-1-3' AND (bucket != 'wiring_diagrams' OR file_name != 'Door wiring.jpeg');
+
+        -- 새 파일 wiring-1-4, wiring-1-5, wiring-1-6, wiring-1-7 추가
         -- 슬라이딩 도어 와이어링
         INSERT INTO documents (id, file_name, bucket, title, type, category, created_at, updated_at)
         SELECT 
             'wiring-1-4',
-            '슬라이딩 도어 와이어링.jpeg',
-            'manual',
+            'Sliding Door wiring.jpeg',
+            'wiring_diagrams',
             '슬라이딩 도어 와이어링',
             'image',
             '와이어링 커넥터',
@@ -31,8 +53,8 @@ BEGIN
         INSERT INTO documents (id, file_name, bucket, title, type, category, created_at, updated_at)
         SELECT 
             'wiring-1-5',
-            '루프 와이어링.jpeg',
-            'manual',
+            'Roof wiring.jpeg',
+            'wiring_diagrams',
             '루프 와이어링',
             'image',
             '와이어링 커넥터',
@@ -46,8 +68,8 @@ BEGIN
         INSERT INTO documents (id, file_name, bucket, title, type, category, created_at, updated_at)
         SELECT 
             'wiring-1-6',
-            '루프 익스텐션 와이어링.jpeg',
-            'manual',
+            'Roof Extention wiring.jpeg',
+            'wiring_diagrams',
             '루프 익스텐션 와이어링',
             'image',
             '와이어링 커넥터',
@@ -61,8 +83,8 @@ BEGIN
         INSERT INTO documents (id, file_name, bucket, title, type, category, created_at, updated_at)
         SELECT 
             'wiring-1-7',
-            '테일게이트 와이어링.jpeg',
-            'manual',
+            'Tailgate wiring.jpeg',
+            'wiring_diagrams',
             '테일게이트 와이어링',
             'image',
             '와이어링 커넥터',
