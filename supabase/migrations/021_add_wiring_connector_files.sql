@@ -95,20 +95,15 @@ BEGIN
         );
 
         RAISE NOTICE '와이어링 커넥터 파일 4개가 추가되었습니다.';
+        
+        -- 추가된 데이터 확인 (테이블이 존재하는 경우에만)
+        PERFORM 1 FROM documents WHERE id IN ('wiring-1-4', 'wiring-1-5', 'wiring-1-6', 'wiring-1-7');
+        IF FOUND THEN
+            RAISE NOTICE '와이어링 커넥터 파일이 성공적으로 추가되었습니다.';
+        END IF;
     ELSE
-        RAISE NOTICE 'documents 테이블이 존재하지 않습니다. 테이블 생성이 필요합니다.';
+        RAISE NOTICE 'documents 테이블이 존재하지 않습니다.';
+        RAISE NOTICE '이 프로젝트는 JavaScript의 PDF_MAPPING 객체에서 파일을 직접 관리합니다.';
+        RAISE NOTICE 'js/main.js 파일의 PDF_MAPPING에 이미 모든 와이어링 파일이 정의되어 있습니다.';
     END IF;
 END $$;
-
--- 추가된 데이터 확인
-SELECT 
-    id,
-    file_name,
-    bucket,
-    title,
-    type,
-    category,
-    created_at
-FROM documents
-WHERE id IN ('wiring-1-4', 'wiring-1-5', 'wiring-1-6', 'wiring-1-7')
-ORDER BY id;
