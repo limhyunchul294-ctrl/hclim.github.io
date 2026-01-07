@@ -84,6 +84,10 @@ if (window.__APP_INIT__) {
             'wiring-1-1': { fileName: '메인와이어링.jpeg', bucket: 'manual', title: '메인 와이어링', type: 'image' },
             'wiring-1-2': { fileName: '섀시 와이어링.jpeg', bucket: 'manual', title: '섀시 와이어링', type: 'image' },
             'wiring-1-3': { fileName: '도어 와이어링.jpeg', bucket: 'manual', title: '도어 와이어링', type: 'image' },
+            'wiring-1-4': { fileName: '슬라이딩 도어 와이어링.jpeg', bucket: 'manual', title: '슬라이딩 도어 와이어링', type: 'image' },
+            'wiring-1-5': { fileName: '루프 와이어링.jpeg', bucket: 'manual', title: '루프 와이어링', type: 'image' },
+            'wiring-1-6': { fileName: '루프 익스텐션 와이어링.jpeg', bucket: 'manual', title: '루프 익스텐션 와이어링', type: 'image' },
+            'wiring-1-7': { fileName: '테일게이트 와이어링.jpeg', bucket: 'manual', title: '테일게이트 와이어링', type: 'image' },
         };
         
         // 정비지침서 매핑 병합
@@ -189,7 +193,11 @@ if (window.__APP_INIT__) {
                         children: [
                             { id: 'wiring-1-1', label: '메인 와이어링', type: 'image' },
                             { id: 'wiring-1-2', label: '섀시 와이어링', type: 'image' },
-                            { id: 'wiring-1-3', label: '도어 와이어링', type: 'image' }
+                            { id: 'wiring-1-3', label: '도어 와이어링', type: 'image' },
+                            { id: 'wiring-1-4', label: '슬라이딩 도어 와이어링', type: 'image' },
+                            { id: 'wiring-1-5', label: '루프 와이어링', type: 'image' },
+                            { id: 'wiring-1-6', label: '루프 익스텐션 와이어링', type: 'image' },
+                            { id: 'wiring-1-7', label: '테일게이트 와이어링', type: 'image' }
                         ]
                     }
                 ]
