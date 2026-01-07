@@ -15,21 +15,46 @@ const corsHeaders = {
 console.log("✅ smooth-function initialized");
 
 serve(async (req: Request) => {
-  // OPTIONS 요청 처리 (CORS preflight)
+  // OPTIONS 요청 처리 (CORS preflight) - 가장 먼저 처리
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    console.log("✅ OPTIONS request received, returning CORS headers");
+    return new Response(null, { 
+      status: 200, 
+      headers: corsHeaders 
+    });
   }
   
-  // 모든 요청 처리
-  const response = await handleRequest(req);
-  
-  // CORS 헤더 추가
-  const newResponse = new Response(response.body, response);
-  Object.entries(corsHeaders).forEach(([key, value]) => {
-    newResponse.headers.set(key, value);
-  });
-  
-  return newResponse;
+  try {
+    // 모든 요청 처리
+    const response = await handleRequest(req);
+    
+    // CORS 헤더 추가 (모든 응답에)
+    const newResponse = new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        ...Object.fromEntries(response.headers.entries()),
+        ...corsHeaders
+      }
+    });
+    
+    return newResponse;
+  } catch (error) {
+    console.error("❌ Unhandled error in serve:", error);
+    return new Response(
+      JSON.stringify({ 
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error)
+      }),
+      { 
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+  }
 });
 
 async function handleRequest(req: Request): Promise<Response> {
