@@ -18,17 +18,31 @@ window.securityAgreement = {
                 return false;
             }
 
-            // Supabase에서 보안서약서 동의 상태 확인
-            const { data, error } = await window.supabaseClient
+            // Supabase에서 보안서약서 동의 상태 확인 (auth_user_id → 이메일 fallback)
+            let { data, error } = await window.supabaseClient
                 .from('users')
                 .select('security_agreement_accepted, security_agreement_date')
                 .eq('auth_user_id', session.user.id)
                 .single();
 
-            if (error) {
-                console.warn('⚠️ 보안서약서 동의 상태 조회 실패:', error);
-                // 조회 실패 시 동의하지 않은 것으로 간주
-                return false;
+            if (error || !data) {
+                console.warn('⚠️ auth_user_id로 조회 실패, 이메일로 재시도:', error?.message);
+                const email = session.user.email;
+                if (email) {
+                    const { data: emailData, error: emailError } = await window.supabaseClient
+                        .from('users')
+                        .select('security_agreement_accepted, security_agreement_date')
+                        .ilike('email', email.trim().toLowerCase())
+                        .single();
+                    if (!emailError && emailData) {
+                        data = emailData;
+                    } else {
+                        console.warn('⚠️ 이메일로도 조회 실패:', emailError?.message);
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
             }
 
             return data?.security_agreement_accepted === true;
@@ -538,43 +552,66 @@ window.securityAgreement = {
         const requiredSections = 8;
         let expandedCount = 0;
 
-        // 섹션 확장/축소 함수
+        // 읽은 섹션 추적
+        const readSections = new Set();
+
+        // 섹션 클릭 시 전체화면 오버레이로 표시
         window.toggleSecuritySection = function(element) {
-            const isExpanding = !element.classList.contains('expanded');
-            
-            element.classList.toggle('expanded');
-            element.classList.toggle('not-expanded');
-            
+            const title = element.closest('.section')?.querySelector('h2')?.textContent || '';
             const content = element.querySelector('.expandable-content');
-            if (content) {
-                if (isExpanding) {
-                    content.classList.remove('hidden');
-                    expandedCount++;
-                } else {
-                    content.classList.add('hidden');
-                    expandedCount--;
-                }
-            }
+            if (!content) return;
+
+            // 읽음 표시
+            const sectionIndex = Array.from(expandableItems).indexOf(element);
+            readSections.add(sectionIndex);
+            element.classList.add('expanded');
+            element.classList.remove('not-expanded');
+            expandedCount = readSections.size;
+
+            // 전체화면 오버레이 생성
+            const overlay = document.createElement('div');
+            overlay.id = 'section-detail-overlay';
+            overlay.className = 'fixed inset-0 bg-black bg-opacity-70 z-[10001] flex items-center justify-center p-4';
+            overlay.style.backdropFilter = 'blur(4px)';
             
-            // 모든 섹션이 펼쳐지면 입력 필드 활성화
-            if (expandedCount === requiredSections) {
-                agreementInput.disabled = false;
-                companyInput.disabled = false;
-                nameInput.disabled = false;
-                agreementNotice.style.display = 'none';
-            } else {
-                agreementInput.disabled = true;
-                companyInput.disabled = true;
-                nameInput.disabled = true;
-                agreementInput.value = '';
-                companyInput.value = '';
-                nameInput.value = '';
-                inputStatus.textContent = '';
-                companyStatus.textContent = '';
-                nameStatus.textContent = '';
-                agreementNotice.style.display = 'block';
-                agreeBtn.disabled = true;
-            }
+            const detailBox = document.createElement('div');
+            detailBox.className = 'bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col';
+            
+            const header = document.createElement('div');
+            header.className = 'bg-slate-700 text-white p-5 rounded-t-xl flex justify-between items-center flex-shrink-0';
+            header.innerHTML = '<h2 class="text-lg font-bold"></h2><button id="close-section-overlay" class="text-white hover:text-gray-300 text-2xl leading-none">&times;</button>';
+            header.querySelector('h2').textContent = title;
+            
+            const body = document.createElement('div');
+            body.className = 'flex-1 overflow-y-auto p-6 text-sm text-slate-700 leading-relaxed';
+            body.innerHTML = content.innerHTML;
+            
+            const footer = document.createElement('div');
+            footer.className = 'bg-slate-50 p-4 rounded-b-xl border-t text-center flex-shrink-0';
+            footer.innerHTML = `<p class="text-xs text-slate-500 mb-2">읽은 항목: ${readSections.size} / ${requiredSections}</p><button id="close-section-btn" class="px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium">확인</button>`;
+
+            detailBox.appendChild(header);
+            detailBox.appendChild(body);
+            detailBox.appendChild(footer);
+            overlay.appendChild(detailBox);
+            document.body.appendChild(overlay);
+
+            const closeOverlay = () => {
+                overlay.remove();
+                // 모든 섹션을 읽었으면 입력 필드 활성화
+                if (readSections.size >= requiredSections) {
+                    agreementInput.disabled = false;
+                    companyInput.disabled = false;
+                    nameInput.disabled = false;
+                    agreementNotice.textContent = '✅ 모든 항목을 확인하셨습니다. 아래 동의 문구를 입력해주세요.';
+                    agreementNotice.style.color = '#10b981';
+                } else {
+                    agreementNotice.textContent = `⚠️ ${requiredSections - readSections.size}개 항목을 더 확인해주세요.`;
+                }
+            };
+            document.getElementById('close-section-overlay')?.addEventListener('click', closeOverlay);
+            document.getElementById('close-section-btn')?.addEventListener('click', closeOverlay);
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
         };
 
         // 동의 문구 검증
