@@ -240,11 +240,13 @@ window.authSession = {
           return null;
         }
         
-        // 자동 갱신 비활성화 - 사용자가 수동으로 갱신해야 함
-        // if (expiresIn < 300) { // 이 부분 제거
+      // 5분 미만 남으면 경고 로그
+      if (expiresIn < 300 && expiresIn > 0) {
+        console.warn('⚠️ 세션 만료 임박:', Math.floor(expiresIn / 60), '분', expiresIn % 60, '초 남음');
       }
+    }
 
-      return session.access_token;
+    return session.access_token;
     } catch (error) {
       console.error('❌ getAccessToken 오류:', error);
       return null;

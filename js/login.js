@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 로그인 상태: 'request-otp' (인증번호 요청) 또는 'verify-otp' (인증번호 검증)
     let loginMode = 'request-otp';
 
+    // Magic link 쿨다운 상태 (60초)
+    let magicLinkCooldownUntil = 0;
+    const MAGIC_LINK_COOLDOWN_MS = 60 * 1000;
+
     /**
      * 전화번호 형식 검증
      * 예: 010-1234-5678 또는 01012345678
@@ -361,6 +365,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const username = emailUsernameInput ? emailUsernameInput.value.trim() : '';
             const email = emailInput.value.trim();
             
+            // 쿨다운 체크
+            const now = Date.now();
+            if (now < magicLinkCooldownUntil) {
+                const remainSec = Math.ceil((magicLinkCooldownUntil - now) / 1000);
+                showEmailError(`잠시 후 다시 시도해주세요. (${remainSec}초 후 가능)`);
+                return;
+            }
+
             // 입력값 검증
             if (!username) {
                 showEmailError('사용자계정을 입력해주세요.');
@@ -385,12 +397,42 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 console.log('🔄 이메일 매직링크 발송 시작:', { username, email });
                 
-                // 이메일 검증은 Supabase Auth가 자동으로 처리하므로
-                // public.users 테이블 검증을 건너뛰고 바로 매직링크 발송
+                // public.users 테이블에서 사번+이메일 조합 검증
+                sendMagicLinkBtn.textContent = '사용자 확인 중...';
+                
+                const { data: userExists, error: checkError } = await window.supabaseClient
+                    .rpc('check_user_email', {
+                        in_username: username,
+                        in_email: email
+                    });
+                
+                if (checkError) {
+                    console.error('❌ 사용자 검증 오류:', checkError);
+                    showEmailError('사용자 정보 확인 중 오류가 발생했습니다. 관리자에게 문의해주세요.');
+                    sendMagicLinkBtn.disabled = false;
+                    sendMagicLinkBtn.textContent = '로그인 링크 발송';
+                    return;
+                }
+                
+                if (!userExists) {
+                    showEmailError('사용자계정 또는 이메일 주소가 등록된 정보와 일치하지 않습니다.');
+                    sendMagicLinkBtn.disabled = false;
+                    sendMagicLinkBtn.textContent = '로그인 링크 발송';
+                    return;
+                }
+                
+                console.log('✅ 사용자 정보 확인 완료');
                 sendMagicLinkBtn.textContent = '발송 중...';
                 
-                // 현재 페이지의 origin 가져오기
-                const redirectUrl = `${window.location.origin}${window.location.pathname.replace('login.html', 'index.html')}`;
+                // Redirect URL 생성 및 화이트리스트 검증
+                const allowedOrigins = [
+                    'https://evkmc-as-app.vercel.app',
+                    'http://localhost:3000',
+                    'http://localhost:5173'
+                ];
+                const currentOrigin = window.location.origin;
+                const safeOrigin = allowedOrigins.includes(currentOrigin) ? currentOrigin : allowedOrigins[0];
+                const redirectUrl = `${safeOrigin}/index.html`;
                 
                 // Supabase 매직링크 발송
                 const { data, error } = await window.supabaseClient.auth.signInWithOtp({
@@ -424,12 +466,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('📧 발송된 이메일:', email);
                 console.log('🔗 리다이렉트 URL:', redirectUrl);
                 
+                // 쿨다운 설정 (60초)
+                magicLinkCooldownUntil = Date.now() + MAGIC_LINK_COOLDOWN_MS;
+                
                 // 이메일 발송 완료 모달 표시
                 const emailSentMessage = document.getElementById('email-sent-message');
                 if (emailSentMessage) {
-                    emailSentMessage.innerHTML = 
-                        `<strong>${email}</strong>로 로그인 링크를 발송했습니다.<br><br>` +
-                        `이메일의 링크를 클릭하여 로그인하세요.`;
+                    emailSentMessage.textContent = '';
+                    const strong = document.createElement('strong');
+                    strong.textContent = email;
+                    emailSentMessage.appendChild(strong);
+                    emailSentMessage.appendChild(document.createTextNode('로 로그인 링크를 발송했습니다.'));
+                    emailSentMessage.appendChild(document.createElement('br'));
+                    emailSentMessage.appendChild(document.createElement('br'));
+                    emailSentMessage.appendChild(document.createTextNode('이메일의 링크를 클릭하여 로그인하세요.'));
                 }
                 
                 emailModal.classList.add('hidden');
@@ -511,58 +561,77 @@ document.addEventListener('DOMContentLoaded', () => {
                         .limit(1)
                         .single();
                     
-                    // 사용자 정보가 없으면 경고 팝업 표시
+                    // 사용자 정보가 없으면 접근 차단
                     if (!userInfo || userError) {
                         console.warn('⚠️ public.users 테이블에 사용자 정보가 없습니다:', userError);
                         
-                        // 경고 팝업 표시
+                        // 경고 팝업 표시 (DOM API로 안전하게 생성)
                         const warningModal = document.createElement('div');
                         warningModal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
-                        warningModal.innerHTML = `
-                            <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
-                                <div class="text-center mb-4">
-                                    <div class="text-5xl mb-4">⚠️</div>
-                                    <h2 class="text-xl font-bold mb-2 text-red-600">접근 권한 경고</h2>
-                                </div>
-                                <div class="space-y-4">
-                                    <p class="text-sm text-gray-700">
-                                        현재 로그인된 계정(<strong>${userEmail}</strong>)은<br>
-                                        시스템에 등록되지 않은 계정입니다.
-                                    </p>
-                                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                        <p class="text-xs text-yellow-800 font-medium mb-1">⚠️ 제한된 접근</p>
-                                        <p class="text-xs text-yellow-700">
-                                            • PDF 문서 열람 불가<br>
-                                            • 민감한 정보 접근 제한<br>
-                                            • 관리자에게 계정 등록을 요청하세요
-                                        </p>
-                                    </div>
-                                    <button 
-                                        id="warning-modal-ok"
-                                        class="w-full py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-medium"
-                                    >
-                                        확인
-                                    </button>
-                                </div>
-                            </div>
-                        `;
+                        
+                        const modalContent = document.createElement('div');
+                        modalContent.className = 'bg-white rounded-2xl p-6 max-w-md w-full shadow-xl';
+                        
+                        const headerDiv = document.createElement('div');
+                        headerDiv.className = 'text-center mb-4';
+                        const iconDiv = document.createElement('div');
+                        iconDiv.className = 'text-5xl mb-4';
+                        iconDiv.textContent = '⚠️';
+                        const titleEl = document.createElement('h2');
+                        titleEl.className = 'text-xl font-bold mb-2 text-red-600';
+                        titleEl.textContent = '접근 권한 경고';
+                        headerDiv.appendChild(iconDiv);
+                        headerDiv.appendChild(titleEl);
+                        
+                        const bodyDiv = document.createElement('div');
+                        bodyDiv.className = 'space-y-4';
+                        
+                        const descP = document.createElement('p');
+                        descP.className = 'text-sm text-gray-700';
+                        descP.textContent = '현재 로그인된 계정(';
+                        const emailStrong = document.createElement('strong');
+                        emailStrong.textContent = userEmail;
+                        descP.appendChild(emailStrong);
+                        descP.appendChild(document.createTextNode(')은 시스템에 등록되지 않은 계정입니다.'));
+                        
+                        const restrictDiv = document.createElement('div');
+                        restrictDiv.className = 'bg-yellow-50 border border-yellow-200 rounded-lg p-3';
+                        const restrictTitle = document.createElement('p');
+                        restrictTitle.className = 'text-xs text-yellow-800 font-medium mb-1';
+                        restrictTitle.textContent = '⚠️ 접근 차단';
+                        const restrictBody = document.createElement('p');
+                        restrictBody.className = 'text-xs text-yellow-700';
+                        restrictBody.textContent = '등록되지 않은 계정으로는 포털에 접근할 수 없습니다. 관리자에게 계정 등록을 요청하세요.';
+                        restrictDiv.appendChild(restrictTitle);
+                        restrictDiv.appendChild(restrictBody);
+                        
+                        const okBtn = document.createElement('button');
+                        okBtn.className = 'w-full py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-medium';
+                        okBtn.textContent = '확인';
+                        
+                        bodyDiv.appendChild(descP);
+                        bodyDiv.appendChild(restrictDiv);
+                        bodyDiv.appendChild(okBtn);
+                        modalContent.appendChild(headerDiv);
+                        modalContent.appendChild(bodyDiv);
+                        warningModal.appendChild(modalContent);
                         document.body.appendChild(warningModal);
                         
-                        // 확인 버튼 클릭 시 모달 닫기 및 리다이렉트
-                        warningModal.querySelector('#warning-modal-ok').addEventListener('click', () => {
+                        // 확인 버튼 클릭 시 로그아웃 후 로그인 페이지로 이동
+                        okBtn.addEventListener('click', async () => {
                             warningModal.remove();
-                            // URL에서 hash 제거
                             window.history.replaceState(null, '', window.location.pathname);
-                            // index.html로 리다이렉트
-                            window.location.href = 'index.html';
+                            await window.supabaseClient.auth.signOut();
+                            window.location.href = 'login.html';
                         });
                         
-                        // 모달 외부 클릭 시에도 닫기
-                        warningModal.addEventListener('click', (e) => {
+                        // 모달 외부 클릭 시에도 로그아웃 후 로그인 페이지로
+                        warningModal.addEventListener('click', async (e) => {
                             if (e.target === warningModal) {
                                 warningModal.remove();
                                 window.history.replaceState(null, '', window.location.pathname);
-                                window.location.href = 'index.html';
+                                await window.supabaseClient.auth.signOut();
+                                window.location.href = 'login.html';
                             }
                         });
                     } else {
