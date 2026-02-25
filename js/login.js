@@ -15,9 +15,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // 로그인 상태: 'request-otp' (인증번호 요청) 또는 'verify-otp' (인증번호 검증)
     let loginMode = 'request-otp';
 
-    // Magic link 쿨다운 상태 (60초)
-    let magicLinkCooldownUntil = 0;
+    // Magic link 쿨다운 상태 (60초, localStorage로 영속)
     const MAGIC_LINK_COOLDOWN_MS = 60 * 1000;
+    const COOLDOWN_STORAGE_KEY = 'magic_link_cooldown_until';
+    
+    function getMagicLinkCooldownUntil() {
+        const val = localStorage.getItem(COOLDOWN_STORAGE_KEY);
+        return val ? parseInt(val, 10) : 0;
+    }
+    
+    function setMagicLinkCooldownUntil(ts) {
+        localStorage.setItem(COOLDOWN_STORAGE_KEY, ts.toString());
+    }
 
     /**
      * 전화번호 형식 검증
@@ -365,10 +374,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const username = emailUsernameInput ? emailUsernameInput.value.trim() : '';
             const email = emailInput.value.trim();
             
-            // 쿨다운 체크
+            // 쿨다운 체크 (localStorage 기반)
             const now = Date.now();
-            if (now < magicLinkCooldownUntil) {
-                const remainSec = Math.ceil((magicLinkCooldownUntil - now) / 1000);
+            const cooldownUntil = getMagicLinkCooldownUntil();
+            if (now < cooldownUntil) {
+                const remainSec = Math.ceil((cooldownUntil - now) / 1000);
                 showEmailError(`잠시 후 다시 시도해주세요. (${remainSec}초 후 가능)`);
                 return;
             }
@@ -466,8 +476,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('📧 발송된 이메일:', email);
                 console.log('🔗 리다이렉트 URL:', redirectUrl);
                 
-                // 쿨다운 설정 (60초)
-                magicLinkCooldownUntil = Date.now() + MAGIC_LINK_COOLDOWN_MS;
+                // 쿨다운 설정 (60초, localStorage에 저장)
+                setMagicLinkCooldownUntil(Date.now() + MAGIC_LINK_COOLDOWN_MS);
                 
                 // 이메일 발송 완료 모달 표시
                 const emailSentMessage = document.getElementById('email-sent-message');
