@@ -41,6 +41,7 @@ if (window.__APP_INIT__) {
             ]
           },
           { href: '#/account', label: '내 정보', icon: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>' },
+          { href: '#/admin', label: '관리자', icon: '<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>', adminOnly: true },
         ];
 
         const MODELS = [
@@ -1275,9 +1276,10 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
 
         // ---- 6. 페이지 렌더링 함수 ----
 
-        function renderHomePage() {
-            // 드롭다운이 아닌 일반 링크만 필터링 (게시판 제외)
-            const homeLinks = NAV_LINKS.filter(link => link.type !== 'dropdown' && link.href);
+        async function renderHomePage() {
+            const homeUserInfo = await window.authService?.getUserInfo();
+            const homeIsAdmin = homeUserInfo?.role === 'admin';
+            const homeLinks = NAV_LINKS.filter(link => link.type !== 'dropdown' && link.href && (!link.adminOnly || homeIsAdmin));
             
             return `
                 <div class="max-w-4xl mx-auto p-6">
@@ -2004,6 +2006,322 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                 `;
             }
         }
+
+async function renderAdminDashboardPage() {
+    const userInfo = await window.authService?.getUserInfo();
+    if (!userInfo || userInfo.role !== 'admin') {
+        return `<div class="max-w-4xl mx-auto p-6">
+            <div class="bg-white rounded-xl shadow-soft p-6 text-center">
+                <div class="text-5xl mb-4">🚫</div>
+                <h2 class="text-xl font-bold text-red-600 mb-2">접근 권한 없음</h2>
+                <p class="text-gray-600">관리자만 접근할 수 있는 페이지입니다.</p>
+            </div>
+        </div>`;
+    }
+
+    let allUsers = [];
+    let gradeRequests = [];
+    let stats = { total: 0, admin: 0, user: 0, blue: 0, silver: 0, black: 0, noGrade: 0, pendingRequests: 0 };
+
+    try {
+        const { data: users, error } = await window.supabaseClient
+            .from('users')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (!error && users) {
+            allUsers = users;
+            stats.total = users.length;
+            stats.admin = users.filter(u => u.role === 'admin').length;
+            stats.user = users.filter(u => u.role !== 'admin').length;
+            stats.blue = users.filter(u => u.grade === 'blue').length;
+            stats.silver = users.filter(u => u.grade === 'silver').length;
+            stats.black = users.filter(u => u.grade === 'black').length;
+            stats.noGrade = users.filter(u => !u.grade).length;
+        }
+    } catch (e) { console.error('사용자 조회 오류:', e); }
+
+    try {
+        const { data: requests, error } = await window.supabaseClient
+            .from('grade_upgrade_requests')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (!error && requests) {
+            gradeRequests = requests;
+            stats.pendingRequests = requests.filter(r => r.status === 'pending').length;
+        }
+    } catch (e) { console.error('등급 요청 조회 오류:', e); }
+
+    const gradeLabel = (g) => g === 'black' ? '⚫ 블랙' : g === 'silver' ? '⚪ 실버' : g === 'blue' ? '🔵 블루' : '-';
+    const statusLabel = (s) => s === 'pending' ? '⏳ 대기' : s === 'approved' ? '✅ 승인' : s === 'rejected' ? '❌ 거부' : s === 'cancelled' ? '🚫 취소' : s;
+    const statusBadge = (s) => s === 'pending' ? 'bg-yellow-100 text-yellow-800' : s === 'approved' ? 'bg-green-100 text-green-800' : s === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800';
+
+    const html = `
+        <div class="max-w-6xl mx-auto p-6">
+            <h1 class="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                관리자 대시보드
+            </h1>
+            <p class="text-sm text-gray-500 mb-6">포털 사용자 및 등급 관리</p>
+
+            <!-- 탭 -->
+            <div class="flex border-b border-gray-200 mb-6" id="admin-tabs">
+                <button class="admin-tab active px-4 py-2 text-sm font-medium border-b-2 border-gray-800 text-gray-900" data-tab="overview">개요</button>
+                <button class="admin-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="users">사용자 관리</button>
+                <button class="admin-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 relative" data-tab="requests">
+                    등급 요청
+                    ${stats.pendingRequests > 0 ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${stats.pendingRequests}</span>` : ''}
+                </button>
+            </div>
+
+            <!-- 개요 탭 -->
+            <div id="admin-tab-overview" class="admin-tab-content">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-xl shadow-soft p-4 text-center">
+                        <p class="text-3xl font-bold text-gray-900">${stats.total}</p>
+                        <p class="text-sm text-gray-500">전체 사용자</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-soft p-4 text-center">
+                        <p class="text-3xl font-bold text-blue-600">${stats.blue}</p>
+                        <p class="text-sm text-gray-500">🔵 블루</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-soft p-4 text-center">
+                        <p class="text-3xl font-bold text-gray-500">${stats.silver}</p>
+                        <p class="text-sm text-gray-500">⚪ 실버</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-soft p-4 text-center">
+                        <p class="text-3xl font-bold text-gray-900">${stats.black}</p>
+                        <p class="text-sm text-gray-500">⚫ 블랙</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-soft p-6">
+                        <h3 class="font-semibold text-gray-900 mb-4">역할 분포</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">관리자</span>
+                                <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">${stats.admin}명</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">일반 사용자</span>
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">${stats.user}명</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-soft p-6">
+                        <h3 class="font-semibold text-gray-900 mb-4">등급 업그레이드 요청</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">대기 중</span>
+                                <span class="px-2 py-1 ${stats.pendingRequests > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} rounded-full text-xs font-medium">${stats.pendingRequests}건</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">전체 요청</span>
+                                <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">${gradeRequests.length}건</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 사용자 관리 탭 -->
+            <div id="admin-tab-users" class="admin-tab-content hidden">
+                <div class="mb-4">
+                    <input type="text" id="admin-user-search" placeholder="이름, 이메일, 소속으로 검색..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:outline-none">
+                </div>
+                <div class="bg-white rounded-xl shadow-soft overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">소속</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">역할</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">등급</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-tbody" class="divide-y divide-gray-100">
+                                ${allUsers.map(u => `
+                                    <tr class="admin-user-row hover:bg-gray-50" data-search="${(u.name||'').toLowerCase()} ${(u.email||'').toLowerCase()} ${(u.affiliation||'').toLowerCase()}">
+                                        <td class="px-4 py-3 font-medium text-gray-900">${u.name || '-'}</td>
+                                        <td class="px-4 py-3 text-gray-600">${u.email || '-'}</td>
+                                        <td class="px-4 py-3 text-gray-600">${u.affiliation || '-'}</td>
+                                        <td class="px-4 py-3">
+                                            <select class="admin-role-select text-xs border border-gray-300 rounded px-2 py-1" data-user-id="${u.profile_id}">
+                                                <option value="user" ${u.role !== 'admin' ? 'selected' : ''}>사용자</option>
+                                                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>관리자</option>
+                                            </select>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <select class="admin-grade-select text-xs border border-gray-300 rounded px-2 py-1" data-user-id="${u.profile_id}">
+                                                <option value="blue" ${u.grade === 'blue' ? 'selected' : ''}>🔵 블루</option>
+                                                <option value="silver" ${u.grade === 'silver' ? 'selected' : ''}>⚪ 실버</option>
+                                                <option value="black" ${u.grade === 'black' ? 'selected' : ''}>⚫ 블랙</option>
+                                            </select>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <button class="admin-save-user-btn text-xs px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors" data-user-id="${u.profile_id}">저장</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 등급 요청 탭 -->
+            <div id="admin-tab-requests" class="admin-tab-content hidden">
+                ${gradeRequests.length === 0 ? `
+                    <div class="bg-white rounded-xl shadow-soft p-8 text-center">
+                        <p class="text-gray-500">등급 업그레이드 요청이 없습니다.</p>
+                    </div>
+                ` : `
+                    <div class="space-y-4">
+                        ${gradeRequests.map(r => `
+                            <div class="bg-white rounded-xl shadow-soft p-5">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div>
+                                        <h3 class="font-semibold text-gray-900">${r.user_name || '-'}</h3>
+                                        <p class="text-sm text-gray-500">${r.user_email || ''} · ${r.user_affiliation || ''}</p>
+                                    </div>
+                                    <span class="px-3 py-1 ${statusBadge(r.status)} rounded-full text-xs font-medium">${statusLabel(r.status)}</span>
+                                </div>
+                                <div class="flex items-center gap-2 mb-3 text-sm">
+                                    <span class="text-gray-600">${gradeLabel(r.current_grade)}</span>
+                                    <span class="text-gray-400">→</span>
+                                    <span class="font-medium text-gray-900">${gradeLabel(r.requested_grade)}</span>
+                                </div>
+                                <p class="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 mb-3">${r.reason || '-'}</p>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-gray-400">${new Date(r.created_at).toLocaleDateString('ko-KR')} ${new Date(r.created_at).toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'})}</span>
+                                    ${r.status === 'pending' ? `
+                                        <div class="flex gap-2">
+                                            <button class="admin-approve-btn text-xs px-4 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors" data-request-id="${r.id}">승인</button>
+                                            <button class="admin-reject-btn text-xs px-4 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors" data-request-id="${r.id}">거부</button>
+                                        </div>
+                                    ` : r.admin_notes ? `<span class="text-xs text-gray-500">메모: ${r.admin_notes}</span>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `}
+            </div>
+        </div>
+    `;
+
+    setTimeout(() => {
+        // 탭 전환
+        document.querySelectorAll('.admin-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.admin-tab').forEach(t => {
+                    t.classList.remove('active', 'border-b-2', 'border-gray-800', 'text-gray-900');
+                    t.classList.add('text-gray-500');
+                });
+                tab.classList.add('active', 'border-b-2', 'border-gray-800', 'text-gray-900');
+                tab.classList.remove('text-gray-500');
+                document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+                document.getElementById(`admin-tab-${tab.dataset.tab}`)?.classList.remove('hidden');
+            });
+        });
+
+        // 사용자 검색
+        document.getElementById('admin-user-search')?.addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase();
+            document.querySelectorAll('.admin-user-row').forEach(row => {
+                row.style.display = row.dataset.search.includes(q) ? '' : 'none';
+            });
+        });
+
+        // 사용자 역할/등급 저장
+        document.querySelectorAll('.admin-save-user-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const userId = btn.dataset.userId;
+                const row = btn.closest('tr');
+                const newRole = row.querySelector('.admin-role-select').value;
+                const newGrade = row.querySelector('.admin-grade-select').value;
+                btn.textContent = '저장 중...';
+                btn.disabled = true;
+                try {
+                    const { error } = await window.supabaseClient
+                        .from('users')
+                        .update({ role: newRole, grade: newGrade })
+                        .eq('profile_id', userId);
+                    if (error) throw error;
+                    btn.textContent = '완료!';
+                    btn.classList.replace('bg-gray-800', 'bg-green-600');
+                    setTimeout(() => {
+                        btn.textContent = '저장';
+                        btn.classList.replace('bg-green-600', 'bg-gray-800');
+                        btn.disabled = false;
+                    }, 1500);
+                } catch (e) {
+                    console.error('사용자 업데이트 오류:', e);
+                    btn.textContent = '오류';
+                    btn.classList.replace('bg-gray-800', 'bg-red-600');
+                    setTimeout(() => {
+                        btn.textContent = '저장';
+                        btn.classList.replace('bg-red-600', 'bg-gray-800');
+                        btn.disabled = false;
+                    }, 1500);
+                }
+            });
+        });
+
+        // 등급 요청 승인
+        document.querySelectorAll('.admin-approve-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const reqId = btn.dataset.requestId;
+                btn.textContent = '처리 중...';
+                btn.disabled = true;
+                try {
+                    const { error } = await window.supabaseClient
+                        .from('grade_upgrade_requests')
+                        .update({ status: 'approved', admin_notes: '관리자 승인' })
+                        .eq('id', reqId);
+                    if (error) throw error;
+                    btn.textContent = '승인됨';
+                    btn.classList.replace('bg-green-600', 'bg-gray-400');
+                    btn.nextElementSibling?.remove();
+                    showToast('등급 업그레이드 요청이 승인되었습니다.', 'success');
+                } catch (e) {
+                    console.error('승인 오류:', e);
+                    btn.textContent = '오류';
+                    btn.disabled = false;
+                }
+            });
+        });
+
+        // 등급 요청 거부
+        document.querySelectorAll('.admin-reject-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const reqId = btn.dataset.requestId;
+                btn.textContent = '처리 중...';
+                btn.disabled = true;
+                try {
+                    const { error } = await window.supabaseClient
+                        .from('grade_upgrade_requests')
+                        .update({ status: 'rejected', admin_notes: '관리자 거부' })
+                        .eq('id', reqId);
+                    if (error) throw error;
+                    btn.textContent = '거부됨';
+                    btn.classList.replace('bg-red-600', 'bg-gray-400');
+                    btn.previousElementSibling?.remove();
+                    showToast('등급 업그레이드 요청이 거부되었습니다.', 'error');
+                } catch (e) {
+                    console.error('거부 오류:', e);
+                    btn.textContent = '오류';
+                    btn.disabled = false;
+                }
+            });
+        });
+    }, 100);
+
+    return html;
+}
 
 async function renderAccountPage() {
     try {
@@ -3012,7 +3330,8 @@ async function initBusinessCardUpload() {
             '/tsb': () => renderDocPage('TSB'),
             '/notices': (param) => param ? renderNoticeDetailPage(param) : renderNoticesListPage(),
             '/community': (param) => param ? renderCommunityDetailPage(param) : renderCommunityListPage(),
-            '/account': renderAccountPage
+            '/account': renderAccountPage,
+            '/admin': renderAdminDashboardPage
         };
 
         /**
@@ -3689,8 +4008,13 @@ async function initBusinessCardUpload() {
 
                 console.log('✅ 인증됨');
 
+                // 관리자 여부 확인하여 네비게이션 필터링
+                const currentUserInfo = await window.authService?.getUserInfo();
+                const isAdmin = currentUserInfo?.role === 'admin';
+                const visibleNavLinks = NAV_LINKS.filter(link => !link.adminOnly || isAdmin);
+
                 if (desktopNav) {
-                    desktopNav.innerHTML = NAV_LINKS.map(link => {
+                    desktopNav.innerHTML = visibleNavLinks.map(link => {
                         if (link.type === 'dropdown') {
                             const dropdownId = `nav-dropdown-${link.label.replace(/\s+/g, '-').toLowerCase()}`;
                             return `
@@ -3752,7 +4076,7 @@ async function initBusinessCardUpload() {
                 const mobileNav = document.getElementById('mobile-nav');
                 const mobileNavContent = mobileNav?.querySelector('div');
                 if (mobileNav && mobileNavContent) {
-                    mobileNavContent.innerHTML = NAV_LINKS.map(link => {
+                    mobileNavContent.innerHTML = visibleNavLinks.map(link => {
                         if (link.type === 'dropdown') {
                             const mobileDropdownId = `mobile-dropdown-${link.label.replace(/\s+/g, '-').toLowerCase()}`;
                             return `
