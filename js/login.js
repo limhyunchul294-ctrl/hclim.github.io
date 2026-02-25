@@ -377,8 +377,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // 쿨다운 체크 (localStorage 기반)
             const now = Date.now();
             const cooldownUntil = getMagicLinkCooldownUntil();
+            console.log('🕐 쿨다운 체크:', { now, cooldownUntil, diff: cooldownUntil - now, blocked: now < cooldownUntil });
             if (now < cooldownUntil) {
                 const remainSec = Math.ceil((cooldownUntil - now) / 1000);
+                console.log('🚫 쿨다운 활성 - 차단:', remainSec, '초 남음');
                 showEmailError(`잠시 후 다시 시도해주세요. (${remainSec}초 후 가능)`);
                 return;
             }
@@ -477,7 +479,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('🔗 리다이렉트 URL:', redirectUrl);
                 
                 // 쿨다운 설정 (60초, localStorage에 저장)
-                setMagicLinkCooldownUntil(Date.now() + MAGIC_LINK_COOLDOWN_MS);
+                const cooldownTarget = Date.now() + MAGIC_LINK_COOLDOWN_MS;
+                setMagicLinkCooldownUntil(cooldownTarget);
+                console.log('🔒 쿨다운 설정 완료:', { until: cooldownTarget, stored: localStorage.getItem(COOLDOWN_STORAGE_KEY) });
                 
                 // 이메일 발송 완료 모달 표시
                 const emailSentMessage = document.getElementById('email-sent-message');
