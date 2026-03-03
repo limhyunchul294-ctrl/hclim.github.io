@@ -2137,6 +2137,7 @@ async function renderAdminDashboardPage() {
                         <table class="w-full text-sm">
                             <thead class="bg-gray-50 border-b border-gray-200">
                                 <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">소속</th>
@@ -2147,7 +2148,8 @@ async function renderAdminDashboardPage() {
                             </thead>
                             <tbody id="admin-users-tbody" class="divide-y divide-gray-100">
                                 ${allUsers.map(u => `
-                                    <tr class="admin-user-row hover:bg-gray-50" data-search="${(u.name||'').toLowerCase()} ${(u.email||'').toLowerCase()} ${(u.affiliation||'').toLowerCase()}">
+                                    <tr class="admin-user-row hover:bg-gray-50" data-search="${(u.username||'').toLowerCase()} ${(u.name||'').toLowerCase()} ${(u.email||'').toLowerCase()} ${(u.affiliation||'').toLowerCase()}">
+                                        <td class="px-4 py-3 text-gray-800 font-mono text-xs">${u.username || '-'}</td>
                                         <td class="px-4 py-3 font-medium text-gray-900">${u.name || '-'}</td>
                                         <td class="px-4 py-3 text-gray-600">${u.email || '-'}</td>
                                         <td class="px-4 py-3 text-gray-600">${u.affiliation || '-'}</td>
