@@ -2027,7 +2027,8 @@ async function renderAdminDashboardPage() {
         const { data: users, error } = await window.supabaseClient
             .from('users')
             .select('*')
-            .order('created_at', { ascending: false });
+            .order('profile_id', { ascending: true });
+        console.log('👥 사용자 조회 결과:', { count: users?.length, error: error?.message });
         if (!error && users) {
             allUsers = users;
             stats.total = users.length;
@@ -2039,6 +2040,7 @@ async function renderAdminDashboardPage() {
             stats.noGrade = users.filter(u => !u.grade).length;
         }
     } catch (e) { console.error('사용자 조회 오류:', e); }
+    console.log('📊 통계:', stats);
 
     try {
         const { data: requests, error } = await window.supabaseClient
