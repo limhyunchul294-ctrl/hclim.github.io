@@ -2356,6 +2356,11 @@ async function renderAdminDashboardPage() {
                     return h;
                 };
 
+                let cardImageHtml = '';
+                if (u.business_card_url) {
+                    cardImageHtml = '<div class="border rounded-lg overflow-hidden mt-4"><div class="bg-gray-50 px-4 py-2 font-semibold text-sm text-gray-700">명함 이미지</div><div class="p-4 flex justify-center bg-white"><img src="' + u.business_card_url + '" alt="명함" class="max-w-full max-h-64 rounded-lg shadow-sm object-contain" onerror="this.parentElement.innerHTML=\'<p class=\\\'text-sm text-gray-400 text-center py-4\\\'>이미지를 불러올 수 없습니다</p>\'"></div></div>';
+                }
+
                 bodyEl.innerHTML =
                     section('계정 정보', [
                         ['ID (사번)', u.username || '-'],
@@ -2375,7 +2380,8 @@ async function renderAdminDashboardPage() {
                     section('활동 정보', [
                         ['마지막 로그인', lastLogin],
                         ['명함 등록', hasCard],
-                    ]);
+                    ]) +
+                    cardImageHtml;
 
                 const footerEl = document.createElement('div');
                 footerEl.className = 'p-4 border-t text-center';
