@@ -2326,7 +2326,7 @@ async function renderAdminDashboardPage() {
 
         // 사용자 상세 보기
         document.querySelectorAll('.admin-detail-user-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const idx = parseInt(btn.dataset.userIdx);
                 const u = allUsers[idx];
                 if (!u) return;
@@ -2335,7 +2335,25 @@ async function renderAdminDashboardPage() {
                 const agreeCompany = u.security_agreement_company || '-';
                 const agreeName = u.security_agreement_name || '-';
                 const lastLogin = u.last_login_at ? new Date(u.last_login_at).toLocaleString('ko-KR') : '-';
-                const hasCard = u.business_card_url ? '✅ 등록됨' : '❌ 미등록';
+
+                // Storage에서 명함 이미지 조회
+                let cardImageUrl = null;
+                let hasCard = '❌ 미등록';
+                if (u.auth_user_id) {
+                    try {
+                        const buckets = ['business_cards', 'BUSINESS_CARDS'];
+                        for (const bucket of buckets) {
+                            const { data: files, error } = await window.supabaseClient.storage
+                                .from(bucket).list(u.auth_user_id, { limit: 1 });
+                            if (!error && files && files.length > 0) {
+                                const { data: urlData } = window.supabaseClient.storage
+                                    .from(bucket).getPublicUrl(u.auth_user_id + '/' + files[0].name);
+                                if (urlData?.publicUrl) { cardImageUrl = urlData.publicUrl; hasCard = '✅ 등록됨'; }
+                                break;
+                            }
+                        }
+                    } catch (e) { console.warn('명함 조회 오류:', e); }
+                }
 
                 const overlay = document.createElement('div');
                 overlay.className = 'fixed inset-0 bg-black bg-opacity-60 z-[9999] flex items-center justify-center p-4';
@@ -2357,8 +2375,8 @@ async function renderAdminDashboardPage() {
                 };
 
                 let cardImageHtml = '';
-                if (u.business_card_url) {
-                    cardImageHtml = '<div class="border rounded-lg overflow-hidden mt-4"><div class="bg-gray-50 px-4 py-2 font-semibold text-sm text-gray-700">명함 이미지</div><div class="p-4 flex justify-center bg-white"><img src="' + u.business_card_url + '" alt="명함" class="max-w-full max-h-64 rounded-lg shadow-sm object-contain" onerror="this.parentElement.innerHTML=\'<p class=\\\'text-sm text-gray-400 text-center py-4\\\'>이미지를 불러올 수 없습니다</p>\'"></div></div>';
+                if (cardImageUrl) {
+                    cardImageHtml = '<div class="border rounded-lg overflow-hidden mt-4"><div class="bg-gray-50 px-4 py-2 font-semibold text-sm text-gray-700">명함 이미지</div><div class="p-4 flex justify-center bg-white"><img src="' + cardImageUrl + '" alt="명함" class="max-w-full max-h-64 rounded-lg shadow-sm object-contain" onerror="this.parentElement.innerHTML=\'<p class=\\\'text-sm text-gray-400 text-center py-4\\\'>이미지를 불러올 수 없습니다</p>\'"></div></div>';
                 }
 
                 bodyEl.innerHTML =
