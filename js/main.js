@@ -2166,8 +2166,9 @@ async function renderAdminDashboardPage() {
                                                 <option value="black" ${u.grade === 'black' ? 'selected' : ''}>⚫ 블랙</option>
                                             </select>
                                         </td>
-                                        <td class="px-4 py-3">
+                                        <td class="px-4 py-3 flex gap-1">
                                             <button class="admin-save-user-btn text-xs px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors" data-user-id="${u.profile_id}">저장</button>
+                                            <button class="admin-detail-user-btn text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" data-user-idx="${allUsers.indexOf(u)}">상세</button>
                                         </td>
                                     </tr>
                                 `).join('')}
@@ -2322,6 +2323,77 @@ async function renderAdminDashboardPage() {
                 }
             });
         });
+
+        // 사용자 상세 보기
+        document.querySelectorAll('.admin-detail-user-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.userIdx);
+                const u = allUsers[idx];
+                if (!u) return;
+                const agreeStatus = u.security_agreement_accepted ? '✅ 동의 완료' : '❌ 미동의';
+                const agreeDate = u.security_agreement_date ? new Date(u.security_agreement_date).toLocaleString('ko-KR') : '-';
+                const agreeCompany = u.security_agreement_company || '-';
+                const agreeName = u.security_agreement_name || '-';
+                const lastLogin = u.last_login_at ? new Date(u.last_login_at).toLocaleString('ko-KR') : '-';
+                const hasCard = u.business_card_url ? '✅ 등록됨' : '❌ 미등록';
+
+                const overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 bg-black bg-opacity-60 z-[9999] flex items-center justify-center p-4';
+                const modal = document.createElement('div');
+                modal.className = 'bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto';
+
+                const headerEl = document.createElement('div');
+                headerEl.className = 'bg-gray-800 text-white p-5 rounded-t-xl';
+                headerEl.innerHTML = '<h2 class="text-lg font-bold">' + (u.name || '-') + ' 상세 정보</h2><p class="text-sm text-gray-300 mt-1">' + (u.username || '-') + ' · ' + (u.email || '-') + '</p>';
+
+                const bodyEl = document.createElement('div');
+                bodyEl.className = 'p-5 space-y-4';
+
+                const section = (title, rows) => {
+                    let h = '<div class="border rounded-lg overflow-hidden"><div class="bg-gray-50 px-4 py-2 font-semibold text-sm text-gray-700">' + title + '</div><div class="divide-y divide-gray-100">';
+                    rows.forEach(r => { h += '<div class="flex justify-between px-4 py-2.5 text-sm"><span class="text-gray-500">' + r[0] + '</span><span class="font-medium text-gray-900">' + r[1] + '</span></div>'; });
+                    h += '</div></div>';
+                    return h;
+                };
+
+                bodyEl.innerHTML =
+                    section('계정 정보', [
+                        ['ID (사번)', u.username || '-'],
+                        ['이름', u.name || '-'],
+                        ['이메일', u.email || '-'],
+                        ['연락처', u.phone || '-'],
+                        ['소속', u.affiliation || '-'],
+                        ['역할', u.role === 'admin' ? '관리자' : '사용자'],
+                        ['등급', u.grade === 'black' ? '⚫ 블랙' : u.grade === 'silver' ? '⚪ 실버' : '🔵 블루'],
+                    ]) +
+                    section('보안서약서', [
+                        ['동의 여부', agreeStatus],
+                        ['동의 일시', agreeDate],
+                        ['소속 회사명', agreeCompany],
+                        ['담당자 이름', agreeName],
+                    ]) +
+                    section('활동 정보', [
+                        ['마지막 로그인', lastLogin],
+                        ['명함 등록', hasCard],
+                    ]);
+
+                const footerEl = document.createElement('div');
+                footerEl.className = 'p-4 border-t text-center';
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium';
+                closeBtn.textContent = '닫기';
+                footerEl.appendChild(closeBtn);
+
+                modal.appendChild(headerEl);
+                modal.appendChild(bodyEl);
+                modal.appendChild(footerEl);
+                overlay.appendChild(modal);
+                document.body.appendChild(overlay);
+
+                closeBtn.addEventListener('click', () => overlay.remove());
+                overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+            });
+        });
     }, 100);
 
     return html;
@@ -2401,8 +2473,9 @@ async function renderAccountPage() {
                                         ${userInfo?.grade === 'black' ? '⚫ 블랙 라벨' : userInfo?.grade === 'silver' ? '⚪ 실버 라벨' : userInfo?.grade === 'blue' ? '🔵 블루 라벨' : '등급 없음'}
                                     </span>
                                 </div>
+                                ${userInfo?.role === 'admin' ? `
                                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 mb-3">
-                                    <p class="font-semibold mb-2">등급별 접근 권한:</p>
+                                    <p class="font-semibold mb-2">등급별 접근 권한 (관리자 전용 정보):</p>
                                     <ul class="space-y-1 list-disc list-inside mb-2">
                                         <li><strong>블루 라벨:</strong> 정비지침서, TSB</li>
                                         <li><strong>실버 라벨:</strong> 정비지침서, 전장회로도, 와이어링 커넥터, TSB</li>
@@ -2418,6 +2491,7 @@ async function renderAccountPage() {
                                         </ul>
                                     </div>
                                 </div>
+                                ` : ''}
                                 ${userInfo?.role !== 'admin' ? `
                                 <button 
                                     onclick="openGradeUpgradeRequest()" 
