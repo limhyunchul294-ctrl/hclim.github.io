@@ -1227,17 +1227,73 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
         }
 
         function imageViewerHTML(fileBlobUrl, title = '', fileName = '', bucketName = 'manual') {
+            const viewerId = 'watermarked-image-' + Date.now();
+            setTimeout(async () => {
+                const container = document.getElementById(viewerId);
+                if (!container) return;
+                try {
+                    const userInfo = await window.authService?.getUserInfo();
+                    const ipAddress = await getIpAddress();
+                    const dateStr = new Date().toLocaleDateString('ko-KR');
+                    const wmName = userInfo?.name || userInfo?.username || 'USER';
+                    const wmAffil = userInfo?.affiliation || '';
+                    const wmText = `${wmName} - ${wmAffil} - ${ipAddress} - ${dateStr}`;
+
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+
+                        ctx.save();
+                        const fontSize = Math.max(14, Math.min(canvas.width, canvas.height) * 0.025);
+                        ctx.font = `${fontSize}px sans-serif`;
+                        ctx.fillStyle = 'rgba(200, 0, 0, 0.18)';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        const diagonal = Math.sqrt(canvas.width ** 2 + canvas.height ** 2);
+                        const angle = -Math.atan2(canvas.height, canvas.width);
+                        const spacing = fontSize * 6;
+
+                        for (let y = -diagonal; y < diagonal * 2; y += spacing) {
+                            for (let x = -diagonal; x < diagonal * 2; x += ctx.measureText(wmText).width + spacing) {
+                                ctx.save();
+                                ctx.translate(x, y);
+                                ctx.rotate(angle);
+                                ctx.fillText(wmText, 0, 0);
+                                ctx.restore();
+                            }
+                        }
+                        ctx.restore();
+
+                        container.innerHTML = '';
+                        canvas.style.maxWidth = '100%';
+                        canvas.style.maxHeight = '100%';
+                        canvas.style.objectFit = 'contain';
+                        canvas.setAttribute('alt', title);
+                        container.appendChild(canvas);
+                    };
+                    img.onerror = () => {
+                        container.innerHTML = '<img src="' + fileBlobUrl + '" alt="' + title + '" class="max-w-full max-h-full object-contain">';
+                    };
+                    img.src = fileBlobUrl;
+                } catch (e) {
+                    console.error('이미지 워터마크 오류:', e);
+                    container.innerHTML = '<img src="' + fileBlobUrl + '" alt="' + title + '" class="max-w-full max-h-full object-contain">';
+                }
+            }, 100);
+
             return `
                 <div class="image-viewer-container w-full h-full flex flex-col">
                     <div class="flex items-center justify-between mb-3 px-1">
                         <h3 class="text-lg font-semibold text-gray-800">${title}</h3>
-                        <button class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors" 
-                                onclick="downloadSecureFile('${fileName}', '${bucketName}', null)">
-                            다운로드
-                        </button>
                     </div>
-                    <div class="flex-1 border border-gray-300 rounded-lg overflow-auto bg-gray-50 flex items-center justify-center p-4" style="min-height: calc(100vh - 200px);">
-                        <img src="${fileBlobUrl}" alt="${title}" class="max-w-full max-h-full object-contain">
+                    <div id="${viewerId}" class="flex-1 border border-gray-300 rounded-lg overflow-auto bg-gray-50 flex items-center justify-center p-4" style="min-height: calc(100vh - 200px);">
+                        <div class="text-center text-gray-400"><p class="text-sm">워터마크 처리 중...</p></div>
                     </div>
                 </div>
             `;
