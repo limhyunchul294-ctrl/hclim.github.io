@@ -2353,17 +2353,56 @@ async function renderWarrantyPage() {
             const { data: { text } } = await worker.recognize(canvas);
             await worker.terminate();
 
+            // VIN 패턴 기반 고정밀 인식
+            const KNOWN_PREFIXES = ['LVPRPB4B', 'LVP1PB4B', 'LURJAVBV'];
+            const letterToDigit = {O:'0',D:'0',Q:'0',I:'1',L:'1',Z:'2',S:'5',B:'8',G:'6',T:'7'};
+            const fixDigits = (s) => s.split('').map(c => /[0-9]/.test(c) ? c : (letterToDigit[c] || c)).join('');
             const clean = (text || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
-            const candidates = [];
-            (clean.match(/[A-HJ-NPR-Z0-9]{17}/g) || []).forEach(v => candidates.push(v));
-            (clean.match(/[A-HJ-NPR-Z0-9]{6}/g) || []).forEach(v => candidates.push(v));
-            if (VIN_PREFIX) {
-                const need = 17 - VIN_PREFIX.length;
-                (clean.match(/[A-HJ-NPR-Z0-9]{4,12}/g) || []).forEach(t => { if (t.length >= need) candidates.push(VIN_PREFIX + t.slice(-need)); });
+            
+            const scored = new Map();
+            const add = (v, score) => { if (!v || v.length < 6) return; scored.set(v, Math.max(scored.get(v) || 0, score)); };
+
+            // 1순위: 알려진 프리픽스 + 뒤 9자리 매칭 (17자리 완성)
+            KNOWN_PREFIXES.forEach(pfx => {
+                const idx = clean.indexOf(pfx);
+                if (idx >= 0 && clean.length >= idx + 17) {
+                    const full = clean.slice(idx, idx + 17);
+                    const last6 = fixDigits(full.slice(-6));
+                    add(full.slice(0, 11) + last6, 100);
+                }
+            });
+
+            // 2순위: 6자리 연속 숫자 (뒤 6자리로 바로 사용 가능)
+            const digitRuns = clean.match(/\d{6,}/g) || [];
+            digitRuns.forEach(run => {
+                add(run.slice(-6), 90);
+                if (run.length >= 9) {
+                    KNOWN_PREFIXES.forEach(pfx => add(pfx + run.slice(-(17-pfx.length)), 85));
+                }
+            });
+
+            // 3순위: 문자+숫자 혼합 6자리 → 숫자로 보정 (OCR 오인식 대응)
+            for (let i = 0; i <= clean.length - 6; i++) {
+                const chunk = clean.slice(i, i + 6);
+                const fixed = fixDigits(chunk);
+                if (/^\d{6}$/.test(fixed)) add(fixed, 70);
             }
-            if (candidates.length > 0) {
-                vinEl.value = candidates[0]; vinEl.dispatchEvent(new Event('input'));
-                showToast('VIN 인식 성공: ' + candidates[0], 'success'); closeCamera();
+
+            // 4순위: 17자리 VIN 패턴
+            (clean.match(/[A-HJ-NPR-Z0-9]{17}/g) || []).forEach(v => {
+                const last6 = fixDigits(v.slice(-6));
+                add(v.slice(0, 11) + last6, 60);
+            });
+
+            // 점수순 정렬, 알려진 프리픽스 보너스
+            const results = [...scored.entries()]
+                .map(([v, s]) => ({ v, score: s + (KNOWN_PREFIXES.some(p => v.startsWith(p)) ? 10 : 0) }))
+                .sort((a, b) => b.score - a.score || b.v.length - a.v.length);
+
+            if (results.length > 0) {
+                const best = results[0].v;
+                vinEl.value = best; vinEl.dispatchEvent(new Event('input'));
+                showToast('VIN 인식 성공: ' + best, 'success'); closeCamera();
             } else {
                 cameraStatus.textContent = 'VIN을 찾을 수 없습니다. 다시 촬영해 주세요.';
             }
@@ -2750,14 +2789,33 @@ async function renderAdminDashboardPage() {
                 const text = await file.text();
                 const lines = text.trim().split('\n');
                 if (lines.length < 2) { statusEl.textContent = '데이터가 없습니다.'; return; }
+                // 한글 헤더 → 영문 컬럼 매핑
+                const headerMap = {'차대번호':'vin','차종':'model','연식':'year','출고일자':'release_date',
+                    '일반보증만료':'general_warranty_expiry','일반보증거리':'general_warranty_km',
+                    '구동보증만료':'drivetrain_warranty_expiry','구동보증거리':'drivetrain_warranty_km',
+                    '배터리보증만료':'battery_warranty_expiry','배터리보증거리':'battery_warranty_km'};
+                const headers = lines[0].split(',').map(h => h.trim().replace(/\r/g,''));
+                const colIdx = {};
+                headers.forEach((h, i) => { if (headerMap[h]) colIdx[headerMap[h]] = i; });
+                const hasMapping = Object.keys(colIdx).length >= 1 && colIdx.vin !== undefined;
                 const rows = lines.slice(1).map(line => {
                     const c = line.split(',');
-                    return { vin: (c[0]||'').trim(), model: (c[1]||'').trim(), year: (c[2]||'').trim(),
-                        release_date: (c[3]||'').trim() || null,
-                        general_warranty_expiry: (c[4]||'').trim() || null, general_warranty_km: parseInt(c[5]) || null,
-                        drivetrain_warranty_expiry: (c[6]||'').trim() || null, drivetrain_warranty_km: parseInt(c[7]) || null,
-                        battery_warranty_expiry: (c[8]||'').trim() || null, battery_warranty_km: parseInt((c[9]||'').trim()) || null };
-                }).filter(r => r.vin);
+                    if (hasMapping) {
+                        const g = (key) => (c[colIdx[key]] || '').trim().replace(/\r/g,'');
+                        const n = (key) => { const v = parseInt(g(key)); return isNaN(v) ? null : v; };
+                        return { vin: g('vin'), model: g('model'), year: g('year'),
+                            release_date: g('release_date') || null,
+                            general_warranty_expiry: g('general_warranty_expiry') || null, general_warranty_km: n('general_warranty_km'),
+                            drivetrain_warranty_expiry: g('drivetrain_warranty_expiry') || null, drivetrain_warranty_km: n('drivetrain_warranty_km'),
+                            battery_warranty_expiry: g('battery_warranty_expiry') || null, battery_warranty_km: n('battery_warranty_km') };
+                    } else {
+                        return { vin: (c[0]||'').trim(), model: (c[1]||'').trim(), year: (c[2]||'').trim(),
+                            release_date: (c[3]||'').trim() || null,
+                            general_warranty_expiry: (c[4]||'').trim() || null, general_warranty_km: parseInt(c[5]) || null,
+                            drivetrain_warranty_expiry: (c[6]||'').trim() || null, drivetrain_warranty_km: parseInt(c[7]) || null,
+                            battery_warranty_expiry: (c[8]||'').trim() || null, battery_warranty_km: parseInt((c[9]||'').trim()) || null };
+                    }
+                }).filter(r => r.vin && r.vin.length >= 6);
                 statusEl.textContent = rows.length + '건 파싱 완료. 업로드 중...';
                 const batchSize = 200; let done = 0;
                 for (let i = 0; i < rows.length; i += batchSize) {
