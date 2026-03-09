@@ -1357,6 +1357,17 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                             </a>
                         `).join('')}
                         
+                        <!-- 차량 보증 조회 카드 -->
+                        <a href="#/warranty" class="block p-6 bg-white rounded-xl shadow-soft hover:shadow-lg transition-all duration-200 border border-gray-100 bg-gradient-to-br from-white to-sky-50">
+                            <div class="flex items-center mb-3">
+                                <svg class="w-6 h-6 text-sky-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                <h3 class="text-lg font-semibold text-gray-900">차량 보증 조회</h3>
+                            </div>
+                            <p class="text-gray-600 text-sm">VIN 조회 및 보증 상태 확인</p>
+                        </a>
+
                         <!-- 게시판 카드 (드롭다운 대신 직접 링크) -->
                         <div class="p-6 bg-white rounded-xl shadow-soft hover:shadow-lg transition-all duration-200 border border-gray-100">
                             <div class="flex items-center mb-3">
@@ -2063,6 +2074,330 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             }
         }
 
+async function renderWarrantyPage() {
+    const warrantyHtml = `
+        <div class="max-w-5xl mx-auto p-6">
+            <div class="mb-6">
+                <a href="#/home" class="text-sm text-gray-500 hover:text-gray-800 mb-2 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    홈으로
+                </a>
+                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    MASADA 차량보증여부 확인
+                </h1>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-soft p-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">차대번호 (VIN)</label>
+                        <div class="relative">
+                            <input id="w-vin" type="text" maxlength="17" placeholder="VIN 17자리 또는 뒤 6자리" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none pr-12" autocomplete="off">
+                            <button type="button" id="w-camera-btn" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-sky-600 border border-sky-300 rounded-lg hover:bg-sky-50 transition-colors" title="카메라로 VIN 인식">📷</button>
+                        </div>
+                        <p id="w-vin-hint" class="text-xs text-gray-400 mt-1"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">주행거리 (km) - 선택</label>
+                        <input id="w-odo" type="number" min="0" max="999999" step="100" placeholder="주행거리 입력" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="w-search-btn" class="flex-1 px-6 py-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-semibold">조회</button>
+                        <button id="w-clear-btn" class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">초기화</button>
+                        <button id="w-print-btn" class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">🖨️</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="w-loading" class="hidden text-center py-8">
+                <div class="inline-block w-8 h-8 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div>
+                <p class="text-gray-500 mt-2">조회 중...</p>
+            </div>
+
+            <div id="w-result" class="hidden space-y-4">
+                <div id="w-summary" class="text-center py-3"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-xl shadow-soft p-5">
+                        <h3 class="font-bold text-gray-900 mb-3">기본정보</h3>
+                        <table class="w-full text-sm"><tbody id="w-base"></tbody></table>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-soft p-5">
+                        <h3 class="font-bold text-gray-900 mb-3">보증요약</h3>
+                        <table class="w-full text-sm"><tbody id="w-brief"></tbody></table>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-soft p-5">
+                    <h3 class="font-bold text-gray-900 mb-3">보증 상세 (일반/구동/배터리)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50"><tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">유형</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">만료일</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">거리한도(km)</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">상태</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">남은일수</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">남은km</th>
+                            </tr></thead>
+                            <tbody id="w-detail"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="w-error" class="hidden bg-red-50 rounded-xl p-6 text-center">
+                <p id="w-error-msg" class="text-red-600 font-medium"></p>
+            </div>
+
+            <!-- 카메라 모달 -->
+            <div id="w-camera-modal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-[9999] flex items-center justify-center p-4">
+                <div class="bg-white rounded-xl p-4 w-full max-w-lg">
+                    <h3 class="font-bold text-gray-900 mb-3">차대번호 촬영</h3>
+                    <div class="relative bg-black rounded-lg overflow-hidden">
+                        <video id="w-camera-video" class="w-full h-64 object-cover" autoplay playsinline muted></video>
+                        <canvas id="w-camera-canvas" class="hidden"></canvas>
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[86%] h-[36%] border-2 border-sky-400 rounded pointer-events-none"></div>
+                    </div>
+                    <input id="w-photo-picker" type="file" accept="image/*" capture="environment" class="hidden">
+                    <p id="w-camera-status" class="text-xs text-gray-500 mt-2 text-center min-h-[16px]"></p>
+                    <div class="flex gap-2 mt-3 justify-center">
+                        <button id="w-capture-btn" class="px-6 py-2 bg-sky-600 text-white rounded-lg font-semibold">📸 촬영하여 인식</button>
+                        <button id="w-close-camera-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">취소</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    setTimeout(() => {
+        const vinEl = document.getElementById('w-vin');
+        const odoEl = document.getElementById('w-odo');
+        const searchBtn = document.getElementById('w-search-btn');
+        const clearBtn = document.getElementById('w-clear-btn');
+        const printBtn = document.getElementById('w-print-btn');
+        const hintEl = document.getElementById('w-vin-hint');
+        const VIN_PREFIX = 'LVPRPB4B';
+
+        // VIN 입력 자동 보정
+        vinEl?.addEventListener('input', () => {
+            let v = vinEl.value.replace(/[\s-]/g, '').toUpperCase();
+            if (v !== vinEl.value) vinEl.value = v;
+            const map = {O:'0',D:'0',Q:'0',I:'1',L:'1',Z:'2',S:'5',B:'8',G:'6',T:'7'};
+            if (v.length === 6) {
+                const head = v.slice(0,2).replace(/[IOQ]/g,'');
+                const tail = v.slice(2).split('').map(c => map[c]||c).join('');
+                vinEl.value = head + tail;
+                hintEl.textContent = '뒤 6자리 검색 모드';
+            } else if (v.length > 0 && v.length < 6) {
+                hintEl.textContent = '6자리 이상 입력';
+            } else {
+                hintEl.textContent = '';
+            }
+        });
+
+        // 조회
+        searchBtn?.addEventListener('click', async () => {
+            const vin = vinEl.value.trim();
+            const odoRaw = odoEl.value.trim();
+            const odo = odoRaw === '' ? null : Number(odoRaw);
+            if (!vin) { showToast('차대번호를 입력하세요.', 'error'); return; }
+            if (vin.length < 6) { showToast('6자리 이상 입력하세요.', 'error'); return; }
+
+            document.getElementById('w-loading').classList.remove('hidden');
+            document.getElementById('w-result').classList.add('hidden');
+            document.getElementById('w-error').classList.add('hidden');
+
+            try {
+                const vinNorm = vin.replace(/[\s-]/g,'').toUpperCase();
+                const isLast6 = vinNorm.length === 6;
+
+                let query = window.supabaseClient.from('warranty_data').select('*');
+                if (isLast6) {
+                    query = query.ilike('vin', '%' + vinNorm);
+                } else {
+                    query = query.eq('vin', vinNorm);
+                }
+                const { data: rows, error } = await query.limit(1).single();
+
+                document.getElementById('w-loading').classList.add('hidden');
+
+                if (error || !rows) {
+                    document.getElementById('w-error').classList.remove('hidden');
+                    document.getElementById('w-error-msg').textContent = '일치하는 차대번호를 찾을 수 없습니다.';
+                    return;
+                }
+
+                // 보증 계산
+                const today = new Date(); today.setHours(0,0,0,0);
+                const diffDays = (a, b) => Math.round((a - b) / (1000*60*60*24));
+                const fmtDate = (d) => d ? new Date(d).toISOString().split('T')[0] : '';
+                const fmtNum = (n) => n != null ? Number(n).toLocaleString() : '';
+
+                const packs = [
+                    { key: '일반', expDate: rows.general_warranty_expiry ? new Date(rows.general_warranty_expiry) : null, expKm: rows.general_warranty_km },
+                    { key: '구동', expDate: rows.drivetrain_warranty_expiry ? new Date(rows.drivetrain_warranty_expiry) : null, expKm: rows.drivetrain_warranty_km },
+                    { key: '배터리', expDate: rows.battery_warranty_expiry ? new Date(rows.battery_warranty_expiry) : null, expKm: rows.battery_warranty_km }
+                ];
+
+                let nearest = null;
+                packs.forEach(pk => { if (pk.expDate && (!nearest || pk.expDate < nearest.date)) nearest = { type: pk.key, date: pk.expDate }; });
+
+                const items = packs.map(pk => {
+                    const dOk = pk.expDate ? (pk.expDate >= today) : null;
+                    const kOk = (pk.expKm != null && odo != null) ? (odo <= pk.expKm) : null;
+                    const daysRem = pk.expDate ? diffDays(pk.expDate, today) : null;
+                    const kmRem = (pk.expKm != null && odo != null) ? (pk.expKm - odo) : null;
+                    let status = '정보부족';
+                    if (dOk !== null && kOk !== null) status = (dOk && kOk) ? '보증중' : '만료';
+                    else if (dOk !== null) status = dOk ? '보증중' : '만료';
+                    else if (kOk !== null) status = kOk ? '보증중' : '만료';
+                    return { type: pk.key, expiryDate: fmtDate(pk.expDate), expiryKm: pk.expKm, status, dateOk: dOk, kmOk: kOk, daysRemaining: daysRem, kmRemaining: kmRem };
+                });
+
+                const overall = items.some(x => x.status === '보증중') ? '보증중' : (items.every(x => x.status === '만료' || x.status === '정보부족') ? '만료' : '정보부족');
+                const pillClass = overall === '보증중' ? 'bg-green-100 text-green-800' : overall === '만료' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800';
+
+                // 결과 표시
+                document.getElementById('w-result').classList.remove('hidden');
+                document.getElementById('w-summary').innerHTML = '<span class="px-4 py-2 rounded-full font-bold text-sm ' + pillClass + '">종합: ' + overall + '</span>';
+
+                const addRow = (tb, k, v) => { tb.innerHTML += '<tr><th class="py-2 pr-4 text-gray-500 font-medium text-left">' + k + '</th><td class="py-2 text-gray-900">' + v + '</td></tr>'; };
+                const baseEl = document.getElementById('w-base'); baseEl.innerHTML = '';
+                addRow(baseEl, '차대번호', rows.vin);
+                addRow(baseEl, '차종', rows.model || '');
+                addRow(baseEl, '연식', rows.year || '');
+                addRow(baseEl, '출고일자', fmtDate(rows.release_date));
+                addRow(baseEl, '조회일자', today.toISOString().split('T')[0]);
+                addRow(baseEl, '입력 주행거리', odo != null ? fmtNum(odo) + ' km' : '(미입력)');
+
+                const briefEl = document.getElementById('w-brief'); briefEl.innerHTML = '';
+                if (nearest) addRow(briefEl, '가장 가까운 만료일', fmtDate(nearest.date) + ' (' + nearest.type + ')');
+                else addRow(briefEl, '가장 가까운 만료일', '(정보 없음)');
+
+                const detailEl = document.getElementById('w-detail'); detailEl.innerHTML = '';
+                items.forEach(x => {
+                    const sc = x.status === '보증중' ? 'bg-green-100 text-green-800' : x.status === '만료' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800';
+                    const daysStr = x.daysRemaining != null ? (x.daysRemaining >= 0 ? 'D-' + x.daysRemaining : '만료 ' + Math.abs(x.daysRemaining) + '일') : '';
+                    let kmStr = '';
+                    if (x.kmRemaining != null) kmStr = x.kmRemaining >= 0 ? fmtNum(x.kmRemaining) + ' km' : '초과 ' + fmtNum(Math.abs(x.kmRemaining)) + ' km';
+                    else if (x.expiryKm != null && odo == null) kmStr = '미입력';
+                    detailEl.innerHTML += '<tr class="border-t border-gray-100"><td class="px-3 py-2">' + x.type + '</td><td class="px-3 py-2">' + x.expiryDate + '</td><td class="px-3 py-2">' + (x.expiryKm != null ? fmtNum(x.expiryKm) : '') + '</td><td class="px-3 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-bold ' + sc + '">' + x.status + '</span></td><td class="px-3 py-2">' + daysStr + '</td><td class="px-3 py-2">' + kmStr + '</td></tr>';
+                });
+
+                showToast('조회 완료', 'success');
+            } catch (e) {
+                document.getElementById('w-loading').classList.add('hidden');
+                document.getElementById('w-error').classList.remove('hidden');
+                document.getElementById('w-error-msg').textContent = '조회 오류: ' + (e.message || e);
+            }
+        });
+
+        // Enter 키로 조회
+        vinEl?.addEventListener('keydown', e => { if (e.key === 'Enter') searchBtn?.click(); });
+        odoEl?.addEventListener('keydown', e => { if (e.key === 'Enter') searchBtn?.click(); });
+
+        // 초기화
+        clearBtn?.addEventListener('click', () => {
+            vinEl.value = ''; odoEl.value = ''; hintEl.textContent = '';
+            document.getElementById('w-result').classList.add('hidden');
+            document.getElementById('w-error').classList.add('hidden');
+        });
+
+        // 인쇄
+        printBtn?.addEventListener('click', () => window.print());
+
+        // 카메라 OCR
+        let wCameraStream = null;
+        const cameraModal = document.getElementById('w-camera-modal');
+        const cameraVideo = document.getElementById('w-camera-video');
+        const cameraCanvas = document.getElementById('w-camera-canvas');
+        const cameraStatus = document.getElementById('w-camera-status');
+        const photoPicker = document.getElementById('w-photo-picker');
+
+        document.getElementById('w-camera-btn')?.addEventListener('click', async () => {
+            cameraModal.classList.remove('hidden');
+            const canCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+            if (!canCamera) { cameraStatus.textContent = '사진을 선택/촬영해 주세요.'; photoPicker.click(); return; }
+            try {
+                cameraStatus.textContent = '카메라 권한 요청 중...';
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }, audio: false });
+                wCameraStream = stream; cameraVideo.srcObject = stream; await cameraVideo.play().catch(() => {});
+                cameraStatus.textContent = '촬영 준비 완료';
+            } catch (err) {
+                cameraStatus.textContent = '카메라 접근 실패. 사진 업로드를 이용하세요.';
+                setTimeout(() => photoPicker.click(), 400);
+            }
+        });
+
+        const closeCamera = () => {
+            try { cameraVideo.pause(); cameraVideo.srcObject = null; } catch(_){}
+            if (wCameraStream) { wCameraStream.getTracks().forEach(t => t.stop()); wCameraStream = null; }
+            cameraModal.classList.add('hidden'); cameraStatus.textContent = ''; photoPicker.value = '';
+        };
+        document.getElementById('w-close-camera-btn')?.addEventListener('click', closeCamera);
+
+        const runOCR = async (canvas) => {
+            if (!window.Tesseract) {
+                cameraStatus.textContent = 'OCR 엔진 로딩 중...';
+                await new Promise((res, rej) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js';
+                    s.onload = res; s.onerror = rej; document.head.appendChild(s);
+                });
+            }
+            cameraStatus.textContent = '텍스트 인식 중...';
+            const worker = await Tesseract.createWorker('eng', 1, {
+                logger: m => { if (m.status === 'recognizing text') cameraStatus.textContent = '분석 중... ' + Math.round(m.progress * 100) + '%'; }
+            });
+            await worker.setParameters({ tessedit_char_whitelist: 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789', preserve_interword_spaces: '0' });
+            const { data: { text } } = await worker.recognize(canvas);
+            await worker.terminate();
+
+            const clean = (text || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+            const candidates = [];
+            (clean.match(/[A-HJ-NPR-Z0-9]{17}/g) || []).forEach(v => candidates.push(v));
+            (clean.match(/[A-HJ-NPR-Z0-9]{6}/g) || []).forEach(v => candidates.push(v));
+            if (VIN_PREFIX) {
+                const need = 17 - VIN_PREFIX.length;
+                (clean.match(/[A-HJ-NPR-Z0-9]{4,12}/g) || []).forEach(t => { if (t.length >= need) candidates.push(VIN_PREFIX + t.slice(-need)); });
+            }
+            if (candidates.length > 0) {
+                vinEl.value = candidates[0]; vinEl.dispatchEvent(new Event('input'));
+                showToast('VIN 인식 성공: ' + candidates[0], 'success'); closeCamera();
+            } else {
+                cameraStatus.textContent = 'VIN을 찾을 수 없습니다. 다시 촬영해 주세요.';
+            }
+        };
+
+        document.getElementById('w-capture-btn')?.addEventListener('click', async () => {
+            if (cameraVideo.srcObject) {
+                const ctx = cameraCanvas.getContext('2d');
+                cameraCanvas.width = cameraVideo.videoWidth || 1280;
+                cameraCanvas.height = cameraVideo.videoHeight || 720;
+                ctx.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+                await runOCR(cameraCanvas);
+            } else { photoPicker.click(); }
+        });
+
+        photoPicker?.addEventListener('change', async (e) => {
+            const f = e.target.files?.[0]; if (!f) return;
+            cameraStatus.textContent = '사진 처리 중...';
+            const url = URL.createObjectURL(f);
+            const img = new Image();
+            await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+            const ctx = cameraCanvas.getContext('2d');
+            const scale = Math.min(1, 1600 / img.naturalWidth);
+            cameraCanvas.width = Math.round(img.naturalWidth * scale);
+            cameraCanvas.height = Math.round(img.naturalHeight * scale);
+            ctx.drawImage(img, 0, 0, cameraCanvas.width, cameraCanvas.height);
+            URL.revokeObjectURL(url);
+            await runOCR(cameraCanvas);
+        });
+    }, 100);
+
+    return warrantyHtml;
+}
+
 async function renderAdminDashboardPage() {
     const userInfo = await window.authService?.getUserInfo();
     if (!userInfo || userInfo.role !== 'admin') {
@@ -2131,6 +2466,7 @@ async function renderAdminDashboardPage() {
                     등급 요청
                     ${stats.pendingRequests > 0 ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${stats.pendingRequests}</span>` : ''}
                 </button>
+                <button class="admin-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="warranty">보증 데이터</button>
             </div>
 
             <!-- 개요 탭 -->
@@ -2271,6 +2607,24 @@ async function renderAdminDashboardPage() {
                     </div>
                 `}
             </div>
+
+            <!-- 보증 데이터 관리 탭 -->
+            <div id="admin-tab-warranty" class="admin-tab-content hidden">
+                <div class="bg-white rounded-xl shadow-soft p-6">
+                    <h3 class="font-semibold text-gray-900 mb-4">보증 데이터 CSV 업로드</h3>
+                    <p class="text-sm text-gray-600 mb-4">CSV 파일을 업로드하면 기존 데이터에 추가/갱신됩니다. (VIN이 동일하면 업데이트, 새 VIN은 추가)<br>
+                    <span class="text-xs text-gray-400">필수 헤더: 차대번호,차종,연식,출고일자,일반보증만료,일반보증거리,구동보증만료,구동보증거리,배터리보증만료,배터리보증거리</span></p>
+                    <div class="flex items-center gap-4 mb-4">
+                        <input type="file" id="warranty-csv-upload" accept=".csv" class="text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
+                        <button id="warranty-csv-import-btn" class="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-semibold" disabled>업로드</button>
+                    </div>
+                    <div id="warranty-csv-status" class="text-sm text-gray-500"></div>
+                    <div id="warranty-csv-progress" class="hidden mt-3">
+                        <div class="w-full bg-gray-200 rounded-full h-2"><div id="warranty-csv-bar" class="bg-sky-600 h-2 rounded-full transition-all" style="width:0%"></div></div>
+                        <p id="warranty-csv-progress-text" class="text-xs text-gray-500 mt-1"></p>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
 
@@ -2378,6 +2732,50 @@ async function renderAdminDashboardPage() {
                     btn.disabled = false;
                 }
             });
+        });
+
+        // 보증 CSV 업로드
+        const csvUpload = document.getElementById('warranty-csv-upload');
+        const csvImportBtn = document.getElementById('warranty-csv-import-btn');
+        csvUpload?.addEventListener('change', () => { csvImportBtn.disabled = !csvUpload.files?.length; });
+        csvImportBtn?.addEventListener('click', async () => {
+            const file = csvUpload.files?.[0]; if (!file) return;
+            csvImportBtn.disabled = true; csvImportBtn.textContent = '처리 중...';
+            const statusEl = document.getElementById('warranty-csv-status');
+            const progressEl = document.getElementById('warranty-csv-progress');
+            const barEl = document.getElementById('warranty-csv-bar');
+            const progressText = document.getElementById('warranty-csv-progress-text');
+            progressEl.classList.remove('hidden');
+            try {
+                const text = await file.text();
+                const lines = text.trim().split('\n');
+                if (lines.length < 2) { statusEl.textContent = '데이터가 없습니다.'; return; }
+                const rows = lines.slice(1).map(line => {
+                    const c = line.split(',');
+                    return { vin: (c[0]||'').trim(), model: (c[1]||'').trim(), year: (c[2]||'').trim(),
+                        release_date: (c[3]||'').trim() || null,
+                        general_warranty_expiry: (c[4]||'').trim() || null, general_warranty_km: parseInt(c[5]) || null,
+                        drivetrain_warranty_expiry: (c[6]||'').trim() || null, drivetrain_warranty_km: parseInt(c[7]) || null,
+                        battery_warranty_expiry: (c[8]||'').trim() || null, battery_warranty_km: parseInt((c[9]||'').trim()) || null };
+                }).filter(r => r.vin);
+                statusEl.textContent = rows.length + '건 파싱 완료. 업로드 중...';
+                const batchSize = 200; let done = 0;
+                for (let i = 0; i < rows.length; i += batchSize) {
+                    const batch = rows.slice(i, i + batchSize);
+                    const { error } = await window.supabaseClient.from('warranty_data').upsert(batch, { onConflict: 'vin' });
+                    if (error) { statusEl.textContent = '오류: ' + error.message; throw error; }
+                    done += batch.length;
+                    const pct = Math.round(done / rows.length * 100);
+                    barEl.style.width = pct + '%';
+                    progressText.textContent = done + ' / ' + rows.length + '건 (' + pct + '%)';
+                }
+                statusEl.textContent = '✅ ' + rows.length + '건 업로드 완료!';
+                showToast('보증 데이터 ' + rows.length + '건 업로드 완료', 'success');
+            } catch (e) {
+                statusEl.textContent = '오류: ' + (e.message || e);
+            } finally {
+                csvImportBtn.disabled = false; csvImportBtn.textContent = '업로드'; csvUpload.value = '';
+            }
         });
 
         // 사용자 상세 보기
@@ -3489,7 +3887,8 @@ async function initBusinessCardUpload() {
             '/notices': (param) => param ? renderNoticeDetailPage(param) : renderNoticesListPage(),
             '/community': (param) => param ? renderCommunityDetailPage(param) : renderCommunityListPage(),
             '/account': renderAccountPage,
-            '/admin': renderAdminDashboardPage
+            '/admin': renderAdminDashboardPage,
+            '/warranty': renderWarrantyPage
         };
 
         /**
