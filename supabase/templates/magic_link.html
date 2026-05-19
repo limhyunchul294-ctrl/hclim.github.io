@@ -1,0 +1,9 @@
+<html>
+<body style="font-family: sans-serif; line-height: 1.6; color: #111827;">
+  <h2 style="margin-bottom: 0.5rem;">EVKMC A/S 로그인</h2>
+  <p>아래 <strong>6자리 인증 코드</strong>를 로그인 화면에 입력하세요.</p>
+  <p style="font-size: 28px; font-weight: bold; letter-spacing: 0.25em; margin: 1.5rem 0;">{{ .Token }}</p>
+  <p style="font-size: 14px; color: #6b7280;">코드는 약 1시간 동안 유효합니다. 홈 화면 앱(PWA)을 쓰는 경우에도 이 코드로 같은 화면에서 로그인할 수 있습니다.</p>
+  <p style="font-size: 12px; color: #9ca3af;">요청 이메일: {{ .Email }}</p>
+</body>
+</html>

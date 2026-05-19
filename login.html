@@ -234,27 +234,55 @@
                         id="send-magic-link-btn"
                         class="flex-1 py-2.5 rounded-xl bg-gray-800 text-white hover:bg-gray-700 transition-colors font-medium"
                     >
-                        로그인 링크 발송
+                        인증 코드 발송
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 이메일 발송 완료 메시지 모달 -->
+    <!-- 이메일 인증 코드 입력 모달 (현재 화면·앱에서 로그인) -->
     <div id="email-sent-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl text-center">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
             <div class="text-5xl mb-4">📧</div>
-            <h2 class="text-xl font-bold mb-2">이메일을 확인해주세요</h2>
-            <p class="text-sm text-gray-600 mb-6" id="email-sent-message">
-                입력하신 이메일 주소로 로그인 링크를 발송했습니다.<br>
-                이메일의 링크를 클릭하여 로그인하세요.
-            </p>
-            <button 
+            <h2 class="text-xl font-bold mb-1">인증 코드 입력</h2>
+            <p class="text-sm text-gray-600 mb-4" id="email-sent-message"></p>
+            <form id="email-otp-verify-form" class="space-y-3 text-left">
+                <div>
+                    <label for="email-otp-code" class="sr-only">인증 코드</label>
+                    <input
+                        id="email-otp-code"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        maxlength="8"
+                        required
+                        class="w-full px-4 py-3 text-center text-lg tracking-[0.35em] font-mono border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-800"
+                        placeholder="000000"
+                    >
+                </div>
+                <p id="email-otp-error" class="text-sm text-red-600 hidden text-center"></p>
+                <button
+                    type="submit"
+                    id="verify-email-otp-btn"
+                    class="w-full py-2.5 rounded-xl bg-gray-800 text-white hover:bg-gray-700 transition-colors font-medium"
+                >
+                    로그인
+                </button>
+                <button
+                    type="button"
+                    id="resend-email-otp-btn"
+                    class="w-full py-2 text-sm text-gray-600 hover:text-gray-900"
+                >
+                    코드 다시 받기
+                </button>
+            </form>
+            <button
+                type="button"
                 id="close-email-sent-modal"
-                class="w-full py-2.5 rounded-xl bg-gray-800 text-white hover:bg-gray-700 transition-colors font-medium"
+                class="w-full mt-3 py-2 text-sm text-slate-500 hover:text-slate-700"
             >
-                확인
+                닫기
             </button>
         </div>
     </div>
