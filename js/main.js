@@ -2437,6 +2437,53 @@ async function renderWarrantyPage() {
     return warrantyHtml;
 }
 
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function isValidAdminEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
+async function adminUpdateUserIdentity({ profileId, username, email, role, grade }) {
+    const payload = {
+        p_profile_id: Number(profileId),
+        p_username: username?.trim() || null,
+        p_email: email?.trim() || null,
+        p_role: role || null,
+        p_grade: grade || null
+    };
+
+    const { data, error } = await window.supabaseClient.rpc('admin_update_user_identity', payload);
+    if (!error) return { ok: true, data };
+
+    const msg = error.message || '';
+    if (msg.includes('Could not find the function') || error.code === 'PGRST202') {
+        const updatePayload = {
+            role: payload.p_role,
+            grade: payload.p_grade
+        };
+        if (payload.p_username) updatePayload.username = payload.p_username;
+        if (payload.p_email) updatePayload.email = payload.p_email.toLowerCase();
+        const { error: updateError } = await window.supabaseClient
+            .from('users')
+            .update(updatePayload)
+            .eq('profile_id', profileId);
+        if (updateError) throw updateError;
+        return {
+            ok: true,
+            data: null,
+            warning: 'DB 함수 미적용: public.users만 수정됨. Supabase에 027 마이그레이션 적용 시 auth 이메일도 동기화됩니다.'
+        };
+    }
+    throw error;
+}
+
 async function renderAdminDashboardPage() {
     const userInfo = await window.authService?.getUserInfo();
     if (!userInfo || userInfo.role !== 'admin') {
@@ -2561,7 +2608,8 @@ async function renderAdminDashboardPage() {
             <!-- 사용자 관리 탭 -->
             <div id="admin-tab-users" class="admin-tab-content hidden">
                 <div class="mb-4">
-                    <input type="text" id="admin-user-search" placeholder="이름, 이메일, 소속으로 검색..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:outline-none">
+                    <input type="text" id="admin-user-search" placeholder="ID, 이름, 이메일, 소속으로 검색..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:outline-none">
+                    <p class="text-xs text-gray-500 mt-2">ID(사번)와 이메일을 수정한 뒤 「저장」을 누르세요. 이메일 변경 시 로그인(매직링크) 주소도 함께 갱신됩니다.</p>
                 </div>
                 <div class="bg-white rounded-xl shadow-soft overflow-hidden">
                     <div class="overflow-x-auto">
@@ -2579,10 +2627,14 @@ async function renderAdminDashboardPage() {
                             </thead>
                             <tbody id="admin-users-tbody" class="divide-y divide-gray-100">
                                 ${allUsers.map(u => `
-                                    <tr class="admin-user-row hover:bg-gray-50" data-search="${(u.username||'').toLowerCase()} ${(u.name||'').toLowerCase()} ${(u.email||'').toLowerCase()} ${(u.affiliation||'').toLowerCase()}">
-                                        <td class="px-4 py-3 text-gray-800 font-mono text-xs">${u.username || '-'}</td>
-                                        <td class="px-4 py-3 font-medium text-gray-900">${u.name || '-'}</td>
-                                        <td class="px-4 py-3 text-gray-600">${u.email || '-'}</td>
+                                    <tr class="admin-user-row hover:bg-gray-50" data-search="${(u.username||'').toLowerCase()} ${(u.name||'').toLowerCase()} ${(u.email||'').toLowerCase()} ${(u.affiliation||'').toLowerCase()}" data-profile-id="${u.profile_id}">
+                                        <td class="px-4 py-3">
+                                            <input type="text" class="admin-username-input w-full min-w-[7rem] px-2 py-1 text-xs font-mono border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none" value="${escapeHtml(u.username || '')}" placeholder="사번/ID" autocomplete="off">
+                                        </td>
+                                        <td class="px-4 py-3 font-medium text-gray-900">${escapeHtml(u.name || '-')}</td>
+                                        <td class="px-4 py-3">
+                                            <input type="email" class="admin-email-input w-full min-w-[10rem] px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none" value="${escapeHtml(u.email || '')}" placeholder="email@example.com" autocomplete="off">
+                                        </td>
                                         <td class="px-4 py-3 text-gray-600">${u.affiliation || '-'}</td>
                                         <td class="px-4 py-3">
                                             <select class="admin-role-select text-xs border border-gray-300 rounded px-2 py-1" data-user-id="${u.profile_id}">
@@ -2690,23 +2742,50 @@ async function renderAdminDashboardPage() {
             });
         });
 
-        // 사용자 역할/등급 저장
+        // 사용자 ID·이메일·역할·등급 저장
         document.querySelectorAll('.admin-save-user-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const userId = btn.dataset.userId;
                 const row = btn.closest('tr');
+                const newUsername = row.querySelector('.admin-username-input')?.value?.trim() || '';
+                const newEmail = row.querySelector('.admin-email-input')?.value?.trim() || '';
                 const newRole = row.querySelector('.admin-role-select').value;
                 const newGrade = row.querySelector('.admin-grade-select').value;
+
+                if (!newUsername) {
+                    showToast('ID(사번)를 입력해주세요.', 'error');
+                    return;
+                }
+                if (!newEmail || !isValidAdminEmail(newEmail)) {
+                    showToast('올바른 이메일 주소를 입력해주세요.', 'error');
+                    return;
+                }
+
                 btn.textContent = '저장 중...';
                 btn.disabled = true;
                 try {
-                    const { error } = await window.supabaseClient
-                        .from('users')
-                        .update({ role: newRole, grade: newGrade })
-                        .eq('profile_id', userId);
-                    if (error) throw error;
+                    const result = await adminUpdateUserIdentity({
+                        profileId: userId,
+                        username: newUsername,
+                        email: newEmail,
+                        role: newRole,
+                        grade: newGrade
+                    });
+                    const idx = allUsers.findIndex(u => String(u.profile_id) === String(userId));
+                    if (idx >= 0) {
+                        allUsers[idx].username = newUsername;
+                        allUsers[idx].email = newEmail.toLowerCase();
+                        allUsers[idx].role = newRole;
+                        allUsers[idx].grade = newGrade;
+                    }
+                    row.dataset.search = `${newUsername.toLowerCase()} ${(allUsers[idx]?.name || '').toLowerCase()} ${newEmail.toLowerCase()} ${(allUsers[idx]?.affiliation || '').toLowerCase()}`;
                     btn.textContent = '완료!';
                     btn.classList.replace('bg-gray-800', 'bg-green-600');
+                    if (result.warning) {
+                        showToast(result.warning, 'error');
+                    } else {
+                        showToast('사용자 정보가 저장되었습니다.', 'success');
+                    }
                     setTimeout(() => {
                         btn.textContent = '저장';
                         btn.classList.replace('bg-green-600', 'bg-gray-800');
@@ -2714,6 +2793,7 @@ async function renderAdminDashboardPage() {
                     }, 1500);
                 } catch (e) {
                     console.error('사용자 업데이트 오류:', e);
+                    showToast(e.message || '저장에 실패했습니다.', 'error');
                     btn.textContent = '오류';
                     btn.classList.replace('bg-gray-800', 'bg-red-600');
                     setTimeout(() => {
@@ -2874,7 +2954,7 @@ async function renderAdminDashboardPage() {
 
                 const headerEl = document.createElement('div');
                 headerEl.className = 'bg-gray-800 text-white p-5 rounded-t-xl';
-                headerEl.innerHTML = '<h2 class="text-lg font-bold">' + (u.name || '-') + ' 상세 정보</h2><p class="text-sm text-gray-300 mt-1">' + (u.username || '-') + ' · ' + (u.email || '-') + '</p>';
+                headerEl.innerHTML = '<h2 class="text-lg font-bold">' + escapeHtml(u.name || '-') + ' 상세 정보</h2><p class="text-sm text-gray-300 mt-1">profile #' + escapeHtml(String(u.profile_id)) + '</p>';
 
                 const bodyEl = document.createElement('div');
                 bodyEl.className = 'p-5 space-y-4';
@@ -2891,13 +2971,28 @@ async function renderAdminDashboardPage() {
                     cardImageHtml = '<div class="border rounded-lg overflow-hidden mt-4"><div class="bg-gray-50 px-4 py-2 font-semibold text-sm text-gray-700">명함 이미지</div><div class="p-4 flex justify-center bg-white"><img src="' + cardImageUrl + '" alt="명함" class="max-w-full max-h-64 rounded-lg shadow-sm object-contain" onerror="this.parentElement.innerHTML=\'<p class=\\\'text-sm text-gray-400 text-center py-4\\\'>이미지를 불러올 수 없습니다</p>\'"></div></div>';
                 }
 
-                bodyEl.innerHTML =
-                    section('계정 정보', [
-                        ['ID (사번)', u.username || '-'],
-                        ['이름', u.name || '-'],
-                        ['이메일', u.email || '-'],
-                        ['연락처', u.phone || '-'],
-                        ['소속', u.affiliation || '-'],
+                const editAccountHtml = `
+                    <div class="border rounded-lg overflow-hidden mb-4">
+                        <div class="bg-sky-50 px-4 py-2 font-semibold text-sm text-sky-900">로그인 정보 수정</div>
+                        <div class="p-4 space-y-3">
+                            <label class="block text-sm">
+                                <span class="text-gray-600 mb-1 block">ID (사번)</span>
+                                <input type="text" id="admin-detail-username" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 focus:outline-none" value="${escapeHtml(u.username || '')}" autocomplete="off">
+                            </label>
+                            <label class="block text-sm">
+                                <span class="text-gray-600 mb-1 block">이메일 (매직링크)</span>
+                                <input type="email" id="admin-detail-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 focus:outline-none" value="${escapeHtml(u.email || '')}" autocomplete="off">
+                            </label>
+                            <p class="text-xs text-gray-500">저장 시 public.users와 auth.users 이메일이 동기화됩니다.</p>
+                        </div>
+                    </div>
+                `;
+
+                bodyEl.innerHTML = editAccountHtml +
+                    section('기타 계정 정보', [
+                        ['이름', escapeHtml(u.name || '-')],
+                        ['연락처', escapeHtml(u.phone || '-')],
+                        ['소속', escapeHtml(u.affiliation || '-')],
                         ['역할', u.role === 'admin' ? '관리자' : '사용자'],
                         ['등급', u.grade === 'black' ? '⚫ 블랙' : u.grade === 'silver' ? '⚪ 실버' : '🔵 블루'],
                     ]) +
@@ -2914,10 +3009,14 @@ async function renderAdminDashboardPage() {
                     cardImageHtml;
 
                 const footerEl = document.createElement('div');
-                footerEl.className = 'p-4 border-t text-center';
+                footerEl.className = 'p-4 border-t flex justify-center gap-2';
+                const saveDetailBtn = document.createElement('button');
+                saveDetailBtn.className = 'px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-medium';
+                saveDetailBtn.textContent = '저장';
                 const closeBtn = document.createElement('button');
                 closeBtn.className = 'px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium';
                 closeBtn.textContent = '닫기';
+                footerEl.appendChild(saveDetailBtn);
                 footerEl.appendChild(closeBtn);
 
                 modal.appendChild(headerEl);
@@ -2925,6 +3024,55 @@ async function renderAdminDashboardPage() {
                 modal.appendChild(footerEl);
                 overlay.appendChild(modal);
                 document.body.appendChild(overlay);
+
+                const syncTableRow = (username, email) => {
+                    const tableRow = document.querySelector(`tr[data-profile-id="${u.profile_id}"]`);
+                    if (tableRow) {
+                        const userInput = tableRow.querySelector('.admin-username-input');
+                        const emailInput = tableRow.querySelector('.admin-email-input');
+                        if (userInput) userInput.value = username;
+                        if (emailInput) emailInput.value = email;
+                        tableRow.dataset.search = `${username.toLowerCase()} ${(u.name || '').toLowerCase()} ${email.toLowerCase()} ${(u.affiliation || '').toLowerCase()}`;
+                    }
+                    u.username = username;
+                    u.email = email;
+                };
+
+                saveDetailBtn.addEventListener('click', async () => {
+                    const newUsername = document.getElementById('admin-detail-username')?.value?.trim() || '';
+                    const newEmail = document.getElementById('admin-detail-email')?.value?.trim() || '';
+                    if (!newUsername) {
+                        showToast('ID(사번)를 입력해주세요.', 'error');
+                        return;
+                    }
+                    if (!isValidAdminEmail(newEmail)) {
+                        showToast('올바른 이메일 주소를 입력해주세요.', 'error');
+                        return;
+                    }
+                    saveDetailBtn.disabled = true;
+                    saveDetailBtn.textContent = '저장 중...';
+                    try {
+                        const result = await adminUpdateUserIdentity({
+                            profileId: u.profile_id,
+                            username: newUsername,
+                            email: newEmail,
+                            role: u.role,
+                            grade: u.grade
+                        });
+                        syncTableRow(newUsername, newEmail.toLowerCase());
+                        if (result.warning) {
+                            showToast(result.warning, 'error');
+                        } else {
+                            showToast('로그인 정보가 저장되었습니다.', 'success');
+                        }
+                    } catch (e) {
+                        console.error('상세 저장 오류:', e);
+                        showToast(e.message || '저장에 실패했습니다.', 'error');
+                    } finally {
+                        saveDetailBtn.disabled = false;
+                        saveDetailBtn.textContent = '저장';
+                    }
+                });
 
                 closeBtn.addEventListener('click', () => overlay.remove());
                 overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
