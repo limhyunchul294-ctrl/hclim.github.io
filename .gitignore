@@ -28,5 +28,8 @@ organize-files.ps1
 # 루트에 실수로 떨어진 스크린샷(타임스탬프 파일명, 예: 2025-11-05 14 03 38.png)
 /20??-??-??*.png
 
+# QQ 정비지침서 원본 PDF (Supabase Storage 업로드용)
+QQ_SM/*.pdf
+
 # public 폴더는 Git에 포함되어야 함 (정적 파일)
 # public/

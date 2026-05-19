@@ -5,6 +5,7 @@ import './dataService.js';
 import './fileUploadService.js';
 import './securityAgreement.js';
 import { maintenanceManualTreeData, maintenanceManualMapping } from './maintenanceManualMapping.js';
+import { qqMaintenanceManualTreeData, qqMaintenanceManualMapping } from './maintenanceManualMappingQQ.js';
 import { etmTreeData, etmMapping } from './etmMapping.js';
 
 // js/main.js (Final Version)
@@ -48,7 +49,25 @@ if (window.__APP_INIT__) {
           { value: 'masada-2van', label: 'MASADA 2VAN' },
           { value: 'masada-4van', label: 'MASADA 4VAN' },
           { value: 'masada-cargo', label: 'MASADA Cargo(Pick-up)' },
+          { value: 'masada-qq', label: 'MASADA QQ' },
         ];
+
+        const MAINTENANCE_MODEL_STORAGE_KEY = 'evkmc-maintenance-model';
+
+        function getMaintenanceModel() {
+            return localStorage.getItem(MAINTENANCE_MODEL_STORAGE_KEY) || 'masada-2van';
+        }
+
+        function setMaintenanceModel(model) {
+            localStorage.setItem(MAINTENANCE_MODEL_STORAGE_KEY, model);
+        }
+
+        function getMaintenanceTreeData(model = getMaintenanceModel()) {
+            if (model === 'masada-qq') {
+                return qqMaintenanceManualTreeData || maintenanceManualTreeData;
+            }
+            return maintenanceManualTreeData;
+        }
 
         // PDF 매핑 데이터
         const PDF_MAPPING = {
@@ -91,9 +110,12 @@ if (window.__APP_INIT__) {
             'wiring-1-7': { fileName: 'Tailgate wiring.jpeg', bucket: 'wiring_diagrams', title: '테일게이트 와이어링', type: 'image' },
         };
         
-        // 정비지침서 매핑 병합
+        // 정비지침서 매핑 병합 (VAN + QQ)
         if (maintenanceManualMapping) {
             Object.assign(PDF_MAPPING, maintenanceManualMapping);
+        }
+        if (qqMaintenanceManualMapping) {
+            Object.assign(PDF_MAPPING, qqMaintenanceManualMapping);
         }
         
         // ETM 매핑 병합
@@ -104,7 +126,7 @@ if (window.__APP_INIT__) {
         // ---- 3. 트리 데이터 ----
         function getTreeDataByTitle(title) {
             const dataMap = {
-                '정비지침서': maintenanceManualTreeData || [
+                '정비지침서': getMaintenanceTreeData() || [
                         {
                             id: 'sm-0',
                             label: '▪ 일반 사항',
@@ -1427,16 +1449,21 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             }
             
             const treeData = getTreeDataByTitle(title);
+            const isMaintenanceManual = title === '정비지침서';
+            const selectedModel = isMaintenanceManual ? getMaintenanceModel() : 'masada-2van';
             
             return `
-                <div class="max-w-6xl mx-auto p-6">
+                <div class="max-w-6xl mx-auto p-6" data-doc-title="${title}">
                     <div class="flex items-center justify-between mb-6">
                         <h1 class="text-2xl font-bold text-gray-900">${title}</h1>
+                        ${isMaintenanceManual ? `
                         <div class="flex items-center gap-4">
-                            <select id="model-select" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
-                                ${MODELS.map(model => `<option value="${model.value}">${model.label}</option>`).join('')}
+                            <label for="model-select" class="sr-only">차종</label>
+                            <select id="model-select" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand max-w-[14rem]">
+                                ${MODELS.map(model => `<option value="${model.value}"${model.value === selectedModel ? ' selected' : ''}>${model.label}</option>`).join('')}
                             </select>
                         </div>
+                        ` : ''}
                     </div>
                     
                     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -4845,10 +4872,30 @@ async function initBusinessCardUpload() {
                 }
             });
 
-            // 모델 선택 변경
+            // 모델 선택 변경 (정비지침서)
             document.addEventListener('change', (e) => {
-                if (e.target.matches('#model-select')) {
-                    showToast(`모델이 ${e.target.value}로 변경되었습니다.`, 'info');
+                if (!e.target.matches('#model-select')) return;
+                const model = e.target.value;
+                setMaintenanceModel(model);
+                const modelLabel = MODELS.find((m) => m.value === model)?.label || model;
+                if (window.location.hash === '#/shop') {
+                    const treeContainer = document.getElementById('tree-container');
+                    if (treeContainer) {
+                        treeContainer.innerHTML = renderTree(getMaintenanceTreeData(model));
+                    }
+                    const viewer = document.getElementById('document-viewer');
+                    if (viewer) {
+                        viewer.innerHTML = `
+                            <div class="text-center text-gray-500">
+                                <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <p>문서를 선택하세요</p>
+                            </div>`;
+                    }
+                    showToast(`정비지침서: ${modelLabel}`, 'info');
+                } else {
+                    showToast(`차종: ${modelLabel} (정비지침서 메뉴에서 적용)`, 'info');
                 }
             });
         }
