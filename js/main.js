@@ -1634,7 +1634,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                             <h3 class="text-lg font-semibold text-gray-900 mb-2 cursor-pointer hover:text-blue-600 transition-colors" onclick="viewNotice(${notice.id})">
                                 ${notice.title}
                             </h3>
-                            <p class="text-gray-600 text-sm mb-3">${(notice.content || '내용이 없습니다.').substring(0, 150)}${(notice.content || '').length > 150 ? '...' : ''}</p>
+                            <p class="text-gray-600 text-sm mb-3">${stripMarkdownPlain(notice.content || '내용이 없습니다.').substring(0, 150)}${(notice.content || '').length > 150 ? '...' : ''}</p>
                             <div class="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
                                 <div class="flex items-center gap-3">
                                     <span class="flex items-center gap-1">
@@ -1746,11 +1746,11 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                         <div class="bg-white rounded-xl shadow-soft p-8">
                             <div class="flex items-center justify-between mb-6">
                                 <span class="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">${notice.category || '일반'}</span>
-                                <span class="text-sm text-gray-500">${new Date(notice.created_at).toLocaleString()}</span>
+                                <span class="text-sm text-gray-500">${formatBoardDate(notice.created_at)}</span>
                             </div>
-                            <h1 class="text-2xl font-bold text-gray-900 mb-6">${notice.title}</h1>
-                            <div class="prose max-w-none">
-                                <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">${notice.content || '내용이 없습니다.'}</p>
+                            <h1 class="text-2xl font-bold text-gray-900 mb-6">${escapeHtml(notice.title)}</h1>
+                            <div class="prose prose-sm max-w-none text-gray-700 leading-relaxed board-markdown">
+                                ${parseBoardMarkdown(notice.content)}
                             </div>
                             ${manageButtons}
                         </div>
@@ -1849,7 +1849,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 ${post.title}
                             </h3>
                             <p class="text-gray-600 text-sm mb-4 line-clamp-2">
-                                ${(post.content || '내용이 없습니다.').substring(0, 150)}${(post.content || '').length > 150 ? '...' : ''}
+                                ${stripMarkdownPlain(post.content || '내용이 없습니다.').substring(0, 150)}${(post.content || '').length > 150 ? '...' : ''}
                             </p>
                             <div class="flex items-center justify-between pt-3 border-t border-gray-100">
                                 <div class="flex items-center gap-4 text-xs text-gray-500">
@@ -2044,11 +2044,11 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                     </span>
                                     ${post.is_solved ? '<span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">✓ 해결됨</span>' : ''}
                                 </div>
-                                <span class="text-sm text-gray-500">${new Date(post.created_at).toLocaleString()}</span>
+                                <span class="text-sm text-gray-500">${formatBoardDate(post.created_at)}</span>
                             </div>
-                            <h1 class="text-2xl font-bold text-gray-900 mb-6">${post.title}</h1>
-                            <div class="prose max-w-none mb-6">
-                                <div class="text-gray-700 leading-relaxed whitespace-pre-wrap">${post.content || '내용이 없습니다.'}</div>
+                            <h1 class="text-2xl font-bold text-gray-900 mb-6">${escapeHtml(post.title)}</h1>
+                            <div class="prose prose-sm max-w-none mb-6 board-markdown text-gray-700 leading-relaxed">
+                                ${parseBoardMarkdown(post.content)}
                             </div>
                             
                             ${post.attachments && post.attachments.length > 0 ? `
@@ -2545,6 +2545,46 @@ function escapeHtml(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+}
+
+/** 게시판 본문 Markdown → HTML (marked + DOMPurify) */
+function parseBoardMarkdown(markdown) {
+    const raw = (markdown != null && markdown !== '') ? String(markdown) : '';
+    if (!raw) return '내용이 없습니다.';
+    let html;
+    if (typeof marked !== 'undefined' && marked.parse) {
+        html = marked.parse(raw);
+    } else {
+        return escapeHtml(raw)
+            .replace(/\n/g, '<br>')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    }
+    if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
+        return DOMPurify.sanitize(html, {
+            ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'b', 'i', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'a', 'blockquote', 'code', 'pre', 'hr', 'div'],
+            ALLOWED_ATTR: ['href', 'title', 'class']
+        });
+    }
+    return html;
+}
+
+function stripMarkdownPlain(text) {
+    return String(text || '')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/^#+\s+/gm, '');
+}
+
+function formatBoardDate(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
 }
 
 function isValidAdminEmail(email) {
