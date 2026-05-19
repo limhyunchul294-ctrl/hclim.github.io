@@ -23,7 +23,7 @@ ALTER SEQUENCE community_posts_id_seq RESTART WITH 1;
 -- ============================================
 
 -- N01: 2025-06-03 포털 오픈 (고정)
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     'EVKMC A/S 정비 포털 오픈',
     $$EVKMC A/S **정비 기술 포털**이 오픈했습니다.
@@ -42,12 +42,11 @@ VALUES (
 문의는 EVKMC A/S 담당자에게 연락해 주세요.$$,
     '중요',
     true,
-    'EVKMC A/S',
     '2025-06-03 09:00:00+09'::timestamptz
 );
 
 -- N02: 2025-07-15 전장회로도·ETM
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     '전장회로도·ETM 자료 이용 안내',
     $$**전장회로도(ETM)** 메뉴가 정비 포털에 통합되었습니다.
@@ -64,12 +63,11 @@ VALUES (
 PC에서는 포털 화면에서 PDF를 바로 열람할 수 있습니다. 현장에서는 Wi‑Fi 환경을 확인해 주세요.$$,
     '업데이트',
     false,
-    'EVKMC A/S',
     '2025-07-15 10:00:00+09'::timestamptz
 );
 
 -- N03: 2025-08-20 워터마크
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     '기술문서 워터마크 및 보안 유의',
     $$기술문서·이미지 열람 시 **사용자 식별 워터마크**가 표시됩니다.
@@ -85,12 +83,11 @@ VALUES (
 위반 시 계정 제한 및 법적 조치가 있을 수 있습니다. 협조 부탁드립니다.$$,
     '공지',
     false,
-    'EVKMC A/S',
     '2025-08-20 11:00:00+09'::timestamptz
 );
 
 -- N04: 2025-09-10 와이어링 커넥터
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     '와이어링 커넥터 자료 추가',
     $$전장회로도 메뉴에 **와이어링 커넥터** 이미지 자료가 추가되었습니다.
@@ -108,12 +105,11 @@ VALUES (
 이미지가 보이지 않으면 브라우저 새로고침 후 다시 시도해 주세요.$$,
     '업데이트',
     false,
-    'EVKMC A/S',
     '2025-09-10 09:30:00+09'::timestamptz
 );
 
 -- N05: 2025-10-07 등급 안내
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     '계정 등급(Blue / Silver / Black) 안내',
     $$포털 메뉴는 계정 **등급(Label)** 에 따라 달라집니다.
@@ -131,12 +127,11 @@ VALUES (
 메뉴가 보이지 않으면 등록·등급을 먼저 확인해 주세요.$$,
     '중요',
     false,
-    'EVKMC A/S',
     '2025-10-07 14:00:00+09'::timestamptz
 );
 
 -- N06: 2025-11-12 이메일 로그인
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     '이메일 로그인(매직링크) 안내',
     $$로그인 방식이 **이메일 매직링크**로 안정화되었습니다.
@@ -154,12 +149,11 @@ VALUES (
 계정·이메일 불일치 시 관리자에게 문의해 주세요.$$,
     '업데이트',
     false,
-    'EVKMC A/S',
     '2025-11-12 10:00:00+09'::timestamptz
 );
 
 -- N07: 2025-12-05 게시판 오픈
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     '공지·커뮤니티 게시판 오픈',
     $$**공지사항**과 **커뮤니티** 게시판을 이용하실 수 있습니다.
@@ -176,12 +170,11 @@ VALUES (
 등록되지 않은 계정은 게시판 열람이 제한될 수 있습니다. 유용한 현장 정보를 공유해 주시면 감사하겠습니다.$$,
     '업데이트',
     false,
-    'EVKMC A/S',
     '2025-12-05 09:00:00+09'::timestamptz
 );
 
 -- N08: 2026-01-08 PDF 모바일
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     '모바일에서 PDF 보는 방법',
     $$모바일 브라우저는 보안상 PDF를 화면 안(iframe)에 바로 띄우지 않는 경우가 많습니다.
@@ -197,12 +190,11 @@ VALUES (
 - 계정 **등급(Blue / Silver / Black)** 또는 미등록 계정일 수 있습니다. 관리자에게 문의하세요.$$,
     '공지',
     false,
-    'EVKMC A/S',
     '2026-01-08 10:00:00+09'::timestamptz
 );
 
 -- N09: 2026-02-14 MASADA QQ (고정)
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     'MASADA QQ 정비지침서 등록',
     $$**MASADA QQ** 차종 정비지침서가 포털에 등록되었습니다.
@@ -223,12 +215,11 @@ VALUES (
 - `#/shop?model=masada-qq` — QQ 정비지침서로 이동$$,
     '업데이트',
     true,
-    'EVKMC A/S',
     '2026-02-14 09:00:00+09'::timestamptz
 );
 
 -- N10: 2026-02-25 보안서약서 (고정)
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     '보안서약서 동의 절차 안내',
     $$기술문서 열람 전 **보안서약서** 동의가 필요합니다.
@@ -245,12 +236,11 @@ VALUES (
 문의는 관리자에게 연락해 주세요.$$,
     '중요',
     true,
-    'EVKMC A/S',
     '2026-02-25 11:00:00+09'::timestamptz
 );
 
 -- N11: 2026-03-09 차량 보증
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     '차량 보증 조회 기능 안내',
     $$**차량 보증** 메뉴에서 보증 여부를 조회할 수 있습니다.
@@ -265,12 +255,11 @@ VALUES (
 - 조회 오류 시 VIN 형식·네트워크를 확인한 뒤 관리자에게 문의하세요.$$,
     '업데이트',
     false,
-    'EVKMC A/S',
     '2026-03-09 10:00:00+09'::timestamptz
 );
 
 -- N12: 2026-05-19 모바일·PWA (고정)
-INSERT INTO notices (title, content, category, is_pinned, author_name, created_at)
+INSERT INTO notices (title, content, category, is_pinned, created_at)
 VALUES (
     '모바일·PWA 대규모 업데이트',
     $$현장·모바일 환경 이용 편의를 대폭 개선했습니다.
@@ -294,7 +283,6 @@ VALUES (
 보안서약서 모바일 화면도 함께 개선되었습니다. 문의는 관리자에게 연락해 주세요.$$,
     '중요',
     true,
-    'EVKMC A/S',
     '2026-05-19 09:00:00+09'::timestamptz
 );
 
