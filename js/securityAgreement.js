@@ -2,6 +2,191 @@
 // 보안서약서 팝업 컴포넌트
 
 window.securityAgreement = {
+    _bodyScrollLockCount: 0,
+    _scrollY: 0,
+
+    lockBodyScroll() {
+        if (this._bodyScrollLockCount === 0) {
+            this._scrollY = window.scrollY || 0;
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${this._scrollY}px`;
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+            document.body.style.overflow = 'hidden';
+        }
+        this._bodyScrollLockCount += 1;
+    },
+
+    unlockBodyScroll() {
+        this._bodyScrollLockCount = Math.max(0, this._bodyScrollLockCount - 1);
+        if (this._bodyScrollLockCount !== 0) return;
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, this._scrollY || 0);
+    },
+
+    removePopupElement() {
+        document.getElementById('section-detail-overlay')?.remove();
+        document.getElementById('security-agreement-popup')?.remove();
+        this.unlockBodyScroll();
+    },
+
+    ensureAgreementStyles() {
+        if (document.getElementById('security-agreement-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'security-agreement-styles';
+        style.textContent = `
+            .security-agreement-popup-overlay {
+                padding: 0;
+                align-items: stretch;
+                justify-content: stretch;
+            }
+            @media (min-width: 640px) {
+                .security-agreement-popup-overlay {
+                    padding: 1rem;
+                    align-items: center;
+                    justify-content: center;
+                }
+            }
+            .security-agreement-container {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                height: 100dvh;
+                max-height: 100dvh;
+                border-radius: 0;
+            }
+            @media (min-width: 640px) {
+                .security-agreement-container {
+                    height: auto;
+                    max-height: 90vh;
+                    border-radius: 0.5rem;
+                }
+            }
+            .security-agreement-content {
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow-y: auto;
+                overflow-x: hidden;
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
+                touch-action: pan-y;
+            }
+            .security-agreement-footer {
+                flex-shrink: 0;
+                padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+            }
+            .security-agreement-header {
+                flex-shrink: 0;
+                padding-top: max(1rem, env(safe-area-inset-top));
+            }
+            .security-section-overlay {
+                padding: 0;
+                align-items: stretch;
+            }
+            @media (min-width: 640px) {
+                .security-section-overlay {
+                    padding: 1rem;
+                    align-items: center;
+                }
+            }
+            .security-section-detail {
+                height: 100dvh;
+                max-height: 100dvh;
+                border-radius: 0;
+            }
+            @media (min-width: 640px) {
+                .security-section-detail {
+                    height: auto;
+                    max-height: 85vh;
+                    border-radius: 0.75rem;
+                }
+            }
+            .security-section-body {
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
+                touch-action: pan-y;
+            }
+            .expandable-item {
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+                min-height: 3.25rem;
+                user-select: none;
+            }
+            @media (min-width: 640px) {
+                .expandable-item:hover {
+                    background: #f1f5f9 !important;
+                    transform: translateX(0.25rem);
+                }
+            }
+            .expandable-item:active {
+                background: #e2e8f0 !important;
+            }
+            @media (max-width: 639px) {
+                .expandable-item .expand-icon::after {
+                    content: ' 열기';
+                    font-size: 0.65rem;
+                    font-weight: 600;
+                    color: #0369a1;
+                }
+                .expandable-item.expanded .expand-icon::after {
+                    content: ' ✓';
+                    color: #059669;
+                }
+            }
+            .expandable-item.expanded {
+                background: #e2e8f0 !important;
+                border-left-color: #475569 !important;
+            }
+            .expandable-item.expanded .expand-icon {
+                transform: rotate(180deg);
+            }
+            .expandable-content {
+                display: none;
+            }
+            .security-agreement-content::-webkit-scrollbar,
+            .security-section-body::-webkit-scrollbar {
+                width: 8px;
+            }
+            .security-agreement-content::-webkit-scrollbar-thumb,
+            .security-section-body::-webkit-scrollbar-thumb {
+                background: #64748b;
+                border-radius: 4px;
+            }
+            .security-overlay-close-btn {
+                min-width: 2.75rem;
+                min-height: 2.75rem;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            #inputStatus.correct, #companyStatus.correct, #nameStatus.correct {
+                color: #10b981;
+                display: block;
+            }
+            #inputStatus.incorrect, #companyStatus.incorrect, #nameStatus.incorrect {
+                color: #ef4444;
+                display: block;
+            }
+            .security-agreement-footer input,
+            .security-agreement-footer button {
+                touch-action: manipulation;
+                font-size: 16px;
+            }
+            @supports (height: 100dvh) {
+                .security-agreement-container { max-height: 100dvh; }
+                .security-section-detail { max-height: 100dvh; }
+            }
+        `;
+        document.head.appendChild(style);
+    },
+
     /**
      * 보안서약서 동의 상태 확인
      * @returns {Promise<boolean>} 동의 여부
@@ -217,26 +402,40 @@ window.securityAgreement = {
             return;
         }
 
+        this.lockBodyScroll();
+        this.ensureAgreementStyles();
+
         const popup = document.createElement('div');
         popup.id = 'security-agreement-popup';
-        popup.className = 'fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center p-4';
+        popup.className = 'security-agreement-popup-overlay fixed inset-0 bg-black bg-opacity-50 z-[10000] flex';
         popup.style.backdropFilter = 'blur(4px)';
 
         popup.innerHTML = `
-            <div class="security-agreement-container bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                <div class="security-agreement-header bg-gradient-to-r from-slate-700 to-slate-800 text-white p-6">
-                    <h1 class="text-2xl font-bold mb-2">EVKMC 보안서약서</h1>
+            <div class="security-agreement-container bg-white shadow-2xl max-w-4xl w-full mx-auto overflow-hidden flex flex-col" role="dialog" aria-modal="true" aria-labelledby="security-agreement-title">
+                <div class="security-agreement-header bg-gradient-to-r from-slate-700 to-slate-800 text-white p-4 sm:p-6">
+                    <h1 id="security-agreement-title" class="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">EVKMC 보안서약서</h1>
                     <p class="text-sm opacity-90">기술 문서 포털 사용자 동의서</p>
-                    <div class="mt-3 inline-block bg-black bg-opacity-20 px-3 py-1 rounded text-xs">
+                    <div class="mt-2 sm:mt-3 inline-block bg-black bg-opacity-20 px-3 py-1 rounded text-xs">
                         정비 기술 문서 및 서비스 정보 보호 약관
                     </div>
                 </div>
+                <div id="security-agreement-progress" class="flex-shrink-0 px-4 py-3 bg-slate-100 border-b border-slate-200">
+                    <div class="flex justify-between items-center text-xs text-slate-600 mb-1.5">
+                        <span class="font-medium">필수 항목 확인</span>
+                        <span id="security-read-progress-text">0 / 8</span>
+                    </div>
+                    <div class="h-2 bg-slate-200 rounded-full overflow-hidden" aria-hidden="true">
+                        <div id="security-read-progress-bar" class="h-full bg-sky-600 transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p class="text-xs text-sky-800 mt-2 leading-relaxed sm:hidden">아래 <strong>8개 항목</strong>을 각각 눌러 전문을 확인하세요. 항목을 탭하면 전체 화면으로 열립니다.</p>
+                    <p class="text-xs text-slate-500 mt-1 hidden sm:block">각 항목을 눌러 내용을 확인한 뒤, 하단에서 동의 문구를 입력하세요.</p>
+                </div>
                 
-                <div class="security-agreement-content flex-1 overflow-y-auto p-6 text-slate-700" style="max-height: calc(90vh - 300px);">
+                <div class="security-agreement-content p-4 sm:p-6 text-slate-700">
                     <div class="space-y-6">
                         <div class="section">
                             <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">1. 서비스 개요 및 목적</h2>
-                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                                 <div class="flex justify-between items-center">
                                     <span class="text-sm font-medium">본 포털의 운영 목적과 자료 보호에 대해 알아보기</span>
                                     <span class="expand-icon text-slate-600">▼</span>
@@ -251,7 +450,7 @@ window.securityAgreement = {
                         
                         <div class="section">
                             <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">2. 허용되는 사용 범위</h2>
-                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                                 <div class="flex justify-between items-center">
                                     <span class="text-sm font-medium">자료 이용이 명시적으로 허용되는 범위 확인하기</span>
                                     <span class="expand-icon text-slate-600">▼</span>
@@ -273,7 +472,7 @@ window.securityAgreement = {
                         
                         <div class="section">
                             <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">3. 금지되는 행위</h2>
-                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                                 <div class="flex justify-between items-center">
                                     <span class="text-sm font-medium">엄격히 금지되는 행위와 그 이유 알아보기</span>
                                     <span class="expand-icon text-slate-600">▼</span>
@@ -302,7 +501,7 @@ window.securityAgreement = {
                         
                         <div class="section">
                             <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">4. 적용 법령 및 형사적 책임</h2>
-                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                                 <div class="flex justify-between items-center">
                                     <span class="text-sm font-medium">무단 배포 시 적용되는 법령과 처벌 상세 알아보기</span>
                                     <span class="expand-icon text-slate-600">▼</span>
@@ -325,7 +524,7 @@ window.securityAgreement = {
                         
                         <div class="section">
                             <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">5. 민사적 책임 및 손해배상</h2>
-                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                                 <div class="flex justify-between items-center">
                                     <span class="text-sm font-medium">민사상 손해배상 청구 규모 및 방식 상세 알아보기</span>
                                     <span class="expand-icon text-slate-600">▼</span>
@@ -348,7 +547,7 @@ window.securityAgreement = {
                         
                         <div class="section">
                             <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">6. 책임의 범위 및 공동 불법행위</h2>
-                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                                 <div class="flex justify-between items-center">
                                     <span class="text-sm font-medium">직·간접적 책임이 발생하는 다양한 경우 확인하기</span>
                                     <span class="expand-icon text-slate-600">▼</span>
@@ -372,7 +571,7 @@ window.securityAgreement = {
                         
                         <div class="section">
                             <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">7. 모니터링, 적발 및 대응 절차</h2>
-                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                                 <div class="flex justify-between items-center">
                                     <span class="text-sm font-medium">EVKMC의 모니터링 방식 및 적발 시 대응 조치 알아보기</span>
                                     <span class="expand-icon text-slate-600">▼</span>
@@ -397,7 +596,7 @@ window.securityAgreement = {
                         
                         <div class="section">
                             <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">8. 사용자의 권리와 의무</h2>
-                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                            <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                                 <div class="flex justify-between items-center">
                                     <span class="text-sm font-medium">포털 이용 시 사용자가 가져야 할 책임감 확인하기</span>
                                     <span class="expand-icon text-slate-600">▼</span>
@@ -425,7 +624,7 @@ window.securityAgreement = {
                     </div>
                 </div>
                 
-                <div class="security-agreement-footer bg-slate-50 p-6 border-t border-slate-200">
+                <div class="security-agreement-footer bg-slate-50 p-4 sm:p-6 border-t border-slate-200">
                     <div class="mb-4">
                         <div class="flex items-center mb-2">
                             <span class="text-sm font-semibold text-slate-700">보안서약서 동의 확인</span>
@@ -456,8 +655,8 @@ window.securityAgreement = {
                     </div>
                     
                     <div class="flex gap-3 mt-6">
-                        <button id="security-agreement-cancel-btn" class="flex-1 px-4 py-3 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 transition-colors font-semibold">취소</button>
-                        <button id="security-agreement-agree-btn" disabled class="flex-1 px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold disabled:bg-slate-400 disabled:cursor-not-allowed">동의 및 포털 이용</button>
+                        <button type="button" id="security-agreement-cancel-btn" class="flex-1 min-h-[2.75rem] px-4 py-3 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 transition-colors font-semibold touch-manipulation">취소</button>
+                        <button type="button" id="security-agreement-agree-btn" disabled class="flex-1 min-h-[2.75rem] px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold disabled:bg-slate-400 disabled:cursor-not-allowed touch-manipulation">동의 및 포털 이용</button>
                     </div>
                     <p class="text-xs text-slate-500 text-center mt-3">본 약관에 동의하지 않으실 경우 포털 서비스를 이용할 수 없습니다.</p>
                 </div>
@@ -465,69 +664,6 @@ window.securityAgreement = {
         `;
 
         document.body.appendChild(popup);
-
-        // 팝업 스타일 추가
-        const style = document.createElement('style');
-        style.textContent = `
-            .security-agreement-container {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            }
-            .security-agreement-content::-webkit-scrollbar {
-                width: 8px;
-            }
-            .security-agreement-content::-webkit-scrollbar-track {
-                background: #f1f1f1;
-            }
-            .security-agreement-content::-webkit-scrollbar-thumb {
-                background: #64748b;
-                border-radius: 4px;
-            }
-            .expandable-item.expanded {
-                background: #e2e8f0 !important;
-                border-left-color: #475569 !important;
-            }
-            .expandable-item.expanded .expand-icon {
-                transform: rotate(180deg);
-            }
-            .expandable-content {
-                animation: slideDown 0.3s ease;
-            }
-            @keyframes slideDown {
-                from {
-                    opacity: 0;
-                    transform: translateY(-10px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-            #inputStatus.correct {
-                color: #10b981;
-                display: block;
-            }
-            #inputStatus.incorrect {
-                color: #ef4444;
-                display: block;
-            }
-            #companyStatus.correct {
-                color: #10b981;
-                display: block;
-            }
-            #companyStatus.incorrect {
-                color: #ef4444;
-                display: block;
-            }
-            #nameStatus.correct {
-                color: #10b981;
-                display: block;
-            }
-            #nameStatus.incorrect {
-                color: #ef4444;
-                display: block;
-            }
-        `;
-        document.head.appendChild(style);
 
         // 이벤트 리스너 설정
         this.initPopupEvents();
@@ -547,48 +683,94 @@ window.securityAgreement = {
         const nameStatus = document.getElementById('nameStatus');
         const agreementNotice = document.getElementById('agreementNotice');
 
-        // 모든 확장 가능한 항목 추적
-        const expandableItems = document.querySelectorAll('.expandable-item');
-        const requiredSections = 8;
-        let expandedCount = 0;
-
-        // 읽은 섹션 추적
+        const expandableItems = document.querySelectorAll('#security-agreement-popup .expandable-item');
+        const requiredSections = expandableItems.length || 8;
         const readSections = new Set();
 
-        // 섹션 클릭 시 전체화면 오버레이로 표시
-        window.toggleSecuritySection = function(element) {
+        const updateReadProgress = () => {
+            const count = readSections.size;
+            const textEl = document.getElementById('security-read-progress-text');
+            const barEl = document.getElementById('security-read-progress-bar');
+            if (textEl) textEl.textContent = `${count} / ${requiredSections}`;
+            if (barEl) barEl.style.width = `${Math.min(100, (count / requiredSections) * 100)}%`;
+        };
+
+        const refreshAgreementNotice = () => {
+            if (readSections.size >= requiredSections) {
+                agreementInput.disabled = false;
+                companyInput.disabled = false;
+                nameInput.disabled = false;
+                agreementNotice.textContent = '✅ 모든 항목을 확인하셨습니다. 아래 동의 문구를 입력해주세요.';
+                agreementNotice.style.color = '#10b981';
+            } else {
+                agreementNotice.textContent = `⚠️ ${requiredSections - readSections.size}개 항목을 더 확인해주세요. (항목 카드를 탭하세요)`;
+                agreementNotice.style.color = '#ef4444';
+            }
+            updateReadProgress();
+        };
+
+        const openSectionDetail = (element) => {
+            document.getElementById('section-detail-overlay')?.remove();
+
             const title = element.closest('.section')?.querySelector('h2')?.textContent || '';
             const content = element.querySelector('.expandable-content');
             if (!content) return;
 
-            // 읽음 표시
             const sectionIndex = Array.from(expandableItems).indexOf(element);
             readSections.add(sectionIndex);
             element.classList.add('expanded');
             element.classList.remove('not-expanded');
-            expandedCount = readSections.size;
+            element.setAttribute('aria-expanded', 'true');
+            updateReadProgress();
 
-            // 전체화면 오버레이 생성
             const overlay = document.createElement('div');
             overlay.id = 'section-detail-overlay';
-            overlay.className = 'fixed inset-0 bg-black bg-opacity-70 z-[10001] flex items-center justify-center p-4';
+            overlay.className = 'security-section-overlay fixed inset-0 bg-black bg-opacity-70 z-[10001] flex';
             overlay.style.backdropFilter = 'blur(4px)';
-            
+
             const detailBox = document.createElement('div');
-            detailBox.className = 'bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col';
-            
+            detailBox.className = 'security-section-detail bg-white shadow-2xl w-full max-w-3xl mx-auto flex flex-col';
+
             const header = document.createElement('div');
-            header.className = 'bg-slate-700 text-white p-5 rounded-t-xl flex justify-between items-center flex-shrink-0';
-            header.innerHTML = '<h2 class="text-lg font-bold"></h2><button id="close-section-overlay" class="text-white hover:text-gray-300 text-2xl leading-none">&times;</button>';
+            header.className = 'bg-slate-700 text-white p-4 sm:p-5 flex justify-between items-start gap-3 flex-shrink-0';
+            header.innerHTML = '<h2 class="text-base sm:text-lg font-bold pr-2 flex-1"></h2><button type="button" id="close-section-overlay" class="security-overlay-close-btn text-white hover:text-gray-300 text-3xl leading-none flex-shrink-0" aria-label="닫기">&times;</button>';
             header.querySelector('h2').textContent = title;
-            
+
             const body = document.createElement('div');
-            body.className = 'flex-1 overflow-y-auto p-6 text-sm text-slate-700 leading-relaxed';
+            body.className = 'security-section-body p-4 sm:p-6 text-sm text-slate-700 leading-relaxed';
             body.innerHTML = content.innerHTML;
-            
+
             const footer = document.createElement('div');
-            footer.className = 'bg-slate-50 p-4 rounded-b-xl border-t text-center flex-shrink-0';
-            footer.innerHTML = `<p class="text-xs text-slate-500 mb-2">읽은 항목: ${readSections.size} / ${requiredSections}</p><button id="close-section-btn" class="px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium">확인</button>`;
+            footer.className = 'bg-slate-50 p-4 border-t flex-shrink-0 flex flex-col gap-2';
+            footer.style.paddingBottom = 'max(1rem, env(safe-area-inset-bottom))';
+
+            const progressP = document.createElement('p');
+            progressP.className = 'text-xs text-slate-500 text-center';
+            progressP.textContent = `읽은 항목: ${readSections.size} / ${requiredSections}`;
+
+            const btnRow = document.createElement('div');
+            btnRow.className = 'flex gap-2';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.id = 'close-section-btn';
+            closeBtn.className = 'flex-1 min-h-[2.75rem] px-4 py-2.5 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium touch-manipulation';
+            closeBtn.textContent = '확인';
+
+            btnRow.appendChild(closeBtn);
+
+            const hasNext = sectionIndex < expandableItems.length - 1;
+            if (hasNext) {
+                const nextBtn = document.createElement('button');
+                nextBtn.type = 'button';
+                nextBtn.id = 'next-section-btn';
+                nextBtn.className = 'flex-1 min-h-[2.75rem] px-4 py-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-medium touch-manipulation';
+                nextBtn.textContent = '다음 항목';
+                btnRow.insertBefore(nextBtn, closeBtn);
+            }
+
+            footer.appendChild(progressP);
+            footer.appendChild(btnRow);
 
             detailBox.appendChild(header);
             detailBox.appendChild(body);
@@ -596,23 +778,32 @@ window.securityAgreement = {
             overlay.appendChild(detailBox);
             document.body.appendChild(overlay);
 
-            const closeOverlay = () => {
+            const closeOverlay = (openNext) => {
                 overlay.remove();
-                // 모든 섹션을 읽었으면 입력 필드 활성화
-                if (readSections.size >= requiredSections) {
-                    agreementInput.disabled = false;
-                    companyInput.disabled = false;
-                    nameInput.disabled = false;
-                    agreementNotice.textContent = '✅ 모든 항목을 확인하셨습니다. 아래 동의 문구를 입력해주세요.';
-                    agreementNotice.style.color = '#10b981';
-                } else {
-                    agreementNotice.textContent = `⚠️ ${requiredSections - readSections.size}개 항목을 더 확인해주세요.`;
+                refreshAgreementNotice();
+                if (openNext && hasNext) {
+                    setTimeout(() => openSectionDetail(expandableItems[sectionIndex + 1]), 150);
                 }
             };
-            document.getElementById('close-section-overlay')?.addEventListener('click', closeOverlay);
-            document.getElementById('close-section-btn')?.addEventListener('click', closeOverlay);
-            overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+
+            document.getElementById('close-section-overlay')?.addEventListener('click', () => closeOverlay(false));
+            closeBtn.addEventListener('click', () => closeOverlay(false));
+            document.getElementById('next-section-btn')?.addEventListener('click', () => closeOverlay(true));
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(false); });
         };
+
+        expandableItems.forEach((item) => {
+            const open = () => openSectionDetail(item);
+            item.addEventListener('click', open);
+            item.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    open();
+                }
+            });
+        });
+
+        window.toggleSecuritySection = openSectionDetail;
 
         // 동의 문구 검증
         function checkAgreementText() {
@@ -709,10 +900,7 @@ window.securityAgreement = {
                 const success = await this.saveAgreement(company, name);
                 
                 if (success) {
-                    const popup = document.getElementById('security-agreement-popup');
-                    if (popup) {
-                        popup.remove();
-                    }
+                    this.removePopupElement();
                     
                     // 사용자 정보 캐시 갱신
                     if (window.authService?.refreshUserInfo) {
@@ -751,10 +939,7 @@ window.securityAgreement = {
         // 취소 버튼 클릭
         cancelBtn.addEventListener('click', () => {
             if (confirm('보안서약서에 동의하지 않으시겠습니까?\n포털 서비스 이용이 제한됩니다.')) {
-                const popup = document.getElementById('security-agreement-popup');
-                if (popup) {
-                    popup.remove();
-                }
+                this.removePopupElement();
                 // 로그아웃 처리
                 window.location.href = 'login.html';
             }
@@ -796,13 +981,16 @@ window.securityAgreement = {
             return;
         }
 
+        this.lockBodyScroll();
+        this.ensureAgreementStyles();
+
         const popup = document.createElement('div');
         popup.id = 'security-agreement-popup';
-        popup.className = 'fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center p-4';
+        popup.className = 'security-agreement-popup-overlay fixed inset-0 bg-black bg-opacity-50 z-[10000] flex';
         popup.style.backdropFilter = 'blur(4px)';
 
         popup.innerHTML = `
-            <div class="security-agreement-container bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="security-agreement-container bg-white shadow-2xl max-w-4xl w-full mx-auto overflow-hidden flex flex-col">
                 <div class="security-agreement-header bg-gradient-to-r from-slate-700 to-slate-800 text-white p-6">
                     <h1 class="text-2xl font-bold mb-2">EVKMC 보안서약서</h1>
                     <p class="text-sm opacity-90">기술 문서 포털 사용자 동의서</p>
@@ -811,11 +999,11 @@ window.securityAgreement = {
                     </div>
                 </div>
                 
-                <div class="security-agreement-content flex-1 overflow-y-auto p-6 text-slate-700" style="max-height: calc(90vh - 150px);">
+                <div class="security-agreement-content p-4 sm:p-6 text-slate-700">
                     ${this.getAgreementContentHTML()}
                 </div>
                 
-                <div class="security-agreement-footer bg-slate-50 p-6 border-t border-slate-200">
+                <div class="security-agreement-footer bg-slate-50 p-4 sm:p-6 border-t border-slate-200">
                     <button 
                         id="security-agreement-close-btn" 
                         class="w-full px-4 py-3 bg-slate-600 text-white rounded hover:bg-slate-700 transition-colors font-semibold"
@@ -828,59 +1016,15 @@ window.securityAgreement = {
 
         document.body.appendChild(popup);
 
-        // 팝업 스타일 추가 (이미 추가되어 있으면 스킵)
-        if (!document.getElementById('security-agreement-styles')) {
-            const style = document.createElement('style');
-            style.id = 'security-agreement-styles';
-            style.textContent = `
-                .security-agreement-container {
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                }
-                .security-agreement-content::-webkit-scrollbar {
-                    width: 8px;
-                }
-                .security-agreement-content::-webkit-scrollbar-track {
-                    background: #f1f1f1;
-                }
-                .security-agreement-content::-webkit-scrollbar-thumb {
-                    background: #64748b;
-                    border-radius: 4px;
-                }
-                .expandable-item.expanded {
-                    background: #e2e8f0 !important;
-                    border-left-color: #475569 !important;
-                }
-                .expandable-item.expanded .expand-icon {
-                    transform: rotate(180deg);
-                }
-                .expandable-content {
-                    animation: slideDown 0.3s ease;
-                }
-                @keyframes slideDown {
-                    from {
-                        opacity: 0;
-                        transform: translateY(-10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-        }
+        const closeViewPopup = () => this.removePopupElement();
 
         // 닫기 버튼 이벤트
         const closeBtn = document.getElementById('security-agreement-close-btn');
-        closeBtn.addEventListener('click', () => {
-            popup.remove();
-        });
+        closeBtn.addEventListener('click', closeViewPopup);
 
         // 팝업 외부 클릭 시 닫기
         popup.addEventListener('click', (e) => {
-            if (e.target === popup) {
-                popup.remove();
-            }
+            if (e.target === popup) closeViewPopup();
         });
 
         // 모든 섹션 자동 확장 (읽기 전용 모드)
@@ -907,7 +1051,7 @@ window.securityAgreement = {
             <div class="space-y-6">
                 <div class="section">
                     <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">1. 서비스 개요 및 목적</h2>
-                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-medium">본 포털의 운영 목적과 자료 보호에 대해 알아보기</span>
                             <span class="expand-icon text-slate-600">▼</span>
@@ -922,7 +1066,7 @@ window.securityAgreement = {
                 
                 <div class="section">
                     <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">2. 허용되는 사용 범위</h2>
-                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-medium">자료 이용이 명시적으로 허용되는 범위 확인하기</span>
                             <span class="expand-icon text-slate-600">▼</span>
@@ -944,7 +1088,7 @@ window.securityAgreement = {
                 
                 <div class="section">
                     <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">3. 금지되는 행위</h2>
-                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-medium">엄격히 금지되는 행위와 그 이유 알아보기</span>
                             <span class="expand-icon text-slate-600">▼</span>
@@ -973,7 +1117,7 @@ window.securityAgreement = {
                 
                 <div class="section">
                     <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">4. 적용 법령 및 형사적 책임</h2>
-                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-medium">무단 배포 시 적용되는 법령과 처벌 상세 알아보기</span>
                             <span class="expand-icon text-slate-600">▼</span>
@@ -996,7 +1140,7 @@ window.securityAgreement = {
                 
                 <div class="section">
                     <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">5. 민사적 책임 및 손해배상</h2>
-                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-medium">민사상 손해배상 청구 규모 및 방식 상세 알아보기</span>
                             <span class="expand-icon text-slate-600">▼</span>
@@ -1019,7 +1163,7 @@ window.securityAgreement = {
                 
                 <div class="section">
                     <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">6. 책임의 범위 및 공동 불법행위</h2>
-                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-medium">직·간접적 책임이 발생하는 다양한 경우 확인하기</span>
                             <span class="expand-icon text-slate-600">▼</span>
@@ -1043,7 +1187,7 @@ window.securityAgreement = {
                 
                 <div class="section">
                     <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">7. 모니터링, 적발 및 대응 절차</h2>
-                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-medium">EVKMC의 모니터링 방식 및 적발 시 대응 조치 알아보기</span>
                             <span class="expand-icon text-slate-600">▼</span>
@@ -1068,7 +1212,7 @@ window.securityAgreement = {
                 
                 <div class="section">
                     <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">8. 사용자의 권리와 의무</h2>
-                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all hover:bg-slate-100 hover:translate-x-1" onclick="toggleSecuritySection(this)">
+                    <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-medium">포털 이용 시 사용자가 가져야 할 책임감 확인하기</span>
                             <span class="expand-icon text-slate-600">▼</span>
