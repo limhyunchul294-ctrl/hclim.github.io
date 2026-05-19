@@ -37,7 +37,7 @@ window.securityAgreement = {
     },
 
     ensureAgreementStyles() {
-        if (document.getElementById('security-agreement-styles')) return;
+        document.getElementById('security-agreement-styles')?.remove();
         const style = document.createElement('style');
         style.id = 'security-agreement-styles';
         style.textContent = `
@@ -245,6 +245,161 @@ window.securityAgreement = {
             @supports (height: 100dvh) {
                 .security-agreement-container { max-height: 100dvh; }
                 .security-section-detail { max-height: 100dvh; }
+            }
+            .security-mobile-bottom-bar {
+                display: none;
+            }
+            @media (max-width: 639px) {
+                .security-agreement-header {
+                    padding: 0.5rem 0.75rem;
+                    padding-top: max(0.5rem, env(safe-area-inset-top));
+                }
+                .security-agreement-header .security-header-subtitle,
+                .security-agreement-header .security-header-badge {
+                    display: none;
+                }
+                .security-agreement-header h1 {
+                    font-size: 1.05rem;
+                    margin-bottom: 0;
+                }
+                #security-agreement-progress {
+                    padding: 0.4rem 0.75rem 0.5rem;
+                }
+                #security-agreement-progress .progress-label-row {
+                    font-size: 0.7rem;
+                    margin-bottom: 0.25rem;
+                }
+                #security-agreement-progress .h-2 {
+                    height: 0.35rem;
+                }
+                .security-agreement-guide {
+                    padding: 0.45rem 0.6rem;
+                    margin-top: 0.35rem;
+                }
+                .security-agreement-guide-step {
+                    font-size: 0.7rem;
+                    line-height: 1.35;
+                }
+                .security-agreement-guide-step + .security-agreement-guide-step {
+                    margin-top: 0.3rem;
+                }
+                .security-agreement-guide-step:nth-child(2) {
+                    display: none;
+                }
+                .security-agreement-guide-num {
+                    width: 1.1rem;
+                    height: 1.1rem;
+                    font-size: 0.6rem;
+                }
+                .security-agreement-content {
+                    padding: 0.35rem 0.65rem 0.5rem;
+                }
+                .security-agreement-sections > * + * {
+                    margin-top: 0.35rem !important;
+                }
+                .security-agreement-sections .section h2 {
+                    font-size: 0.7rem;
+                    margin-bottom: 0.25rem;
+                    padding-bottom: 0.2rem;
+                }
+                .security-agreement-sections .expandable-item {
+                    min-height: 2.6rem;
+                    padding: 0.5rem 0.6rem;
+                }
+                .security-agreement-sections .expandable-item .text-sm {
+                    font-size: 0.75rem;
+                    line-height: 1.3;
+                }
+                .security-warning-compact {
+                    padding: 0.45rem 0.55rem;
+                    margin: 0.35rem 0;
+                    font-size: 0.68rem;
+                    line-height: 1.35;
+                }
+                .security-agreement-footer {
+                    padding: 0;
+                    padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
+                }
+                .security-mobile-bottom-bar {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 0.5rem;
+                    padding: 0.45rem 0.75rem;
+                    background: #f1f5f9;
+                    border-top: 1px solid #cbd5e1;
+                    font-size: 0.75rem;
+                    line-height: 1.35;
+                    color: #334155;
+                }
+                .security-mobile-bottom-bar-count {
+                    flex-shrink: 0;
+                    font-weight: 700;
+                    font-size: 0.8rem;
+                    color: #0369a1;
+                    background: #e0f2fe;
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 9999px;
+                }
+                .security-agreement-footer-form {
+                    display: none;
+                    padding: 0.5rem 0.75rem 0;
+                }
+                .security-agreement-container.security-all-sections-read .security-agreement-footer-form {
+                    display: block;
+                }
+                .security-agreement-container.security-all-sections-read .security-mobile-bottom-bar--phase1 {
+                    display: none;
+                }
+                .security-agreement-container.security-all-sections-read .security-mobile-bottom-bar--phase2 {
+                    display: flex;
+                }
+                .security-mobile-bottom-bar--phase2 {
+                    display: none;
+                    background: #ecfdf5;
+                    border-top-color: #6ee7b7;
+                    color: #065f46;
+                }
+                .security-footer-lock-banner {
+                    display: none;
+                }
+                .security-footer-form-title {
+                    font-size: 0.8rem;
+                    margin-bottom: 0.25rem;
+                }
+                .security-footer-form-hint {
+                    font-size: 0.65rem;
+                    margin-bottom: 0.5rem;
+                }
+                .security-agreement-footer-form .space-y-4 {
+                    gap: 0.5rem;
+                }
+                .security-agreement-footer-form label {
+                    font-size: 0.65rem;
+                    margin-bottom: 0.15rem;
+                }
+                .security-agreement-footer-form input {
+                    padding: 0.45rem 0.55rem;
+                }
+                .security-agreement-footer-actions {
+                    margin-top: 0.65rem;
+                    gap: 0.5rem;
+                }
+                .security-agreement-footer-actions button {
+                    min-height: 2.5rem;
+                    padding-top: 0.5rem;
+                    padding-bottom: 0.5rem;
+                    font-size: 0.8rem;
+                }
+                .security-footer-disclaimer {
+                    font-size: 0.6rem;
+                    margin-top: 0.35rem;
+                }
+            }
+            @media (min-width: 640px) {
+                .security-agreement-footer-form {
+                    display: block;
+                }
             }
         `;
         document.head.appendChild(style);
@@ -477,13 +632,13 @@ window.securityAgreement = {
             <div class="security-agreement-container bg-white shadow-2xl max-w-4xl w-full mx-auto overflow-hidden flex flex-col" role="dialog" aria-modal="true" aria-labelledby="security-agreement-title">
                 <div class="security-agreement-header bg-gradient-to-r from-slate-700 to-slate-800 text-white p-4 sm:p-6">
                     <h1 id="security-agreement-title" class="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">EVKMC 보안서약서</h1>
-                    <p class="text-sm opacity-90">기술 문서 포털 사용자 동의서</p>
-                    <div class="mt-2 sm:mt-3 inline-block bg-black bg-opacity-20 px-3 py-1 rounded text-xs">
+                    <p class="security-header-subtitle text-sm opacity-90">기술 문서 포털 사용자 동의서</p>
+                    <div class="security-header-badge mt-2 sm:mt-3 inline-block bg-black bg-opacity-20 px-3 py-1 rounded text-xs">
                         정비 기술 문서 및 서비스 정보 보호 약관
                     </div>
                 </div>
                 <div id="security-agreement-progress" class="flex-shrink-0 px-4 py-3 bg-slate-100 border-b border-slate-200">
-                    <div class="flex justify-between items-center text-xs text-slate-600 mb-1.5">
+                    <div class="progress-label-row flex justify-between items-center text-xs text-slate-600 mb-1.5">
                         <span class="font-medium">필수 항목 확인</span>
                         <span id="security-read-progress-text">0 / 8</span>
                     </div>
@@ -503,7 +658,7 @@ window.securityAgreement = {
                 </div>
                 
                 <div class="security-agreement-content p-4 sm:p-6 text-slate-700">
-                    <div class="space-y-6">
+                    <div class="security-agreement-sections space-y-6">
                         <div class="section">
                             <h2 class="text-base font-semibold mb-3 pb-2 border-b-2 border-red-500">1. 서비스 개요 및 목적</h2>
                             <div class="expandable-item not-expanded bg-slate-50 border-l-4 border-blue-500 p-4 rounded cursor-pointer transition-all" role="button" tabindex="0" aria-expanded="false">
@@ -565,7 +720,7 @@ window.securityAgreement = {
                             </div>
                         </div>
                         
-                        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded my-4">
+                        <div class="security-warning-compact bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded my-4">
                             <p class="text-sm leading-relaxed"><strong>⚠️ 중요 안내</strong><br>
                             본 자료는 EVKMC의 기술 자산으로 저작권법 및 영업비밀보호법으로 보호받습니다. 무단 배포 및 업로드는 형사적 처벌(징역, 벌금)과 민사적 손해배상(최대 수억원대)을 초래할 수 있습니다.</p>
                         </div>
@@ -696,12 +851,20 @@ window.securityAgreement = {
                 </div>
                 
                 <div class="security-agreement-footer bg-slate-50 p-4 sm:p-6 border-t border-slate-200">
+                    <div id="security-mobile-bottom-bar-phase1" class="security-mobile-bottom-bar security-mobile-bottom-bar--phase1">
+                        <span id="security-mobile-bar-text">항목 카드를 탭해 내용을 확인하세요</span>
+                        <span id="security-mobile-bar-count" class="security-mobile-bottom-bar-count">0/8</span>
+                    </div>
+                    <div id="security-mobile-bottom-bar-phase2" class="security-mobile-bottom-bar security-mobile-bottom-bar--phase2">
+                        <span>8개 확인 완료 · 아래에 동의 문구를 입력하세요</span>
+                    </div>
                     <div id="security-agreement-footer-lock" class="security-footer-lock-banner mb-4">
                         <strong>아직 동의 단계가 아닙니다.</strong><br>
                         맨 위로 올라가 <strong>항목 카드 8개를 탭</strong>해 내용을 확인해 주세요. 「동의 및 포털 이용」 버튼은 <strong>8개 확인 후</strong>에만 활성화됩니다. (버튼이 비활성화된 것은 오류가 아닙니다)
                     </div>
+                    <div class="security-agreement-footer-form">
                     <div class="mb-4">
-                        <div class="flex items-center mb-2">
+                        <div class="flex items-center mb-2 security-footer-form-title">
                             <span class="text-sm font-semibold text-slate-700">보안서약서 동의 확인</span>
                             <span class="text-red-500 font-bold ml-1">*</span>
                         </div>
@@ -729,11 +892,12 @@ window.securityAgreement = {
                         </div>
                     </div>
                     
-                    <div class="flex gap-3 mt-6">
+                    <div class="security-agreement-footer-actions flex gap-3 mt-6">
                         <button type="button" id="security-agreement-cancel-btn" class="flex-1 min-h-[2.75rem] px-4 py-3 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 transition-colors font-semibold touch-manipulation">취소</button>
                         <button type="button" id="security-agreement-agree-btn" disabled class="flex-1 min-h-[2.75rem] px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold disabled:bg-slate-400 disabled:cursor-not-allowed touch-manipulation text-sm leading-tight">항목 8개 확인 후 이용 가능</button>
                     </div>
-                    <p class="text-xs text-slate-500 text-center mt-3">본 약관에 동의하지 않으실 경우 포털 서비스를 이용할 수 없습니다.</p>
+                    <p class="security-footer-disclaimer text-xs text-slate-500 text-center mt-3">본 약관에 동의하지 않으실 경우 포털 서비스를 이용할 수 없습니다.</p>
+                    </div>
                 </div>
             </div>
         `;
@@ -762,12 +926,23 @@ window.securityAgreement = {
         const requiredSections = expandableItems.length || 8;
         const readSections = new Set();
 
+        const agreementContainer = document.querySelector('#security-agreement-popup .security-agreement-container');
+        const mobileBarCount = document.getElementById('security-mobile-bar-count');
+        const mobileBarText = document.getElementById('security-mobile-bar-text');
+        const footerForm = document.querySelector('.security-agreement-footer-form');
+
         const updateReadProgress = () => {
             const count = readSections.size;
             const textEl = document.getElementById('security-read-progress-text');
             const barEl = document.getElementById('security-read-progress-bar');
             if (textEl) textEl.textContent = `${count} / ${requiredSections}`;
             if (barEl) barEl.style.width = `${Math.min(100, (count / requiredSections) * 100)}%`;
+            if (mobileBarCount) mobileBarCount.textContent = `${count}/${requiredSections}`;
+            if (mobileBarText) {
+                mobileBarText.textContent = count >= requiredSections
+                    ? '확인 완료 · 아래에서 동의 입력'
+                    : `항목 카드 ${requiredSections - count}개 더 탭하세요`;
+            }
         };
 
         const footerLockBanner = document.getElementById('security-agreement-footer-lock');
@@ -783,13 +958,20 @@ window.securityAgreement = {
         const refreshAgreementNotice = () => {
             const allRead = readSections.size >= requiredSections;
             if (allRead) {
+                agreementContainer?.classList.add('security-all-sections-read');
                 agreementInput.disabled = false;
                 companyInput.disabled = false;
                 nameInput.disabled = false;
                 agreementNotice.textContent = '✅ 8개 항목 확인 완료. 아래 동의 문구를 입력한 뒤 「동의 및 포털 이용」을 누르세요.';
                 agreementNotice.style.color = '#10b981';
                 footerLockBanner?.classList.add('hidden');
+                if (window.matchMedia('(max-width: 639px)').matches && footerForm) {
+                    requestAnimationFrame(() => {
+                        footerForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    });
+                }
             } else {
+                agreementContainer?.classList.remove('security-all-sections-read');
                 const remain = requiredSections - readSections.size;
                 agreementNotice.textContent = `① 위 항목 카드 ${remain}개를 더 탭해 확인하세요. (동의 버튼은 아직 사용할 수 없습니다)`;
                 agreementNotice.style.color = '#ef4444';
