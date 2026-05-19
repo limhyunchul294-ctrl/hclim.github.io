@@ -1,24 +1,18 @@
 /**
- * QQ_SM 챕터 PDF → Supabase Storage (manual/MASADA QQ/)
- *
- * 사용법:
- *   $env:SUPABASE_SERVICE_ROLE_KEY="eyJ..."
- *   node scripts/upload-qq-sm-pdfs.mjs
- *
- * 또는:
- *   node scripts/upload-qq-sm-pdfs.mjs --key "eyJ..."
+ * QQ_SM 챕터 PDF → Supabase Storage (manual/MASADA-QQ/)
+ * 로컬 한글 파일명 → Storage ASCII 키(qq-01.pdf 등)로 업로드
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
+import { QQ_CHAPTERS, QQ_SM_STORAGE_PREFIX } from '../js/maintenanceManualMappingQQ.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const QQ_DIR = path.join(ROOT, 'QQ_SM');
 const BUCKET = 'manual';
-const PREFIX = 'MASADA QQ';
 const PROJECT_URL = process.env.SUPABASE_URL || 'https://sesedcotooihnpjklqzs.supabase.co';
 
 function getServiceRoleKey() {
@@ -33,7 +27,6 @@ async function main() {
     const key = getServiceRoleKey();
     if (!key) {
         console.error('❌ SUPABASE_SERVICE_ROLE_KEY 환경 변수 또는 --key 인수가 필요합니다.');
-        console.error('   Supabase Dashboard → Project Settings → API → service_role');
         process.exit(1);
     }
 
@@ -42,21 +35,21 @@ async function main() {
         process.exit(1);
     }
 
-    const pdfs = fs.readdirSync(QQ_DIR).filter((f) => f.toLowerCase().endsWith('.pdf')).sort();
-    if (pdfs.length === 0) {
-        console.error('❌ 업로드할 PDF가 없습니다.');
-        process.exit(1);
-    }
-
     const supabase = createClient(PROJECT_URL, key);
-    console.log(`📤 ${pdfs.length}개 파일 → ${BUCKET}/${PREFIX}/`);
+    console.log(`📤 ${QQ_CHAPTERS.length}개 → ${BUCKET}/${QQ_SM_STORAGE_PREFIX}/`);
 
     let ok = 0;
     let fail = 0;
 
-    for (const name of pdfs) {
-        const localPath = path.join(QQ_DIR, name);
-        const storagePath = `${PREFIX}/${name}`;
+    for (const ch of QQ_CHAPTERS) {
+        const localPath = path.join(QQ_DIR, ch.file);
+        if (!fs.existsSync(localPath)) {
+            console.error(`❌ 로컬 파일 없음: ${ch.file}`);
+            fail += 1;
+            continue;
+        }
+
+        const storagePath = `${QQ_SM_STORAGE_PREFIX}/${ch.storageKey}`;
         const body = fs.readFileSync(localPath);
 
         const { error } = await supabase.storage.from(BUCKET).upload(storagePath, body, {
@@ -65,10 +58,10 @@ async function main() {
         });
 
         if (error) {
-            console.error(`❌ ${name}:`, error.message);
+            console.error(`❌ ${ch.file} → ${storagePath}:`, error.message);
             fail += 1;
         } else {
-            console.log(`✅ ${storagePath} (${(body.length / 1024 / 1024).toFixed(2)} MB)`);
+            console.log(`✅ ${storagePath} (${(body.length / 1024 / 1024).toFixed(2)} MB) ← ${ch.file}`);
             ok += 1;
         }
     }
