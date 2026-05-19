@@ -128,6 +128,69 @@ window.securityAgreement = {
             .expandable-item:active {
                 background: #e2e8f0 !important;
             }
+            .security-agreement-guide {
+                background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+                border: 1px solid #bae6fd;
+                border-radius: 0.5rem;
+                padding: 0.75rem 1rem;
+            }
+            .security-agreement-guide-step {
+                display: flex;
+                gap: 0.5rem;
+                align-items: flex-start;
+                font-size: 0.8125rem;
+                line-height: 1.45;
+                color: #0c4a6e;
+            }
+            .security-agreement-guide-step + .security-agreement-guide-step {
+                margin-top: 0.5rem;
+            }
+            .security-agreement-guide-num {
+                flex-shrink: 0;
+                width: 1.35rem;
+                height: 1.35rem;
+                border-radius: 9999px;
+                background: #0284c7;
+                color: #fff;
+                font-size: 0.7rem;
+                font-weight: 700;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .security-footer-lock-banner {
+                background: #fffbeb;
+                border: 1px solid #fcd34d;
+                border-radius: 0.5rem;
+                padding: 0.75rem 1rem;
+                font-size: 0.8125rem;
+                line-height: 1.5;
+                color: #92400e;
+            }
+            .security-footer-lock-banner.hidden {
+                display: none;
+            }
+            .section-read-badge {
+                flex-shrink: 0;
+                font-size: 0.65rem;
+                font-weight: 700;
+                padding: 0.15rem 0.45rem;
+                border-radius: 9999px;
+                background: #0ea5e9;
+                color: #fff;
+                white-space: nowrap;
+            }
+            .section-read-badge.section-read-badge-done {
+                background: #059669;
+            }
+            .expandable-item.security-tap-hint-pulse {
+                animation: securityCardPulse 2s ease-in-out infinite;
+                box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.45);
+            }
+            @keyframes securityCardPulse {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.35); }
+                50% { box-shadow: 0 0 0 6px rgba(14, 165, 233, 0); }
+            }
             @media (max-width: 639px) {
                 .expandable-item .expand-icon::after {
                     content: ' 열기';
@@ -427,8 +490,16 @@ window.securityAgreement = {
                     <div class="h-2 bg-slate-200 rounded-full overflow-hidden" aria-hidden="true">
                         <div id="security-read-progress-bar" class="h-full bg-sky-600 transition-all duration-300" style="width: 0%"></div>
                     </div>
-                    <p class="text-xs text-sky-800 mt-2 leading-relaxed sm:hidden">아래 <strong>8개 항목</strong>을 각각 눌러 전문을 확인하세요. 항목을 탭하면 전체 화면으로 열립니다.</p>
-                    <p class="text-xs text-slate-500 mt-1 hidden sm:block">각 항목을 눌러 내용을 확인한 뒤, 하단에서 동의 문구를 입력하세요.</p>
+                    <div id="security-agreement-guide" class="security-agreement-guide mt-3">
+                        <div class="security-agreement-guide-step">
+                            <span class="security-agreement-guide-num">1</span>
+                            <span><strong>먼저</strong> 아래 파란색 <strong>항목 카드 8개</strong>를 각각 <strong>탭(눌러)</strong> 전문을 확인하세요. (스크롤만으로는 진행되지 않습니다)</span>
+                        </div>
+                        <div class="security-agreement-guide-step">
+                            <span class="security-agreement-guide-num">2</span>
+                            <span>8개 모두 확인되면 <strong>맨 아래 입력칸</strong>이 열립니다. 그다음 동의 문구를 입력하고 「동의 및 포털 이용」을 누르세요.</span>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="security-agreement-content p-4 sm:p-6 text-slate-700">
@@ -625,12 +696,16 @@ window.securityAgreement = {
                 </div>
                 
                 <div class="security-agreement-footer bg-slate-50 p-4 sm:p-6 border-t border-slate-200">
+                    <div id="security-agreement-footer-lock" class="security-footer-lock-banner mb-4">
+                        <strong>아직 동의 단계가 아닙니다.</strong><br>
+                        맨 위로 올라가 <strong>항목 카드 8개를 탭</strong>해 내용을 확인해 주세요. 「동의 및 포털 이용」 버튼은 <strong>8개 확인 후</strong>에만 활성화됩니다. (버튼이 비활성화된 것은 오류가 아닙니다)
+                    </div>
                     <div class="mb-4">
                         <div class="flex items-center mb-2">
                             <span class="text-sm font-semibold text-slate-700">보안서약서 동의 확인</span>
                             <span class="text-red-500 font-bold ml-1">*</span>
                         </div>
-                        <p class="text-xs text-slate-600 mb-4"><strong>중요:</strong> 위의 내용을 모두 읽으신 후, 아래 문구를 정확히 입력하여 동의를 진행해주시기 바랍니다. 자세히 보기 버튼을 눌러 전체 내용을 확인하지 않은 경우 입력 필드가 비활성화됩니다.</p>
+                        <p class="text-xs text-slate-600 mb-4"><strong>2단계:</strong> 8개 항목을 모두 탭해 확인한 뒤, 아래 문구를 정확히 입력하세요.</p>
                     </div>
                     
                     <div class="space-y-4">
@@ -638,7 +713,7 @@ window.securityAgreement = {
                             <label class="block text-xs text-slate-600 mb-1 font-medium">입력 문구: "EVKMC 보안서약서에 동의합니다"를 정확히 입력하세요</label>
                             <input type="text" id="agreementInput" placeholder="여기에 입력하세요..." disabled class="w-full px-3 py-2 border-2 border-slate-200 rounded focus:outline-none focus:border-blue-500 transition-colors disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
                             <div id="inputStatus" class="text-xs mt-1 hidden"></div>
-                            <div id="agreementNotice" class="text-xs text-red-500 mt-1">⚠️ 위의 모든 섹션을 읽으신 후 입력하실 수 있습니다.</div>
+                            <div id="agreementNotice" class="text-xs text-red-500 mt-1">① 위로 올라가 항목 카드 8개를 탭해 확인하세요. (동의 버튼만 눌러도 진행되지 않습니다)</div>
                         </div>
                         
                         <div>
@@ -656,7 +731,7 @@ window.securityAgreement = {
                     
                     <div class="flex gap-3 mt-6">
                         <button type="button" id="security-agreement-cancel-btn" class="flex-1 min-h-[2.75rem] px-4 py-3 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 transition-colors font-semibold touch-manipulation">취소</button>
-                        <button type="button" id="security-agreement-agree-btn" disabled class="flex-1 min-h-[2.75rem] px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold disabled:bg-slate-400 disabled:cursor-not-allowed touch-manipulation">동의 및 포털 이용</button>
+                        <button type="button" id="security-agreement-agree-btn" disabled class="flex-1 min-h-[2.75rem] px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-semibold disabled:bg-slate-400 disabled:cursor-not-allowed touch-manipulation text-sm leading-tight">항목 8개 확인 후 이용 가능</button>
                     </div>
                     <p class="text-xs text-slate-500 text-center mt-3">본 약관에 동의하지 않으실 경우 포털 서비스를 이용할 수 없습니다.</p>
                 </div>
@@ -695,18 +770,34 @@ window.securityAgreement = {
             if (barEl) barEl.style.width = `${Math.min(100, (count / requiredSections) * 100)}%`;
         };
 
+        const footerLockBanner = document.getElementById('security-agreement-footer-lock');
+        const AGREE_LABEL_READY = '동의 및 포털 이용';
+        const AGREE_LABEL_NEED_SECTIONS = (done, total) => `항목 ${done}/${total} 확인 후 이용`;
+
+        const markFirstUnreadPulse = () => {
+            expandableItems.forEach((item) => item.classList.remove('security-tap-hint-pulse'));
+            const firstUnread = Array.from(expandableItems).find((item) => item.classList.contains('not-expanded'));
+            if (firstUnread) firstUnread.classList.add('security-tap-hint-pulse');
+        };
+
         const refreshAgreementNotice = () => {
-            if (readSections.size >= requiredSections) {
+            const allRead = readSections.size >= requiredSections;
+            if (allRead) {
                 agreementInput.disabled = false;
                 companyInput.disabled = false;
                 nameInput.disabled = false;
-                agreementNotice.textContent = '✅ 모든 항목을 확인하셨습니다. 아래 동의 문구를 입력해주세요.';
+                agreementNotice.textContent = '✅ 8개 항목 확인 완료. 아래 동의 문구를 입력한 뒤 「동의 및 포털 이용」을 누르세요.';
                 agreementNotice.style.color = '#10b981';
+                footerLockBanner?.classList.add('hidden');
             } else {
-                agreementNotice.textContent = `⚠️ ${requiredSections - readSections.size}개 항목을 더 확인해주세요. (항목 카드를 탭하세요)`;
+                const remain = requiredSections - readSections.size;
+                agreementNotice.textContent = `① 위 항목 카드 ${remain}개를 더 탭해 확인하세요. (동의 버튼은 아직 사용할 수 없습니다)`;
                 agreementNotice.style.color = '#ef4444';
+                footerLockBanner?.classList.remove('hidden');
             }
             updateReadProgress();
+            markFirstUnreadPulse();
+            updateButtonState();
         };
 
         const openSectionDetail = (element) => {
@@ -721,7 +812,12 @@ window.securityAgreement = {
             element.classList.add('expanded');
             element.classList.remove('not-expanded');
             element.setAttribute('aria-expanded', 'true');
-            updateReadProgress();
+            const badge = element.querySelector('.section-read-badge');
+            if (badge) {
+                badge.textContent = '확인 완료';
+                badge.classList.add('section-read-badge-done');
+            }
+            refreshAgreementNotice();
 
             const overlay = document.createElement('div');
             overlay.id = 'section-detail-overlay';
@@ -745,8 +841,8 @@ window.securityAgreement = {
             footer.style.paddingBottom = 'max(1rem, env(safe-area-inset-bottom))';
 
             const progressP = document.createElement('p');
-            progressP.className = 'text-xs text-slate-500 text-center';
-            progressP.textContent = `읽은 항목: ${readSections.size} / ${requiredSections}`;
+            progressP.className = 'text-xs text-slate-500 text-center leading-relaxed';
+            progressP.innerHTML = `읽은 항목: <strong>${readSections.size} / ${requiredSections}</strong><br><span class="text-sky-700">내용 확인 후 하단 「확인」을 눌러 주세요</span>`;
 
             const btnRow = document.createElement('div');
             btnRow.className = 'flex gap-2';
@@ -793,6 +889,13 @@ window.securityAgreement = {
         };
 
         expandableItems.forEach((item) => {
+            const row = item.querySelector('.flex');
+            if (row && !row.querySelector('.section-read-badge')) {
+                const badge = document.createElement('span');
+                badge.className = 'section-read-badge';
+                badge.textContent = '탭하여 확인';
+                row.appendChild(badge);
+            }
             const open = () => openSectionDetail(item);
             item.addEventListener('click', open);
             item.addEventListener('keydown', (e) => {
@@ -804,6 +907,13 @@ window.securityAgreement = {
         });
 
         window.toggleSecuritySection = openSectionDetail;
+        refreshAgreementNotice();
+
+        if (window.matchMedia('(max-width: 639px)').matches && expandableItems[0]) {
+            setTimeout(() => {
+                expandableItems[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 450);
+        }
 
         // 동의 문구 검증
         function checkAgreementText() {
@@ -862,11 +972,22 @@ window.securityAgreement = {
 
         // 버튼 상태 업데이트
         function updateButtonState() {
+            const allRead = readSections.size >= requiredSections;
             const agreementComplete = agreementInput.value.trim() === 'EVKMC 보안서약서에 동의합니다';
             const companyFilled = companyInput.value.trim().length >= 2;
             const nameFilled = nameInput.value.trim().length >= 2;
-            
-            agreeBtn.disabled = !(agreementComplete && companyFilled && nameFilled);
+            const formReady = agreementComplete && companyFilled && nameFilled;
+
+            if (!allRead) {
+                agreeBtn.disabled = true;
+                agreeBtn.textContent = AGREE_LABEL_NEED_SECTIONS(readSections.size, requiredSections);
+            } else if (!formReady) {
+                agreeBtn.disabled = true;
+                agreeBtn.textContent = '동의 문구 입력 후 이용';
+            } else {
+                agreeBtn.disabled = false;
+                agreeBtn.textContent = AGREE_LABEL_READY;
+            }
         }
 
         // 이벤트 리스너 등록
