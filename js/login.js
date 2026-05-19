@@ -1,10 +1,15 @@
 import './config.js';
 import { initPwaInstall } from './pwaInstall.js';
+import {
+    getLoginRedirectUrl,
+    goToAppHome,
+    redirectToAppHomeIfLoggedIn,
+} from './authRedirect.js';
 
 // js/login.js
 // ✅ 수정사항: OTP 검증 단계에서 버튼 비활성화 문제 해결
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const loginForm = document.getElementById('login-form');
     const actionBtn = document.getElementById('action-btn');
     const otpSection = document.getElementById('otp-section');
@@ -253,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 로그인 성공 후 index.html로 리다이렉트 (스플래시 화면 표시됨)
                 actionBtn.textContent = '로그인 성공!';
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    goToAppHome();
                 }, 500);
             }
 
@@ -436,14 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sendMagicLinkBtn.textContent = '발송 중...';
                 
                 // Redirect URL 생성 및 화이트리스트 검증
-                const allowedOrigins = [
-                    'https://evkmc-as-app.vercel.app',
-                    'http://localhost:3000',
-                    'http://localhost:5173'
-                ];
-                const currentOrigin = window.location.origin;
-                const safeOrigin = allowedOrigins.includes(currentOrigin) ? currentOrigin : allowedOrigins[0];
-                const redirectUrl = `${safeOrigin}/index.html`;
+                const redirectUrl = getLoginRedirectUrl();
                 
                 // Supabase 매직링크 발송
                 const { data, error } = await window.supabaseClient.auth.signInWithOtp({
@@ -491,6 +489,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     emailSentMessage.appendChild(document.createElement('br'));
                     emailSentMessage.appendChild(document.createElement('br'));
                     emailSentMessage.appendChild(document.createTextNode('이메일의 링크를 클릭하여 로그인하세요.'));
+                    emailSentMessage.appendChild(document.createElement('br'));
+                    emailSentMessage.appendChild(document.createElement('br'));
+                    const pwaHint = document.createElement('span');
+                    pwaHint.className = 'text-xs text-gray-500';
+                    pwaHint.textContent =
+                        '홈 화면에 추가한 앱을 쓰는 경우: 링크는 메일 앱(브라우저)에서 열릴 수 있습니다. 로그인 후 홈 화면의 EVKMC 아이콘을 다시 누르면 앱으로 이어집니다.';
+                    emailSentMessage.appendChild(pwaHint);
                 }
                 
                 emailModal.classList.add('hidden');
@@ -652,7 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         window.history.replaceState(null, '', window.location.pathname);
                         
                         // index.html로 리다이렉트
-                        window.location.href = 'index.html';
+                        goToAppHome();
                     }
                 } else {
                     console.warn('⚠️ 세션이 없습니다.');
@@ -666,10 +671,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 페이지 로드 시 매직링크 콜백 처리
-    handleMagicLinkCallback();
+    await handleMagicLinkCallback();
+    if (await redirectToAppHomeIfLoggedIn(window.supabaseClient)) {
+        return;
+    }
 
-    // 홈 화면 추가 (로그인 화면 아이콘 타일 — 자동 팝업 없음)
     initPwaInstall({ autoAndroidBanner: false, autoIosGuide: false });
 
     console.log('✅ Login 스크립트 로드 완료');

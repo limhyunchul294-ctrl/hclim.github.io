@@ -2,7 +2,7 @@
   "name": "EVKMC A/S 정비 포털",
   "short_name": "EVKMC AS",
   "description": "EVKMC A/S 정비 기술 문서 포털",
-  "start_url": "/index.html",
+  "start_url": "/login.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

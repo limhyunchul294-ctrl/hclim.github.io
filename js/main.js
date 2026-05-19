@@ -18,6 +18,7 @@ import {
     tryOpenDocFromHash,
 } from './mobileUX.js';
 import { initPwaInstall } from './pwaInstall.js';
+import { redirectAuthHashToLoginIfNeeded } from './authRedirect.js';
 
 // js/main.js (Final Version)
 // ✅ 수정사항: localStorage 완전 제거, authSession 사용으로 변경
@@ -5034,6 +5035,10 @@ async function initBusinessCardUpload() {
         async function initApp() {
             try {
                 console.log('🚀 앱 초기화 시작...');
+
+                if (redirectAuthHashToLoginIfNeeded()) {
+                    return;
+                }
 
                 // 인증 체크 타임아웃 설정 (5초)
                 const authCheckTimeout = new Promise((_, reject) => {
