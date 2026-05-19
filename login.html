@@ -2,13 +2,80 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#374151">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="EVKMC AS">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/icon-192.png">
     <title>로그인 - EVKMC A/S</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-      /* (Optional) You can add the font-face here if needed, 
-         but login page might not require it. */
+      .pwa-add-tile {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+        width: 100%;
+        margin-bottom: 1.25rem;
+        padding: 0.75rem 1rem;
+        border-radius: 1rem;
+        border: 1px dashed #cbd5e1;
+        background: linear-gradient(135deg, #f8fafc 0%, #f0f9ff 100%);
+        text-align: left;
+        cursor: pointer;
+        touch-action: manipulation;
+        min-height: 4.25rem;
+        transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      }
+      .pwa-add-tile:active { transform: scale(0.98); }
+      .pwa-add-tile:hover { border-color: #38bdf8; background: #f0f9ff; }
+      .pwa-add-tile-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        flex-shrink: 0;
+        object-fit: contain;
+      }
+      .pwa-add-tile-body { flex: 1; min-width: 0; }
+      .pwa-add-tile-title { font-size: 0.9375rem; font-weight: 600; color: #0f172a; }
+      .pwa-add-tile-desc { font-size: 0.75rem; color: #64748b; margin-top: 0.125rem; }
+      .pwa-add-tile-badge {
+        display: inline-block;
+        margin-top: 0.35rem;
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: #0369a1;
+        background: #e0f2fe;
+        padding: 0.15rem 0.5rem;
+        border-radius: 9999px;
+      }
+      .pwa-add-tile-badge-ready { background: #2563eb; color: #fff; }
+      .pwa-ios-modal {
+        position: fixed; inset: 0; z-index: 60;
+        background: rgba(0,0,0,0.5);
+        display: flex; align-items: flex-end; justify-content: center;
+        padding: 1rem;
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+      }
+      .pwa-ios-modal-panel {
+        background: #fff; border-radius: 1rem; padding: 1.25rem;
+        width: 100%; max-width: 24rem;
+      }
+      .pwa-install-banner {
+        position: fixed; left: 0.75rem; right: 0.75rem; bottom: 1rem;
+        z-index: 50; background: #1e293b; color: #fff;
+        border-radius: 0.75rem; padding: 0.85rem 1rem;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      }
+      .pwa-install-banner-inner { display: flex; flex-direction: column; gap: 0.65rem; }
+      .pwa-install-banner-actions { display: flex; gap: 0.5rem; }
+      .pwa-install-btn-primary {
+        flex: 1; min-height: 44px; background: #2563eb; color: #fff;
+        border-radius: 0.5rem; font-weight: 600;
+      }
+      .pwa-install-btn-ghost { min-height: 44px; padding: 0 1rem; color: #cbd5e1; }
     </style>
 </head>
 <body class="bg-gray-100 grid place-items-center h-screen">
@@ -23,6 +90,18 @@
                 <h1 class="text-2xl font-bold">EVKMC A/S</h1>
                 <p class="text-slate-500 mt-1">정비 기술 문서 포털</p>
             </div>
+
+            <button type="button" id="pwa-add-tile" class="pwa-add-tile" aria-label="홈 화면에 추가">
+                <img src="/assets/icon-192.png" alt="" class="pwa-add-tile-icon" width="48" height="48">
+                <span class="pwa-add-tile-body">
+                    <span class="pwa-add-tile-title">홈 화면에 추가</span>
+                    <span class="pwa-add-tile-desc block">앱 아이콘으로 바로 실행 · 로그인 후에도 사용 가능</span>
+                    <span id="pwa-add-tile-badge" class="pwa-add-tile-badge">탭하여 안내 보기</span>
+                </span>
+                <svg class="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
 
             <!-- 이메일 로그인 버튼 (기본) -->
             <button 

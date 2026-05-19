@@ -1,4 +1,5 @@
 import './config.js';
+import { initPwaInstall } from './pwaInstall.js';
 
 // js/login.js
 // ✅ 수정사항: OTP 검증 단계에서 버튼 비활성화 문제 해결
@@ -667,6 +668,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 페이지 로드 시 매직링크 콜백 처리
     handleMagicLinkCallback();
+
+    // 홈 화면 추가 (로그인 화면 아이콘 타일 — 자동 팝업 없음)
+    initPwaInstall({ autoAndroidBanner: false, autoIosGuide: false });
 
     console.log('✅ Login 스크립트 로드 완료');
 });

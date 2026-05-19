@@ -5,8 +5,19 @@ import './dataService.js';
 import './fileUploadService.js';
 import './securityAgreement.js';
 import { maintenanceManualTreeData, maintenanceManualMapping } from './maintenanceManualMapping.js';
-import { qqMaintenanceManualTreeData, qqMaintenanceManualMapping } from './maintenanceManualMappingQQ.js';
+import { qqMaintenanceManualTreeData, qqMaintenanceManualMapping, QQ_CHAPTERS } from './maintenanceManualMappingQQ.js';
 import { etmTreeData, etmMapping } from './etmMapping.js';
+import {
+    isMobileExperience,
+    saveRecentDoc,
+    registerQQDocIds,
+    getAdjacentQQDocId,
+    initMobileBottomNav,
+    initDocPageMobile,
+    renderResumeDocCardHtml,
+    tryOpenDocFromHash,
+} from './mobileUX.js';
+import { initPwaInstall } from './pwaInstall.js';
 
 // js/main.js (Final Version)
 // ✅ 수정사항: localStorage 완전 제거, authSession 사용으로 변경
@@ -122,6 +133,38 @@ if (window.__APP_INIT__) {
         if (etmMapping) {
             Object.assign(PDF_MAPPING, etmMapping);
         }
+
+        registerQQDocIds(QQ_CHAPTERS.map((c) => `qq-sm-${c.num}`));
+
+        const DOC_ROUTE_PATHS = ['/shop', '/etm', '/dtc', '/wiring', '/tsb'];
+
+        function getDocRoutePath() {
+            let h = (window.location.hash || '').replace(/^#/, '') || '/home';
+            const q = h.indexOf('?');
+            if (q !== -1) h = h.slice(0, q);
+            const seg = h.split('/').filter(Boolean)[0];
+            return seg ? `/${seg}` : '/home';
+        }
+
+        function updateDocDeepLink(docId) {
+            const path = getDocRoutePath();
+            if (!DOC_ROUTE_PATHS.includes(path)) return;
+            let next = `#${path}`;
+            if (path === '/shop') {
+                next += `?model=${encodeURIComponent(getMaintenanceModel())}`;
+            }
+            if (docId) {
+                next += `${path === '/shop' ? '&' : '?'}doc=${encodeURIComponent(docId)}`;
+            }
+            if (window.location.hash !== next) {
+                history.replaceState(null, '', next);
+            }
+        }
+
+        window.navigateQQChapter = (docId) => {
+            const el = document.querySelector(`.tree-item[data-id="${docId}"]`);
+            if (el) el.click();
+        };
 
         // ---- 3. 트리 데이터 ----
         function getTreeDataByTitle(title) {
@@ -619,7 +662,7 @@ async function handleLogout() {
                     const ipAddress = await getIpAddress();
 
                     authContainer.innerHTML = `
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
                             <div class="flex flex-col items-end gap-0.5">
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs text-gray-600 leading-tight whitespace-nowrap">
@@ -1163,9 +1206,11 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
         /**
          * ✅ 트리 렌더링
          */
-        function renderTree(data, level = 0) {
-            return data.map(item => `
-                <div class="tree-item" data-id="${item.id}" style="margin-left: ${level * 20}px;">
+        function renderTree(data, level = 0, isQQManual = false) {
+            return data.map((item) => {
+                const leafClass = !item.children && isQQManual ? ' tree-item-qq-leaf' : '';
+                return `
+                <div class="tree-item${leafClass}" data-id="${item.id}" style="margin-left: ${level * 20}px;">
                     <div class="tree-content">
                         ${item.children ? `
                             <span class="tree-toggle">▶</span>
@@ -1173,25 +1218,31 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                         <span class="tree-icon">${getTreeIcon(item.type)}</span>
                         <span class="tree-label">${item.label}</span>
                         ${item.children ? `<span class="tree-badge">${item.children.length}</span>` : ''}
+                        ${!item.children && isQQManual ? '<span class="text-xs text-sky-600 ml-1">탭하여 확인</span>' : ''}
                     </div>
                     ${item.children ? `
                         <div class="tree-children collapsed">
-                            ${renderTree(item.children, level + 1)}
+                            ${renderTree(item.children, level + 1, isQQManual)}
                         </div>
                     ` : ''}
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         /**
          * ✅ PDF/이미지 뷰어 HTML (모바일 최적화)
          */
-        function pdfViewerHTML(fileBlobUrl, pageRange = null, title = '', fileName = '', bucketName = 'manual') {
+        function pdfViewerHTML(fileBlobUrl, pageRange = null, title = '', fileName = '', bucketName = 'manual', currentDocId = null) {
             // 다운로드 버튼의 pageRange 처리: pageRange가 있으면 사용, 없으면 null 전달
             const downloadPageRange = pageRange ? `[${pageRange[0]},${pageRange[1]}]` : 'null';
             
-            // 모바일 디바이스 감지 (User Agent 및 화면 크기 기준)
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+            const isMobile = isMobileExperience();
+            const prevQQ = currentDocId ? getAdjacentQQDocId(currentDocId, 'prev') : null;
+            const nextQQ = currentDocId ? getAdjacentQQDocId(currentDocId, 'next') : null;
+            const qqNavHtml = (prevQQ || nextQQ)
+                ? `<div class="flex gap-2 mt-4 w-full max-w-md mx-auto">${prevQQ ? `<button type="button" onclick="navigateQQChapter('${prevQQ}')" class="flex-1 min-h-[44px] px-3 py-2 bg-slate-100 text-slate-800 rounded-lg font-medium">← 이전</button>` : ''}${nextQQ ? `<button type="button" onclick="navigateQQChapter('${nextQQ}')" class="flex-1 min-h-[44px] px-3 py-2 bg-sky-600 text-white rounded-lg font-medium">다음 →</button>` : ''}</div>`
+                : '';
             
             // 모바일 환경: 새 창으로 열기 UI 제공
             if (isMobile) {
@@ -1206,19 +1257,22 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                                 <h3 class="text-lg font-semibold text-gray-800 mb-2">모바일 환경 감지</h3>
-                                <p class="text-gray-600 text-sm mb-6">모바일 브라우저에서는 새 창에서 열어주세요.</p>
+                                <p class="text-gray-600 text-sm mb-4">모바일에서는 새 창 또는 다운로드 후 파일 앱에서 열어주세요.</p>
                                 <div class="flex flex-col gap-3">
                                     <button 
+                                        type="button"
                                         onclick="window.open('${fileBlobUrl}', '_blank')" 
-                                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium min-h-[44px]">
                                         📄 새 창에서 열기
                                     </button>
                                     <button 
+                                        type="button"
                                         onclick="downloadSecureFile('${fileName}', '${bucketName}', ${downloadPageRange})"
-                                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
+                                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium min-h-[44px]">
                                         ⬇️ PDF 다운로드
                                     </button>
                                 </div>
+                                ${qqNavHtml}
                             </div>
                         </div>
                     </div>
@@ -1345,10 +1399,22 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                 }
 
                 if (doc.type === 'pdf') {
-                    viewer.innerHTML = pdfViewerHTML(fileBlobUrl, doc.pageRange, doc.title, doc.fileName, doc.bucket);
+                    viewer.innerHTML = pdfViewerHTML(fileBlobUrl, doc.pageRange, doc.title, doc.fileName, doc.bucket, id);
                 } else if (doc.type === 'image') {
                     viewer.innerHTML = imageViewerHTML(fileBlobUrl, doc.title, doc.fileName, doc.bucket);
                 }
+
+                window.enterDocMobileViewerMode?.();
+
+                const routePath = getDocRoutePath();
+                saveRecentDoc({
+                    path: routePath,
+                    docId: id,
+                    title: doc.title,
+                    docTitle: doc.title,
+                    model: routePath === '/shop' ? getMaintenanceModel() : undefined,
+                });
+                updateDocDeepLink(id);
             }
         }
 
@@ -1360,15 +1426,17 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             const homeLinks = NAV_LINKS.filter(link => link.type !== 'dropdown' && link.href && (!link.adminOnly || homeIsAdmin));
             
             return `
-                <div class="max-w-4xl mx-auto p-6">
-                    <div class="mb-8">
-                        <h1 class="text-3xl font-bold text-gray-900 mb-2">EVKMC A/S 포털</h1>
+                <div class="max-w-4xl mx-auto p-4 md:p-6">
+                    <div class="mb-6 md:mb-8">
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">EVKMC A/S 포털</h1>
                         <p class="text-gray-600">정비 기술 문서 및 서비스 정보에 오신 것을 환영합니다.</p>
                     </div>
+
+                    ${renderResumeDocCardHtml()}
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
                         ${homeLinks.map(link => `
-                            <a href="${link.href}" class="block p-6 bg-white rounded-xl shadow-soft hover:shadow-lg transition-all duration-200 border border-gray-100">
+                            <a href="${link.href}" class="mobile-home-tile block p-6 bg-white rounded-xl shadow-soft hover:shadow-lg transition-all duration-200 border border-gray-100 active:bg-gray-50">
                                 <div class="flex items-center mb-3">
                                     <svg class="w-6 h-6 text-brand mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         ${link.icon}
@@ -1451,40 +1519,46 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             const treeData = getTreeDataByTitle(title);
             const isMaintenanceManual = title === '정비지침서';
             const selectedModel = isMaintenanceManual ? getMaintenanceModel() : 'masada-2van';
+            const isQQManual = isMaintenanceManual && selectedModel === 'masada-qq';
             
             return `
-                <div class="max-w-6xl mx-auto p-6" data-doc-title="${title}">
-                    <div class="flex items-center justify-between mb-6">
-                        <h1 class="text-2xl font-bold text-gray-900">${title}</h1>
+                <section class="max-w-6xl mx-auto p-4 md:p-6 doc-page" data-doc-title="${title}">
+                    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 doc-model-bar">
+                        <h1 class="text-xl md:text-2xl font-bold text-gray-900">${title}</h1>
                         ${isMaintenanceManual ? `
                         <div class="flex items-center gap-4">
-                            <label for="model-select" class="sr-only">차종</label>
-                            <select id="model-select" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand max-w-[14rem]">
+                            <label for="model-select" class="text-sm text-gray-600 shrink-0">차종</label>
+                            <select id="model-select" class="flex-1 sm:flex-none px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand max-w-full sm:max-w-[14rem]">
                                 ${MODELS.map(model => `<option value="${model.value}"${model.value === selectedModel ? ' selected' : ''}>${model.label}</option>`).join('')}
                             </select>
                         </div>
                         ` : ''}
-                    </div>
+                    </header>
+
+                    <div class="doc-page-mobile-ui doc-mobile-toolbar"><button type="button" id="doc-toc-toggle" class="min-h-[44px]">📋 목차</button></div>
+                    <div id="doc-toc-backdrop" class="doc-toc-backdrop" aria-hidden="true"></div>
                     
-                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        <div class="lg:col-span-1">
-                            <div class="bg-white rounded-xl shadow-soft p-4 sticky top-4">
+                    <div class="doc-layout grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <aside class="doc-sidebar lg:col-span-1">
+                            <div class="bg-white rounded-xl shadow-soft p-4 lg:sticky lg:top-4">
+                                <div class="doc-page-mobile-ui flex items-center justify-between mb-3"><span class="font-semibold">목차</span><button type="button" id="doc-toc-close" class="min-h-[44px] px-3 text-sm">닫기</button></div>
                                 <div class="tree-search mb-4" style="position: relative;">
                                     <input 
                                         type="text" 
                                         placeholder="검색..." 
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                                        class="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                                         onfocus="showSearchHistory(this)"
                                         tabindex="0"
                                         aria-label="문서 검색">
                                 </div>
-                                <div id="tree-container" class="max-h-[calc(100vh-200px)] overflow-y-auto">
-                                    ${renderTree(treeData)}
+                                <div id="tree-container" class="max-h-[50dvh] lg:max-h-[calc(100vh-200px)] overflow-y-auto">
+                                    ${renderTree(treeData, 0, isQQManual)}
                                 </div>
                             </div>
-                        </div>
+                        </aside>
                         
-                        <div class="lg:col-span-3">
+                        <section class="doc-main lg:col-span-3">
+                            <button type="button" id="doc-back-to-toc" class="doc-page-mobile-ui mb-2 min-h-[44px] px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium">← 목록으로</button>
                             <div class="bg-white rounded-xl shadow-soft p-4" style="min-height: calc(100vh - 150px);">
                                 <div id="document-viewer" class="w-full h-full flex items-center justify-center text-gray-500" style="min-height: calc(100vh - 200px);">
                                     <div class="text-center">
@@ -1495,9 +1569,9 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
-                </div>
+                </section>
             `;
         }
 
@@ -4516,6 +4590,13 @@ async function initBusinessCardUpload() {
                                         renderRecentNotices();
                                     }, 100);
                                 }
+
+                                if (DOC_ROUTE_PATHS.includes(path)) {
+                                    setTimeout(() => {
+                                        initDocPageMobile();
+                                        tryOpenDocFromHash();
+                                    }, 300);
+                                }
                                 
                                 // 계정 페이지인 경우 초기화 함수들 호출
                                 if (path === '/account') {
@@ -4579,6 +4660,14 @@ async function initBusinessCardUpload() {
             }
 
             let hash = window.location.hash.replace('#','') || '/home';
+            const qIdx = hash.indexOf('?');
+            if (qIdx !== -1) {
+                const qs = hash.slice(qIdx + 1);
+                hash = hash.slice(0, qIdx);
+                const params = new URLSearchParams(qs);
+                const model = params.get('model');
+                if (model) setMaintenanceModel(model);
+            }
             
             let path = hash;
             let param = null;
@@ -4881,7 +4970,7 @@ async function initBusinessCardUpload() {
                 if (window.location.hash === '#/shop') {
                     const treeContainer = document.getElementById('tree-container');
                     if (treeContainer) {
-                        treeContainer.innerHTML = renderTree(getMaintenanceTreeData(model));
+                        treeContainer.innerHTML = renderTree(getMaintenanceTreeData(model), 0, model === 'masada-qq');
                     }
                     const viewer = document.getElementById('document-viewer');
                     if (viewer) {
@@ -5073,6 +5162,8 @@ async function initBusinessCardUpload() {
                 }
 
                 setupEventListeners();
+                initMobileBottomNav();
+                initPwaInstall({ autoAndroidBanner: true, autoIosGuide: true });
                 await routerHandler();
                 
                 // 세션 타이머 시작

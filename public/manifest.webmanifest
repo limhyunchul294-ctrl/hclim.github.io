@@ -1,0 +1,55 @@
+{
+  "name": "EVKMC A/S 정비 포털",
+  "short_name": "EVKMC AS",
+  "description": "EVKMC A/S 정비 기술 문서 포털",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#374151",
+  "background_color": "#F3F4F6",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "정비지침서",
+      "short_name": "정비",
+      "description": "정비지침서 바로가기",
+      "url": "/index.html#/shop",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "차량 보증",
+      "short_name": "보증",
+      "description": "차량 보증 조회",
+      "url": "/index.html#/warranty",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "MASADA QQ",
+      "short_name": "QQ",
+      "description": "MASADA QQ 정비지침서",
+      "url": "/index.html#/shop?model=masada-qq",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -1,8 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#374151" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="EVKMC AS" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/assets/icon-192.png" />
   <title>EVKMC A/S 정비 포털</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -575,6 +582,182 @@
       box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 0 8px rgba(59, 130, 246, 0.3);
       border-radius: 8px;
     }
+
+    /* 모바일 safe-area · 터치 */
+    @media (max-width: 767px) {
+      header {
+        padding-top: max(0.75rem, env(safe-area-inset-top));
+      }
+      #app {
+        padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+      }
+      body.mobile-doc-route #app {
+        padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+      }
+      footer.site-footer {
+        display: none;
+      }
+      button, .mobile-nav-item, .mobile-tab-item, a.mobile-home-tile {
+        touch-action: manipulation;
+        min-height: 44px;
+      }
+      .mobile-home-tile {
+        min-height: 4.5rem;
+      }
+    }
+
+    /* 하단 탭 바 */
+    #mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 45;
+      background: #fff;
+      border-top: 1px solid #e2e8f0;
+      padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+    }
+    @media (max-width: 767px) {
+      #mobile-bottom-nav { display: flex; }
+    }
+    .mobile-tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.15rem;
+      padding: 0.45rem 0.25rem;
+      font-size: 0.65rem;
+      color: #64748b;
+      text-decoration: none;
+    }
+    .mobile-tab-item.mobile-tab-active {
+      color: #111827;
+      font-weight: 600;
+    }
+    .mobile-tab-item svg {
+      width: 1.35rem;
+      height: 1.35rem;
+    }
+
+    /* 문서 페이지 모바일 */
+    @media (max-width: 1023px) {
+      .doc-page-desktop-grid { display: none !important; }
+      .doc-page-mobile-ui { display: block !important; }
+    }
+    @media (min-width: 1024px) {
+      .doc-page-mobile-ui { display: none !important; }
+    }
+    .doc-mobile-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .tree-item-qq-leaf .tree-content {
+      padding: 0.65rem 0.5rem;
+      min-height: 44px;
+      align-items: center;
+    }
+    .tree-item-qq-leaf {
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .doc-mobile-toolbar button {
+      min-height: 44px;
+      padding: 0.5rem 0.85rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #334155;
+    }
+    .doc-page-mobile-ui { display: none; }
+    .doc-toc-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      z-index: 48;
+    }
+    body.doc-mobile-toc-open .doc-toc-backdrop { display: block; }
+    @media (max-width: 1023px) {
+      .doc-layout { display: flex; flex-direction: column; gap: 0.75rem; }
+      .doc-sidebar {
+        display: none;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: calc(3.5rem + env(safe-area-inset-bottom));
+        max-height: 70dvh;
+        z-index: 49;
+        margin: 0;
+        border-radius: 1rem 1rem 0 0;
+        box-shadow: 0 -8px 30px rgba(0,0,0,0.15);
+        overflow: hidden;
+      }
+      body.doc-mobile-toc-open .doc-sidebar { display: block; }
+      body.doc-mobile-viewer-mode .doc-sidebar,
+      body.doc-mobile-viewer-mode .doc-mobile-toolbar { display: none !important; }
+      body.doc-mobile-viewer-mode .doc-main {
+        min-height: calc(100dvh - 8rem);
+      }
+      body.doc-mobile-viewer-mode #doc-back-to-toc { display: inline-flex !important; }
+      #doc-back-to-toc { display: none; }
+      .doc-model-bar { position: sticky; top: 3.5rem; z-index: 10; background: #f3f4f6; padding: 0.5rem 0; }
+    }
+    .pwa-install-banner {
+      position: fixed;
+      left: 0.75rem;
+      right: 0.75rem;
+      bottom: calc(4.25rem + env(safe-area-inset-bottom));
+      z-index: 50;
+      background: #1e293b;
+      color: #fff;
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .pwa-install-banner-inner { display: flex; flex-direction: column; gap: 0.65rem; }
+    .pwa-install-banner-actions { display: flex; gap: 0.5rem; }
+    .pwa-install-btn-primary {
+      flex: 1;
+      min-height: 44px;
+      background: #2563eb;
+      color: #fff;
+      border-radius: 0.5rem;
+      font-weight: 600;
+    }
+    .pwa-install-btn-ghost {
+      min-height: 44px;
+      padding: 0 1rem;
+      color: #cbd5e1;
+    }
+    .pwa-ios-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: flex-end;
+      padding: 1rem;
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+    .pwa-ios-modal-panel {
+      background: #fff;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      width: 100%;
+      max-width: 24rem;
+      margin: 0 auto;
+    }
+    @media (min-width: 768px) {
+      .pwa-install-banner { bottom: 1rem; max-width: 22rem; left: auto; right: 1rem; }
+    }
   </style>
 </head>
 <body class="bg-gray-100 text-slate-800">
@@ -607,6 +790,7 @@
       </div>
       <nav id="desktop-nav" class="hidden md:flex items-center gap-7 text-[15px] flex-nowrap"></nav>
       <div class="flex items-center gap-3">
+        <button type="button" id="pwa-help-btn" class="md:hidden px-2 py-1.5 rounded-lg text-slate-600 hover:bg-gray-100 text-xs font-medium min-h-[44px]" aria-label="앱 설치 안내">앱 설치</button>
         <div id="auth-container"></div>
         <!-- 모바일 메뉴 버튼 -->
         <button 
@@ -645,9 +829,28 @@
 
   <div id="watermark-overlay"></div>
 
-  <footer class="mt-16 bg-slate-800 text-slate-200 text-center py-4">
+  <footer class="site-footer mt-16 bg-slate-800 text-slate-200 text-center py-4">
     <p>&copy; <span id="year"></span> (주)이브이케이엠씨. All rights reserved.</p>
   </footer>
+
+  <nav id="mobile-bottom-nav" aria-label="하단 메뉴">
+    <a href="#/home" data-mobile-tab="home" class="mobile-tab-item" aria-label="홈">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span>홈</span>
+    </a>
+    <a href="#/shop" data-mobile-tab="shop" class="mobile-tab-item" aria-label="정비지침서">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 00-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+      <span>정비</span>
+    </a>
+    <a href="#/warranty" data-mobile-tab="warranty" class="mobile-tab-item" aria-label="차량 보증">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      <span>보증</span>
+    </a>
+    <a href="#/account" data-mobile-tab="account" class="mobile-tab-item" aria-label="내 정보">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      <span>내정보</span>
+    </a>
+  </nav>
 
   <!-- ✅ 모듈 방식: main.js 하나만 로드하며, 필요한 모든 모듈은 main.js에서 import -->
   <script type="module" src="./js/main.js"></script>
