@@ -2450,6 +2450,64 @@ function isValidAdminEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
 }
 
+const ADMIN_USER_FIELD_DISABLED_CLASS = 'disabled:bg-gray-100 disabled:text-gray-700 disabled:cursor-not-allowed disabled:border-gray-200';
+
+function snapshotAdminUserRow(row) {
+    row.dataset.snapshotUsername = row.querySelector('.admin-username-input')?.value || '';
+    row.dataset.snapshotEmail = row.querySelector('.admin-email-input')?.value || '';
+    row.dataset.snapshotRole = row.querySelector('.admin-role-select')?.value || 'user';
+    row.dataset.snapshotGrade = row.querySelector('.admin-grade-select')?.value || 'blue';
+}
+
+function restoreAdminUserRowSnapshot(row) {
+    const usernameInput = row.querySelector('.admin-username-input');
+    const emailInput = row.querySelector('.admin-email-input');
+    const roleSelect = row.querySelector('.admin-role-select');
+    const gradeSelect = row.querySelector('.admin-grade-select');
+    if (usernameInput) usernameInput.value = row.dataset.snapshotUsername || '';
+    if (emailInput) emailInput.value = row.dataset.snapshotEmail || '';
+    if (roleSelect) roleSelect.value = row.dataset.snapshotRole || 'user';
+    if (gradeSelect) gradeSelect.value = row.dataset.snapshotGrade || 'blue';
+}
+
+function setAdminUserRowEditMode(row, editing) {
+    row.querySelectorAll('.admin-username-input, .admin-email-input, .admin-role-select, .admin-grade-select').forEach(el => {
+        el.disabled = !editing;
+    });
+    const editBtn = row.querySelector('.admin-edit-user-btn');
+    const cancelBtn = row.querySelector('.admin-cancel-user-btn');
+    const saveBtn = row.querySelector('.admin-save-user-btn');
+    if (editBtn) editBtn.classList.toggle('hidden', editing);
+    if (cancelBtn) cancelBtn.classList.toggle('hidden', !editing);
+    if (saveBtn) {
+        saveBtn.disabled = !editing;
+        saveBtn.classList.toggle('opacity-50', !editing);
+        saveBtn.classList.toggle('cursor-not-allowed', !editing);
+    }
+    row.dataset.editing = editing ? '1' : '0';
+}
+
+function setAdminDetailEditMode(modalRoot, editing, snapshot) {
+    const usernameInput = modalRoot.querySelector('#admin-detail-username');
+    const emailInput = modalRoot.querySelector('#admin-detail-email');
+    const editBtn = modalRoot.querySelector('.admin-detail-edit-btn');
+    const cancelBtn = modalRoot.querySelector('.admin-detail-cancel-btn');
+    const saveBtn = modalRoot.querySelector('.admin-detail-save-btn');
+    if (usernameInput) usernameInput.disabled = !editing;
+    if (emailInput) emailInput.disabled = !editing;
+    if (editBtn) editBtn.classList.toggle('hidden', editing);
+    if (cancelBtn) cancelBtn.classList.toggle('hidden', !editing);
+    if (saveBtn) {
+        saveBtn.disabled = !editing;
+        saveBtn.classList.toggle('opacity-50', !editing);
+        saveBtn.classList.toggle('cursor-not-allowed', !editing);
+    }
+    if (!editing && snapshot) {
+        if (usernameInput) usernameInput.value = snapshot.username;
+        if (emailInput) emailInput.value = snapshot.email;
+    }
+}
+
 async function adminUpdateUserIdentity({ profileId, username, email, role, grade }) {
     const payload = {
         p_profile_id: Number(profileId),
@@ -2609,7 +2667,7 @@ async function renderAdminDashboardPage() {
             <div id="admin-tab-users" class="admin-tab-content hidden">
                 <div class="mb-4">
                     <input type="text" id="admin-user-search" placeholder="ID, 이름, 이메일, 소속으로 검색..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:outline-none">
-                    <p class="text-xs text-gray-500 mt-2">ID(사번)와 이메일을 수정한 뒤 「저장」을 누르세요. 이메일 변경 시 로그인(매직링크) 주소도 함께 갱신됩니다.</p>
+                    <p class="text-xs text-gray-500 mt-2">「수정하기」를 누른 뒤 ID·이메일·역할·등급을 변경하고 「저장」하세요. 이메일 변경 시 로그인(매직링크) 주소도 함께 갱신됩니다.</p>
                 </div>
                 <div class="bg-white rounded-xl shadow-soft overflow-hidden">
                     <div class="overflow-x-auto">
@@ -2629,29 +2687,31 @@ async function renderAdminDashboardPage() {
                                 ${allUsers.map(u => `
                                     <tr class="admin-user-row hover:bg-gray-50" data-search="${(u.username||'').toLowerCase()} ${(u.name||'').toLowerCase()} ${(u.email||'').toLowerCase()} ${(u.affiliation||'').toLowerCase()}" data-profile-id="${u.profile_id}">
                                         <td class="px-4 py-3">
-                                            <input type="text" class="admin-username-input w-full min-w-[7rem] px-2 py-1 text-xs font-mono border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none" value="${escapeHtml(u.username || '')}" placeholder="사번/ID" autocomplete="off">
+                                            <input type="text" disabled class="admin-username-input w-full min-w-[7rem] px-2 py-1 text-xs font-mono border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.username || '')}" placeholder="사번/ID" autocomplete="off">
                                         </td>
                                         <td class="px-4 py-3 font-medium text-gray-900">${escapeHtml(u.name || '-')}</td>
                                         <td class="px-4 py-3">
-                                            <input type="email" class="admin-email-input w-full min-w-[10rem] px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none" value="${escapeHtml(u.email || '')}" placeholder="email@example.com" autocomplete="off">
+                                            <input type="email" disabled class="admin-email-input w-full min-w-[10rem] px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.email || '')}" placeholder="email@example.com" autocomplete="off">
                                         </td>
                                         <td class="px-4 py-3 text-gray-600">${u.affiliation || '-'}</td>
                                         <td class="px-4 py-3">
-                                            <select class="admin-role-select text-xs border border-gray-300 rounded px-2 py-1" data-user-id="${u.profile_id}">
+                                            <select disabled class="admin-role-select text-xs border border-gray-300 rounded px-2 py-1 ${ADMIN_USER_FIELD_DISABLED_CLASS}" data-user-id="${u.profile_id}">
                                                 <option value="user" ${u.role !== 'admin' ? 'selected' : ''}>사용자</option>
                                                 <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>관리자</option>
                                             </select>
                                         </td>
                                         <td class="px-4 py-3">
-                                            <select class="admin-grade-select text-xs border border-gray-300 rounded px-2 py-1" data-user-id="${u.profile_id}">
+                                            <select disabled class="admin-grade-select text-xs border border-gray-300 rounded px-2 py-1 ${ADMIN_USER_FIELD_DISABLED_CLASS}" data-user-id="${u.profile_id}">
                                                 <option value="blue" ${u.grade === 'blue' ? 'selected' : ''}>🔵 블루</option>
                                                 <option value="silver" ${u.grade === 'silver' ? 'selected' : ''}>⚪ 실버</option>
                                                 <option value="black" ${u.grade === 'black' ? 'selected' : ''}>⚫ 블랙</option>
                                             </select>
                                         </td>
-                                        <td class="px-4 py-3 flex gap-1">
-                                            <button class="admin-save-user-btn text-xs px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors" data-user-id="${u.profile_id}">저장</button>
-                                            <button class="admin-detail-user-btn text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" data-user-idx="${allUsers.indexOf(u)}">상세</button>
+                                        <td class="px-4 py-3 flex flex-wrap gap-1">
+                                            <button type="button" class="admin-edit-user-btn text-xs px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors" data-user-id="${u.profile_id}">수정하기</button>
+                                            <button type="button" class="admin-cancel-user-btn hidden text-xs px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors" data-user-id="${u.profile_id}">취소</button>
+                                            <button type="button" disabled class="admin-save-user-btn text-xs px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors opacity-50 cursor-not-allowed" data-user-id="${u.profile_id}">저장</button>
+                                            <button type="button" class="admin-detail-user-btn text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" data-user-idx="${allUsers.indexOf(u)}">상세</button>
                                         </td>
                                     </tr>
                                 `).join('')}
@@ -2742,11 +2802,31 @@ async function renderAdminDashboardPage() {
             });
         });
 
-        // 사용자 ID·이메일·역할·등급 저장
+        // 사용자 행: 수정 / 취소 / 저장
+        document.querySelectorAll('.admin-user-row').forEach(row => snapshotAdminUserRow(row));
+
+        document.querySelectorAll('.admin-edit-user-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const row = btn.closest('tr');
+                snapshotAdminUserRow(row);
+                setAdminUserRowEditMode(row, true);
+            });
+        });
+
+        document.querySelectorAll('.admin-cancel-user-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const row = btn.closest('tr');
+                restoreAdminUserRowSnapshot(row);
+                setAdminUserRowEditMode(row, false);
+            });
+        });
+
         document.querySelectorAll('.admin-save-user-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const userId = btn.dataset.userId;
                 const row = btn.closest('tr');
+                if (row.dataset.editing !== '1') return;
+
                 const newUsername = row.querySelector('.admin-username-input')?.value?.trim() || '';
                 const newEmail = row.querySelector('.admin-email-input')?.value?.trim() || '';
                 const newRole = row.querySelector('.admin-role-select').value;
@@ -2779,7 +2859,10 @@ async function renderAdminDashboardPage() {
                         allUsers[idx].grade = newGrade;
                     }
                     row.dataset.search = `${newUsername.toLowerCase()} ${(allUsers[idx]?.name || '').toLowerCase()} ${newEmail.toLowerCase()} ${(allUsers[idx]?.affiliation || '').toLowerCase()}`;
+                    snapshotAdminUserRow(row);
+                    setAdminUserRowEditMode(row, false);
                     btn.textContent = '완료!';
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btn.classList.replace('bg-gray-800', 'bg-green-600');
                     if (result.warning) {
                         showToast(result.warning, 'error');
@@ -2789,12 +2872,14 @@ async function renderAdminDashboardPage() {
                     setTimeout(() => {
                         btn.textContent = '저장';
                         btn.classList.replace('bg-green-600', 'bg-gray-800');
-                        btn.disabled = false;
+                        btn.disabled = true;
+                        btn.classList.add('opacity-50', 'cursor-not-allowed');
                     }, 1500);
                 } catch (e) {
                     console.error('사용자 업데이트 오류:', e);
                     showToast(e.message || '저장에 실패했습니다.', 'error');
                     btn.textContent = '오류';
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btn.classList.replace('bg-gray-800', 'bg-red-600');
                     setTimeout(() => {
                         btn.textContent = '저장';
@@ -2973,17 +3058,17 @@ async function renderAdminDashboardPage() {
 
                 const editAccountHtml = `
                     <div class="border rounded-lg overflow-hidden mb-4">
-                        <div class="bg-sky-50 px-4 py-2 font-semibold text-sm text-sky-900">로그인 정보 수정</div>
+                        <div class="bg-sky-50 px-4 py-2 font-semibold text-sm text-sky-900">로그인 정보</div>
                         <div class="p-4 space-y-3">
                             <label class="block text-sm">
                                 <span class="text-gray-600 mb-1 block">ID (사번)</span>
-                                <input type="text" id="admin-detail-username" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 focus:outline-none" value="${escapeHtml(u.username || '')}" autocomplete="off">
+                                <input type="text" id="admin-detail-username" disabled class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.username || '')}" autocomplete="off">
                             </label>
                             <label class="block text-sm">
                                 <span class="text-gray-600 mb-1 block">이메일 (매직링크)</span>
-                                <input type="email" id="admin-detail-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 focus:outline-none" value="${escapeHtml(u.email || '')}" autocomplete="off">
+                                <input type="email" id="admin-detail-email" disabled class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.email || '')}" autocomplete="off">
                             </label>
-                            <p class="text-xs text-gray-500">저장 시 public.users와 auth.users 이메일이 동기화됩니다.</p>
+                            <p class="text-xs text-gray-500">「수정하기」 후 변경하고 「저장」하면 public.users와 auth.users 이메일이 동기화됩니다.</p>
                         </div>
                     </div>
                 `;
@@ -3009,13 +3094,26 @@ async function renderAdminDashboardPage() {
                     cardImageHtml;
 
                 const footerEl = document.createElement('div');
-                footerEl.className = 'p-4 border-t flex justify-center gap-2';
+                footerEl.className = 'p-4 border-t flex justify-center flex-wrap gap-2';
+                const editDetailBtn = document.createElement('button');
+                editDetailBtn.type = 'button';
+                editDetailBtn.className = 'admin-detail-edit-btn px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium';
+                editDetailBtn.textContent = '수정하기';
+                const cancelDetailBtn = document.createElement('button');
+                cancelDetailBtn.type = 'button';
+                cancelDetailBtn.className = 'admin-detail-cancel-btn hidden px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium';
+                cancelDetailBtn.textContent = '취소';
                 const saveDetailBtn = document.createElement('button');
-                saveDetailBtn.className = 'px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-medium';
+                saveDetailBtn.type = 'button';
+                saveDetailBtn.disabled = true;
+                saveDetailBtn.className = 'admin-detail-save-btn px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-medium opacity-50 cursor-not-allowed';
                 saveDetailBtn.textContent = '저장';
                 const closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
                 closeBtn.className = 'px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium';
                 closeBtn.textContent = '닫기';
+                footerEl.appendChild(editDetailBtn);
+                footerEl.appendChild(cancelDetailBtn);
                 footerEl.appendChild(saveDetailBtn);
                 footerEl.appendChild(closeBtn);
 
@@ -3025,6 +3123,11 @@ async function renderAdminDashboardPage() {
                 overlay.appendChild(modal);
                 document.body.appendChild(overlay);
 
+                const detailSnapshot = {
+                    username: u.username || '',
+                    email: u.email || ''
+                };
+
                 const syncTableRow = (username, email) => {
                     const tableRow = document.querySelector(`tr[data-profile-id="${u.profile_id}"]`);
                     if (tableRow) {
@@ -3033,14 +3136,29 @@ async function renderAdminDashboardPage() {
                         if (userInput) userInput.value = username;
                         if (emailInput) emailInput.value = email;
                         tableRow.dataset.search = `${username.toLowerCase()} ${(u.name || '').toLowerCase()} ${email.toLowerCase()} ${(u.affiliation || '').toLowerCase()}`;
+                        snapshotAdminUserRow(tableRow);
+                        setAdminUserRowEditMode(tableRow, false);
                     }
                     u.username = username;
                     u.email = email;
+                    detailSnapshot.username = username;
+                    detailSnapshot.email = email;
                 };
 
+                editDetailBtn.addEventListener('click', () => {
+                    detailSnapshot.username = modal.querySelector('#admin-detail-username')?.value || '';
+                    detailSnapshot.email = modal.querySelector('#admin-detail-email')?.value || '';
+                    setAdminDetailEditMode(modal, true);
+                });
+
+                cancelDetailBtn.addEventListener('click', () => {
+                    setAdminDetailEditMode(modal, false, detailSnapshot);
+                });
+
                 saveDetailBtn.addEventListener('click', async () => {
-                    const newUsername = document.getElementById('admin-detail-username')?.value?.trim() || '';
-                    const newEmail = document.getElementById('admin-detail-email')?.value?.trim() || '';
+                    if (saveDetailBtn.disabled) return;
+                    const newUsername = modal.querySelector('#admin-detail-username')?.value?.trim() || '';
+                    const newEmail = modal.querySelector('#admin-detail-email')?.value?.trim() || '';
                     if (!newUsername) {
                         showToast('ID(사번)를 입력해주세요.', 'error');
                         return;
@@ -3065,12 +3183,14 @@ async function renderAdminDashboardPage() {
                         } else {
                             showToast('로그인 정보가 저장되었습니다.', 'success');
                         }
+                        setAdminDetailEditMode(modal, false);
+                        saveDetailBtn.textContent = '저장';
                     } catch (e) {
                         console.error('상세 저장 오류:', e);
                         showToast(e.message || '저장에 실패했습니다.', 'error');
-                    } finally {
                         saveDetailBtn.disabled = false;
                         saveDetailBtn.textContent = '저장';
+                        saveDetailBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                     }
                 });
 
