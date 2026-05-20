@@ -23,6 +23,20 @@ function getServiceRoleKey() {
     return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
 }
 
+function getChaptersToUpload() {
+    const onlyIdx = process.argv.indexOf('--chapter');
+    if (onlyIdx === -1 || !process.argv[onlyIdx + 1]) {
+        return QQ_CHAPTERS;
+    }
+    const num = String(process.argv[onlyIdx + 1]).padStart(2, '0');
+    const filtered = QQ_CHAPTERS.filter((ch) => ch.num === num);
+    if (filtered.length === 0) {
+        console.error(`❌ 챕터 번호 없음: ${process.argv[onlyIdx + 1]}`);
+        process.exit(1);
+    }
+    return filtered;
+}
+
 async function main() {
     const key = getServiceRoleKey();
     if (!key) {
@@ -35,13 +49,14 @@ async function main() {
         process.exit(1);
     }
 
+    const chapters = getChaptersToUpload();
     const supabase = createClient(PROJECT_URL, key);
-    console.log(`📤 ${QQ_CHAPTERS.length}개 → ${BUCKET}/${QQ_SM_STORAGE_PREFIX}/`);
+    console.log(`📤 ${chapters.length}개 → ${BUCKET}/${QQ_SM_STORAGE_PREFIX}/`);
 
     let ok = 0;
     let fail = 0;
 
-    for (const ch of QQ_CHAPTERS) {
+    for (const ch of chapters) {
         const localPath = path.join(QQ_DIR, ch.file);
         if (!fs.existsSync(localPath)) {
             console.error(`❌ 로컬 파일 없음: ${ch.file}`);

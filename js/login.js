@@ -243,7 +243,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Supabase Auth를 통해 OTP 발송
                 const { data: otpData, error: otpError } = await window.supabaseClient.auth.signInWithOtp({
-                    phone: formattedPhone
+                    phone: formattedPhone,
+                    options: { shouldCreateUser: false },
                 });
 
                 if (otpError) {
@@ -477,7 +478,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        const { error } = await window.supabaseClient.auth.signInWithOtp({ email });
+        const { error } = await window.supabaseClient.auth.signInWithOtp({
+            email,
+            options: { shouldCreateUser: false },
+        });
         if (error) {
             if (error.message?.includes('rate limit')) {
                 throw new Error('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
