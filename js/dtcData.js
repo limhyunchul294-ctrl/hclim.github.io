@@ -1,7 +1,7 @@
 /**
  * DTC 코드 데이터 (자동 생성 — 수정하지 마세요)
- * 생성: 2026-05-20T05:11:00.604Z
- * 원본: DTC/dtc_data.json + DTC코드.xlsx(보조)
+ * 생성: 2026-05-20T05:41:04.442Z
+ * 원본: DTC/dtc_data.json (XLSX 가이드) + DTC코드.xlsx(보조)
  * 건수: 114 (마이그레이션 109 + xlsx 보조 5)
  *
  * 재생성: npm run build:dtc
@@ -48,6 +48,24 @@ export const DTC_ENTRIES = [
       "dtc/E-0420/image_10.jpg",
       "dtc/E-0420/image_11.png",
       "dtc/E-0420/image_12.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
     ]
   },
   {
@@ -114,6 +132,33 @@ export const DTC_ENTRIES = [
       "dtc/E-0421/image_13.jpg",
       "dtc/E-0421/image_14.png",
       "dtc/E-0421/image_15.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11
+      ],
+      [
+        12,
+        13,
+        14
+      ]
     ]
   },
   {
@@ -174,6 +219,36 @@ export const DTC_ENTRIES = [
       "dtc/E-0422/image_22.png",
       "dtc/E-0422/image_23.jpg",
       "dtc/E-0422/image_24.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ]
     ]
   },
   {
@@ -234,6 +309,36 @@ export const DTC_ENTRIES = [
       "dtc/E-0423/image_22.jpg",
       "dtc/E-0423/image_23.jpg",
       "dtc/E-0423/image_24.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ]
     ]
   },
   {
@@ -294,6 +399,36 @@ export const DTC_ENTRIES = [
       "dtc/E-0425/image_22.jpg",
       "dtc/E-0425/image_23.jpg",
       "dtc/E-0425/image_24.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ]
     ]
   },
   {
@@ -362,6 +497,33 @@ export const DTC_ENTRIES = [
       "dtc/E-0426/image_13.jpg",
       "dtc/E-0426/image_14.png",
       "dtc/E-0426/image_15.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11
+      ],
+      [
+        12,
+        13,
+        14
+      ]
     ]
   },
   {
@@ -430,6 +592,33 @@ export const DTC_ENTRIES = [
       "dtc/E-0427/image_13.jpg",
       "dtc/E-0427/image_14.png",
       "dtc/E-0427/image_15.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11
+      ],
+      [
+        12,
+        13,
+        14
+      ]
     ]
   },
   {
@@ -470,6 +659,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0428/image_9.jpg",
       "dtc/E-0428/image_10.png",
       "dtc/E-0428/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -510,6 +716,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0429/image_9.jpg",
       "dtc/E-0429/image_10.png",
       "dtc/E-0429/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -554,6 +777,24 @@ export const DTC_ENTRIES = [
       "dtc/E-0430/image_10.jpg",
       "dtc/E-0430/image_11.png",
       "dtc/E-0430/image_12.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
     ]
   },
   {
@@ -598,6 +839,24 @@ export const DTC_ENTRIES = [
       "dtc/E-0431/image_10.jpg",
       "dtc/E-0431/image_11.png",
       "dtc/E-0431/image_12.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
     ]
   },
   {
@@ -638,6 +897,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0432/image_9.jpg",
       "dtc/E-0432/image_10.png",
       "dtc/E-0432/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -678,6 +954,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0433/image_9.jpg",
       "dtc/E-0433/image_10.png",
       "dtc/E-0433/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -718,6 +1011,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0434/image_9.jpg",
       "dtc/E-0434/image_10.png",
       "dtc/E-0434/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -758,6 +1068,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0435/image_9.jpg",
       "dtc/E-0435/image_10.png",
       "dtc/E-0435/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -816,6 +1143,35 @@ export const DTC_ENTRIES = [
       "dtc/E-0436/image_21.jpg",
       "dtc/E-0436/image_22.jpg",
       "dtc/E-0436/image_23.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
+      ]
     ]
   },
   {
@@ -874,6 +1230,35 @@ export const DTC_ENTRIES = [
       "dtc/E-0437/image_21.jpg",
       "dtc/E-0437/image_22.jpg",
       "dtc/E-0437/image_23.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
+      ]
     ]
   },
   {
@@ -914,6 +1299,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0438/image_9.jpg",
       "dtc/E-0438/image_10.png",
       "dtc/E-0438/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -954,6 +1356,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0439/image_9.jpg",
       "dtc/E-0439/image_10.png",
       "dtc/E-0439/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -984,7 +1403,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0440/image_14.png",
       "dtc/E-0440/image_15.png",
       "dtc/E-0440/image_16.png"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "441",
@@ -1014,7 +1434,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0441/image_14.png",
       "dtc/E-0441/image_15.png",
       "dtc/E-0441/image_16.png"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "442",
@@ -1054,6 +1475,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0442/image_9.jpg",
       "dtc/E-0442/image_10.png",
       "dtc/E-0442/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -1110,6 +1548,28 @@ export const DTC_ENTRIES = [
       "dtc/E-0443/image_10.jpg",
       "dtc/E-0443/image_11.png",
       "dtc/E-0443/image_12.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11
+      ]
     ]
   },
   {
@@ -1166,6 +1626,28 @@ export const DTC_ENTRIES = [
       "dtc/E-0444/image_10.jpg",
       "dtc/E-0444/image_11.png",
       "dtc/E-0444/image_12.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11
+      ]
     ]
   },
   {
@@ -1206,6 +1688,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0445/image_9.jpg",
       "dtc/E-0445/image_10.png",
       "dtc/E-0445/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -1246,6 +1745,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0446/image_9.jpg",
       "dtc/E-0446/image_10.png",
       "dtc/E-0446/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -1286,6 +1802,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0447/image_9.jpg",
       "dtc/E-0447/image_10.png",
       "dtc/E-0447/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -1352,6 +1885,33 @@ export const DTC_ENTRIES = [
       "dtc/E-0448/image_13.jpg",
       "dtc/E-0448/image_14.png",
       "dtc/E-0448/image_15.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11
+      ],
+      [
+        12,
+        13,
+        14
+      ]
     ]
   },
   {
@@ -1382,7 +1942,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0449/image_14.png",
       "dtc/E-0449/image_15.png",
       "dtc/E-0449/image_16.png"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "450",
@@ -1412,7 +1973,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0450/image_14.png",
       "dtc/E-0450/image_15.png",
       "dtc/E-0450/image_16.png"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "451",
@@ -1469,6 +2031,32 @@ export const DTC_ENTRIES = [
       "dtc/E-0451/image_16.png",
       "dtc/E-0451/image_17.jpg",
       "dtc/E-0451/image_18.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ]
     ]
   },
   {
@@ -1535,6 +2123,33 @@ export const DTC_ENTRIES = [
       "dtc/E-0452/image_13.jpg",
       "dtc/E-0452/image_14.png",
       "dtc/E-0452/image_15.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11
+      ],
+      [
+        12,
+        13,
+        14
+      ]
     ]
   },
   {
@@ -1575,6 +2190,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0453/image_9.jpg",
       "dtc/E-0453/image_10.png",
       "dtc/E-0453/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -1600,7 +2232,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0454/image_9.jpg",
       "dtc/E-0454/image_10.png",
       "dtc/E-0454/image_11.png"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "455",
@@ -1630,7 +2263,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0455/image_14.png",
       "dtc/E-0455/image_15.png",
       "dtc/E-0455/image_16.png"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "456",
@@ -1646,7 +2280,8 @@ export const DTC_ENTRIES = [
         "action": "—"
       }
     ],
-    "imageKeys": []
+    "imageKeys": [],
+    "imagePlan": []
   },
   {
     "code": "457",
@@ -1662,7 +2297,8 @@ export const DTC_ENTRIES = [
         "action": "12V 배터리 리셋, DCDC 교체"
       }
     ],
-    "imageKeys": []
+    "imageKeys": [],
+    "imagePlan": []
   },
   {
     "code": "458",
@@ -1678,7 +2314,8 @@ export const DTC_ENTRIES = [
         "action": "—"
       }
     ],
-    "imageKeys": []
+    "imageKeys": [],
+    "imagePlan": []
   },
   {
     "code": "520",
@@ -1705,7 +2342,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0520/image_11.jpg",
       "dtc/E-0520/image_12.png",
       "dtc/E-0520/image_13.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "521",
@@ -1732,7 +2370,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0521/image_11.jpg",
       "dtc/E-0521/image_12.png",
       "dtc/E-0521/image_13.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "522",
@@ -1753,7 +2392,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0522/image_5.jpg",
       "dtc/E-0522/image_6.jpg",
       "dtc/E-0522/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "523",
@@ -1774,7 +2414,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0523/image_5.jpg",
       "dtc/E-0523/image_6.jpg",
       "dtc/E-0523/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "524",
@@ -1795,7 +2436,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0524/image_5.jpg",
       "dtc/E-0524/image_6.jpg",
       "dtc/E-0524/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "525",
@@ -1816,7 +2458,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0525/image_5.jpg",
       "dtc/E-0525/image_6.jpg",
       "dtc/E-0525/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "526",
@@ -1837,7 +2480,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0526/image_5.jpg",
       "dtc/E-0526/image_6.jpg",
       "dtc/E-0526/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "527",
@@ -1858,7 +2502,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0527/image_5.jpg",
       "dtc/E-0527/image_6.jpg",
       "dtc/E-0527/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "528",
@@ -1879,7 +2524,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0528/image_5.jpg",
       "dtc/E-0528/image_6.jpg",
       "dtc/E-0528/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "529",
@@ -1900,7 +2546,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0529/image_5.jpg",
       "dtc/E-0529/image_6.jpg",
       "dtc/E-0529/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "530",
@@ -1921,7 +2568,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0530/image_5.jpg",
       "dtc/E-0530/image_6.jpg",
       "dtc/E-0530/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "531",
@@ -1942,7 +2590,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0531/image_5.jpg",
       "dtc/E-0531/image_6.jpg",
       "dtc/E-0531/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "532",
@@ -1963,7 +2612,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0532/image_5.jpg",
       "dtc/E-0532/image_6.jpg",
       "dtc/E-0532/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "533",
@@ -1984,7 +2634,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0533/image_5.jpg",
       "dtc/E-0533/image_6.jpg",
       "dtc/E-0533/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "534",
@@ -2005,7 +2656,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0534/image_5.jpg",
       "dtc/E-0534/image_6.jpg",
       "dtc/E-0534/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "535",
@@ -2035,7 +2687,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0535/image_13.jpg",
       "dtc/E-0535/image_14.jpg",
       "dtc/E-0535/image_15.png"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "536",
@@ -2065,7 +2718,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0536/image_13.jpg",
       "dtc/E-0536/image_14.jpg",
       "dtc/E-0536/image_15.png"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "537",
@@ -2095,7 +2749,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0537/image_13.png",
       "dtc/E-0537/image_14.jpg",
       "dtc/E-0537/image_15.png"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "538",
@@ -2116,7 +2771,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0538/image_5.jpg",
       "dtc/E-0538/image_6.jpg",
       "dtc/E-0538/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "539",
@@ -2137,7 +2793,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0539/image_5.jpg",
       "dtc/E-0539/image_6.jpg",
       "dtc/E-0539/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "540",
@@ -2158,7 +2815,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0540/image_5.jpg",
       "dtc/E-0540/image_6.jpg",
       "dtc/E-0540/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "541",
@@ -2179,7 +2837,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0541/image_5.jpg",
       "dtc/E-0541/image_6.jpg",
       "dtc/E-0541/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "542",
@@ -2200,7 +2859,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0542/image_5.jpg",
       "dtc/E-0542/image_6.jpg",
       "dtc/E-0542/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "543",
@@ -2221,7 +2881,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0543/image_5.jpg",
       "dtc/E-0543/image_6.jpg",
       "dtc/E-0543/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "544",
@@ -2242,7 +2903,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0544/image_5.jpg",
       "dtc/E-0544/image_6.jpg",
       "dtc/E-0544/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "545",
@@ -2263,7 +2925,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0545/image_5.jpg",
       "dtc/E-0545/image_6.jpg",
       "dtc/E-0545/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "546",
@@ -2279,7 +2942,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0546/image_2.jpg",
       "dtc/E-0546/image_3.png",
       "dtc/E-0546/image_4.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "548",
@@ -2323,6 +2987,26 @@ export const DTC_ENTRIES = [
       "dtc/E-0548/image_12.jpg",
       "dtc/E-0548/image_13.png",
       "dtc/E-0548/image_14.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ]
     ]
   },
   {
@@ -2372,6 +3056,26 @@ export const DTC_ENTRIES = [
       "dtc/E-0549/image_10.png",
       "dtc/E-0549/image_11.jpg",
       "dtc/E-0549/image_12.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3
+      ],
+      [
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        8,
+        9,
+        10,
+        11
+      ]
     ]
   },
   {
@@ -2393,7 +3097,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0550/image_5.jpg",
       "dtc/E-0550/image_6.jpg",
       "dtc/E-0550/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "551",
@@ -2414,7 +3119,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0551/image_5.jpg",
       "dtc/E-0551/image_6.jpg",
       "dtc/E-0551/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "552",
@@ -2435,7 +3141,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0552/image_5.jpg",
       "dtc/E-0552/image_6.jpg",
       "dtc/E-0552/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "553",
@@ -2456,7 +3163,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0553/image_5.jpg",
       "dtc/E-0553/image_6.jpg",
       "dtc/E-0553/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "554",
@@ -2477,7 +3185,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0554/image_5.jpg",
       "dtc/E-0554/image_6.jpg",
       "dtc/E-0554/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "555",
@@ -2498,7 +3207,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0555/image_5.jpg",
       "dtc/E-0555/image_6.jpg",
       "dtc/E-0555/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "556",
@@ -2519,7 +3229,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0556/image_5.jpg",
       "dtc/E-0556/image_6.jpg",
       "dtc/E-0556/image_7.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "557",
@@ -2534,7 +3245,8 @@ export const DTC_ENTRIES = [
     "causes": null,
     "imageKeys": [
       "dtc/E-0557/image_1.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "558",
@@ -2550,7 +3262,8 @@ export const DTC_ENTRIES = [
         "action": "—"
       }
     ],
-    "imageKeys": []
+    "imageKeys": [],
+    "imagePlan": []
   },
   {
     "code": "559",
@@ -2596,6 +3309,28 @@ export const DTC_ENTRIES = [
       "dtc/E-0559/image_14.jpg",
       "dtc/E-0559/image_15.jpg",
       "dtc/E-0559/image_16.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ]
     ]
   },
   {
@@ -2612,7 +3347,8 @@ export const DTC_ENTRIES = [
         "action": "접촉기를 교체하십시오"
       }
     ],
-    "imageKeys": []
+    "imageKeys": [],
+    "imagePlan": []
   },
   {
     "code": "565",
@@ -2623,7 +3359,8 @@ export const DTC_ENTRIES = [
     "suspected_parts": [],
     "wiring_steps": [],
     "causes": null,
-    "imageKeys": []
+    "imageKeys": [],
+    "imagePlan": []
   },
   {
     "code": "620",
@@ -2663,6 +3400,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0620/image_9.jpg",
       "dtc/E-0620/image_10.jpg",
       "dtc/E-0620/image_11.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -2717,6 +3471,32 @@ export const DTC_ENTRIES = [
       "dtc/E-0621/image_18.jpg",
       "dtc/E-0621/image_19.png",
       "dtc/E-0621/image_20.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ]
     ]
   },
   {
@@ -2764,6 +3544,30 @@ export const DTC_ENTRIES = [
       "dtc/E-0622/image_16.jpg",
       "dtc/E-0622/image_17.png",
       "dtc/E-0622/image_18.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ]
     ]
   },
   {
@@ -2808,6 +3612,27 @@ export const DTC_ENTRIES = [
       "dtc/E-0624/image_13.jpg",
       "dtc/E-0624/image_14.png",
       "dtc/E-0624/image_15.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ]
     ]
   },
   {
@@ -2835,7 +3660,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0625/image_10.jpg",
       "dtc/E-0625/image_11.png",
       "dtc/E-0625/image_12.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "626",
@@ -2862,7 +3688,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0626/image_10.jpg",
       "dtc/E-0626/image_11.png",
       "dtc/E-0626/image_12.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "627",
@@ -2902,6 +3729,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0627/image_9.jpg",
       "dtc/E-0627/image_10.jpg",
       "dtc/E-0627/image_11.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -2956,6 +3800,32 @@ export const DTC_ENTRIES = [
       "dtc/E-0628/image_18.jpg",
       "dtc/E-0628/image_19.png",
       "dtc/E-0628/image_20.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ]
     ]
   },
   {
@@ -3000,6 +3870,27 @@ export const DTC_ENTRIES = [
       "dtc/E-0629/image_13.png",
       "dtc/E-0629/image_14.jpg",
       "dtc/E-0629/image_15.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ]
     ]
   },
   {
@@ -3049,6 +3940,29 @@ export const DTC_ENTRIES = [
       "dtc/E-0720/image_15.jpg",
       "dtc/E-0720/image_16.jpg",
       "dtc/E-0720/image_17.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ]
     ]
   },
   {
@@ -3098,6 +4012,29 @@ export const DTC_ENTRIES = [
       "dtc/E-0721/image_15.jpg",
       "dtc/E-0721/image_16.jpg",
       "dtc/E-0721/image_17.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ]
     ]
   },
   {
@@ -3147,6 +4084,29 @@ export const DTC_ENTRIES = [
       "dtc/E-0722/image_15.jpg",
       "dtc/E-0722/image_16.jpg",
       "dtc/E-0722/image_17.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ]
     ]
   },
   {
@@ -3196,6 +4156,29 @@ export const DTC_ENTRIES = [
       "dtc/E-0723/image_15.jpg",
       "dtc/E-0723/image_16.jpg",
       "dtc/E-0723/image_17.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ]
     ]
   },
   {
@@ -3245,6 +4228,29 @@ export const DTC_ENTRIES = [
       "dtc/E-0724/image_15.jpg",
       "dtc/E-0724/image_16.jpg",
       "dtc/E-0724/image_17.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ]
     ]
   },
   {
@@ -3320,6 +4326,36 @@ export const DTC_ENTRIES = [
       "dtc/E-0725/image_14.jpg",
       "dtc/E-0725/image_15.png",
       "dtc/E-0725/image_16.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        8,
+        9,
+        10
+      ],
+      [
+        11,
+        12,
+        13
+      ],
+      [
+        14,
+        15
+      ]
     ]
   },
   {
@@ -3396,6 +4432,36 @@ export const DTC_ENTRIES = [
       "dtc/E-0726/image_14.jpg",
       "dtc/E-0726/image_15.jpg",
       "dtc/E-0726/image_16.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        8,
+        9,
+        10
+      ],
+      [
+        11,
+        12,
+        13
+      ],
+      [
+        14,
+        15
+      ]
     ]
   },
   {
@@ -3420,7 +4486,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0727/image_7.jpg",
       "dtc/E-0727/image_8.jpg",
       "dtc/E-0727/image_9.png"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "728",
@@ -3444,7 +4511,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0728/image_7.jpg",
       "dtc/E-0728/image_8.jpg",
       "dtc/E-0728/image_9.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "729",
@@ -3468,7 +4536,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0729/image_7.jpg",
       "dtc/E-0729/image_8.jpg",
       "dtc/E-0729/image_9.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "730",
@@ -3495,7 +4564,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0730/image_9.jpg",
       "dtc/E-0730/image_10.jpg",
       "dtc/E-0730/image_11.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "731",
@@ -3535,6 +4605,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0731/image_9.jpg",
       "dtc/E-0731/image_10.jpg",
       "dtc/E-0731/image_11.png"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -3577,6 +4664,25 @@ export const DTC_ENTRIES = [
       "dtc/E-0732/image_11.jpg",
       "dtc/E-0732/image_12.png",
       "dtc/E-0732/image_13.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ]
     ]
   },
   {
@@ -3619,6 +4725,25 @@ export const DTC_ENTRIES = [
       "dtc/E-0733/image_11.jpg",
       "dtc/E-0733/image_12.png",
       "dtc/E-0733/image_13.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ]
     ]
   },
   {
@@ -3638,7 +4763,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0734/image_3.jpg",
       "dtc/E-0734/image_4.jpg",
       "dtc/E-0734/image_5.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "735",
@@ -3654,7 +4780,8 @@ export const DTC_ENTRIES = [
       "dtc/E-0735/image_2.png",
       "dtc/E-0735/image_3.jpg",
       "dtc/E-0735/image_4.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "736",
@@ -3689,6 +4816,18 @@ export const DTC_ENTRIES = [
       "dtc/E-0736/image_4.jpg",
       "dtc/E-0736/image_5.jpg",
       "dtc/E-0736/image_6.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ]
     ]
   },
   {
@@ -3738,6 +4877,26 @@ export const DTC_ENTRIES = [
       "dtc/E-0737/image_10.png",
       "dtc/E-0737/image_11.jpg",
       "dtc/E-0737/image_12.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3
+      ],
+      [
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        8,
+        9,
+        10,
+        11
+      ]
     ]
   },
   {
@@ -3778,6 +4937,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0738/image_9.jpg",
       "dtc/E-0738/image_10.jpg",
       "dtc/E-0738/image_11.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -3818,6 +4994,23 @@ export const DTC_ENTRIES = [
       "dtc/E-0739/image_9.jpg",
       "dtc/E-0739/image_10.jpg",
       "dtc/E-0739/image_11.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
     ]
   },
   {
@@ -3831,7 +5024,8 @@ export const DTC_ENTRIES = [
     "causes": null,
     "imageKeys": [
       "dtc/E-0740/image_1.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "741",
@@ -3887,6 +5081,33 @@ export const DTC_ENTRIES = [
       "dtc/E-0741/image_17.jpg",
       "dtc/E-0741/image_18.jpg",
       "dtc/E-0741/image_19.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ]
     ]
   },
   {
@@ -3943,6 +5164,33 @@ export const DTC_ENTRIES = [
       "dtc/E-0742/image_17.jpg",
       "dtc/E-0742/image_18.jpg",
       "dtc/E-0742/image_19.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ]
     ]
   },
   {
@@ -3999,6 +5247,33 @@ export const DTC_ENTRIES = [
       "dtc/E-0743/image_17.jpg",
       "dtc/E-0743/image_18.jpg",
       "dtc/E-0743/image_19.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ]
     ]
   },
   {
@@ -4014,7 +5289,8 @@ export const DTC_ENTRIES = [
     "causes": null,
     "imageKeys": [
       "dtc/E-0744/image_1.jpg"
-    ]
+    ],
+    "imagePlan": []
   },
   {
     "code": "745",
@@ -4070,13 +5346,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0745/image_17.jpg",
       "dtc/E-0745/image_18.jpg",
       "dtc/E-0745/image_19.jpg"
+    ],
+    "imagePlan": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ]
     ]
   }
 ];
 
 export const DTC_META = {
-  "builtAt": "2026-05-20T05:11:00.604Z",
-  "source": "DTC/dtc_data.json + DTC코드.xlsx(보조)",
+  "builtAt": "2026-05-20T05:41:04.442Z",
+  "source": "DTC/dtc_data.json (XLSX 가이드) + DTC코드.xlsx(보조)",
+  "guideXlsx": "DTC/EC31 35 DTC GUIDE 편집본 250630 기준.xlsx",
   "migratedCount": 109,
   "xlsxOnlyCount": 5,
   "count": 114,

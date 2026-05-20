@@ -32,6 +32,20 @@ export function normCode(raw) {
 }
 
 /** images/dtc/E-0420/foo.JPG → dtc/E-0420/foo.jpg */
+/** 엑셀 도면 순서(image_1…)를 배선 점검 단계에 균등 배분 */
+export function buildImagePlan(imageCount, wiringStepCount) {
+    if (!imageCount || !wiringStepCount) return [];
+    const plan = Array.from({ length: wiringStepCount }, () => []);
+    for (let i = 0; i < imageCount; i++) {
+        const step = Math.min(wiringStepCount - 1, Math.floor((i * wiringStepCount) / imageCount));
+        plan[step].push(i);
+    }
+    for (let s = 0; s < wiringStepCount; s++) {
+        if (plan[s].length === 0) plan[s].push(Math.min(s, imageCount - 1));
+    }
+    return plan;
+}
+
 export function normalizeStorageKey(relativePath) {
     let p = String(relativePath || '').replace(/\\/g, '/').trim();
     p = p.replace(/^images\/dtc\//i, 'dtc/');
@@ -144,6 +158,7 @@ function migratedToEntry(row, imageMap) {
     const code = normCode(row.code);
     const codeDisplay = formatDtcCode(code);
     const imageKeys = imageMap[codeDisplay] || imageMap[row.code] || [];
+    const wiringSteps = Array.isArray(row.wiring_steps) ? row.wiring_steps : [];
     return {
         code,
         codeDisplay,
@@ -151,9 +166,10 @@ function migratedToEntry(row, imageMap) {
         category: row.category || inferCategory(code),
         explanation: row.explanation || '',
         suspected_parts: Array.isArray(row.suspected_parts) ? row.suspected_parts : [],
-        wiring_steps: Array.isArray(row.wiring_steps) ? row.wiring_steps : [],
+        wiring_steps: wiringSteps,
         causes: null,
         imageKeys,
+        imagePlan: buildImagePlan(imageKeys.length, wiringSteps.length),
     };
 }
 
@@ -170,6 +186,7 @@ function xlsxToEntry(row, imageMap) {
         wiring_steps: [],
         causes: row.causes,
         imageKeys: imageMap[codeDisplay] || [],
+        imagePlan: [],
     };
 }
 
@@ -208,6 +225,12 @@ function main() {
         const entry = migratedToEntry(row, imageMap);
         masterCodes.add(entry.code);
         entries.push(entry);
+    }
+
+    for (const entry of entries) {
+        if (!entry.imagePlan?.length && entry.imageKeys?.length && entry.wiring_steps?.length) {
+            entry.imagePlan = buildImagePlan(entry.imageKeys.length, entry.wiring_steps.length);
+        }
     }
 
     let xlsxOnlyCount = 0;
