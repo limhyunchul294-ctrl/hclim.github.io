@@ -486,6 +486,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (error.message?.includes('rate limit')) {
                 throw new Error('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
             }
+            if (error.message?.includes('Email logins are disabled')) {
+                throw new Error(
+                    '이메일 로그인이 비활성화되어 있습니다. 관리자에게 Supabase 이메일 설정을 확인해달라고 요청해주세요.'
+                );
+            }
             throw new Error(error.message || '인증 코드 발송에 실패했습니다.');
         }
 

@@ -170,8 +170,9 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# 신규 Auth 계정 자동 생성 차단 (등록된 users만 OTP 로그인)
-enable_signup = false
+# true 필수: false면 OTP·매직링크 전체가 "Email logins are disabled" 됨
+# 신규 Auth 계정 생성은 앱에서 shouldCreateUser: false + check_user_email 로 차단
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
