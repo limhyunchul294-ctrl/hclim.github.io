@@ -21,6 +21,7 @@ import {
 } from './mobileUX.js';
 import { initPwaInstall } from './pwaInstall.js';
 import { redirectAuthHashToLoginIfNeeded } from './authRedirect.js';
+import { logPortalActivity, logRouteViewDebounced, logSessionStartOnce } from './auditLog.js';
 
 // js/main.js (Final Version)
 // ✅ 수정사항: localStorage 완전 제거, authSession 사용으로 변경
@@ -1258,6 +1259,16 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
          */
         async function downloadSecureFile(fileName, bucketName, pageRange) {
             showToast('워터마크가 삽입된 파일 다운로드 준비 중...', 'info');
+
+            void logPortalActivity({
+                eventType: 'manual_download',
+                resourceCategory: 'manual',
+                resourceKey: String(fileName || '').split(/[/\\]/).pop() || String(fileName || '').slice(0, 200),
+                payload: {
+                    bucket: bucketName || null,
+                    pageRange: pageRange ?? null,
+                },
+            });
             
             const fileBlobUrl = await getWatermarkedFileUrl(bucketName, fileName, pageRange); 
 
@@ -1678,6 +1689,16 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
 
             window.enterDocMobileViewerMode?.();
 
+            void logPortalActivity({
+                eventType: 'dtc_select',
+                resourceCategory: 'dtc',
+                resourceKey: String(id),
+                payload: {
+                    code: entry.codeDisplay || entry.code || null,
+                    title: entry.title ? String(entry.title).slice(0, 200) : null,
+                },
+            });
+
             saveRecentDoc({
                 path: '/dtc',
                 docId: id,
@@ -1724,6 +1745,18 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                 } else if (doc.type === 'image') {
                     viewer.innerHTML = imageViewerHTML(fileBlobUrl, doc.title, doc.fileName, doc.bucket);
                 }
+
+                void logPortalActivity({
+                    eventType: 'manual_open',
+                    resourceCategory: getDownloadDocCategory(id, doc.fileName, doc.bucket),
+                    resourceKey: String(id),
+                    payload: {
+                        bucket: doc.bucket,
+                        file: doc.fileName,
+                        docType: doc.type,
+                        pageRange: doc.pageRange || null,
+                    },
+                });
 
                 window.enterDocMobileViewerMode?.();
 
@@ -3077,6 +3110,7 @@ async function renderAdminDashboardPage() {
                     ${stats.pendingRequests > 0 ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${stats.pendingRequests}</span>` : ''}
                 </button>
                 <button class="admin-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="warranty">보증 데이터</button>
+                <button class="admin-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="activity">이용 로그</button>
             </div>
 
             <!-- 개요 탭 -->
@@ -3242,10 +3276,138 @@ async function renderAdminDashboardPage() {
                     </div>
                 </div>
             </div>
+
+            <!-- 이용 로그 탭 -->
+            <div id="admin-tab-activity" class="admin-tab-content hidden">
+                <p id="admin-activity-hint" class="text-sm text-gray-500 mb-3">기본 최근 7일, 최대 200건입니다.</p>
+                <div class="flex flex-wrap gap-3 items-center mb-4">
+                    <label class="text-sm text-gray-600 flex items-center gap-2">
+                        조회 기간
+                        <select id="admin-activity-days" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-800">
+                            <option value="1">1일</option>
+                            <option value="7" selected>7일</option>
+                            <option value="30">30일</option>
+                            <option value="365">365일</option>
+                        </select>
+                    </label>
+                    <button type="button" id="admin-activity-refresh" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">
+                        새로고침
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-soft overflow-hidden">
+                    <div class="overflow-x-auto max-h-[70vh] overflow-y-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-[1]">
+                                <tr>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">시각</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">사용자</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">이벤트</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">카테고리</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[8rem]">리소스</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[10rem]">payload</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-activity-tbody" class="divide-y divide-gray-100">
+                                <tr>
+                                    <td colspan="6" class="px-4 py-6 text-center text-gray-400">탭을 열면 목록을 불러옵니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
 
     setTimeout(() => {
+        const formatPortalPayloadSnippet = (p) => {
+            try {
+                const s = JSON.stringify(p ?? {});
+                if (s.length <= 140) return escapeHtml(s);
+                return `${escapeHtml(s.slice(0, 140))}…`;
+            } catch {
+                return '—';
+            }
+        };
+
+        async function loadAdminPortalActivityLogs() {
+            const tbody = document.getElementById('admin-activity-tbody');
+            const hint = document.getElementById('admin-activity-hint');
+            const daysSel = document.getElementById('admin-activity-days');
+            if (!tbody) return;
+
+            const days = Math.max(1, parseInt(daysSel?.value || '7', 10) || 7);
+            tbody.innerHTML =
+                '<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">불러오는 중…</td></tr>';
+
+            try {
+                const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+                const { data: logs, error } = await window.supabaseClient
+                    .from('portal_activity_log')
+                    .select('id, created_at, actor_user_id, event_type, resource_category, resource_key, payload')
+                    .gte('created_at', cutoff)
+                    .order('created_at', { ascending: false })
+                    .limit(200);
+
+                if (error) throw error;
+
+                const rows = logs || [];
+                const ids = [...new Set(rows.map((r) => r.actor_user_id).filter(Boolean))];
+                /** @type {Record<string, { username?: string, name?: string, email?: string }>} */
+                const userMap = {};
+                if (ids.length > 0) {
+                    const { data: usrRows } = await window.supabaseClient
+                        .from('users')
+                        .select('auth_user_id, username, name, email')
+                        .in('auth_user_id', ids);
+                    (usrRows || []).forEach((u) => {
+                        userMap[u.auth_user_id] = u;
+                    });
+                }
+
+                if (hint) {
+                    hint.textContent =
+                        `최근 ${days}일 · 최대 200건. 권장 보관 12~24개월, 분기별 삭제 배치는 GSW-ONGOING-MAINTENANCE.md를 참고합니다. 처리방침·보안서약에 로그 목적·항목·보관 기간 반영은 법무 검토가 필요합니다.`;
+                }
+
+                if (rows.length === 0) {
+                    tbody.innerHTML =
+                        '<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">기간 내 기록이 없습니다.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = rows
+                    .map((r) => {
+                        const u = userMap[r.actor_user_id];
+                        const uidShort = escapeHtml(String(r.actor_user_id || '').slice(0, 8));
+                        const who = u
+                            ? `${escapeHtml(u.username || '—')}<br/><span class="text-xs text-gray-500">${escapeHtml(u.email || '')}</span>`
+                            : `<span class="font-mono text-xs text-gray-500" title="${escapeHtml(String(r.actor_user_id || ''))}">${uidShort}…</span>`;
+                        const when = `${escapeHtml(new Date(r.created_at).toLocaleDateString('ko-KR'))}<br/><span class="text-xs text-gray-500">${escapeHtml(
+                            new Date(r.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                        )}</span>`;
+                        return `
+                            <tr class="hover:bg-gray-50 align-top">
+                                <td class="px-3 py-2 whitespace-nowrap text-gray-700">${when}</td>
+                                <td class="px-3 py-2 text-gray-900">${who}</td>
+                                <td class="px-3 py-2 font-mono text-xs">${escapeHtml(r.event_type)}</td>
+                                <td class="px-3 py-2 text-gray-600">${escapeHtml(r.resource_category || '—')}</td>
+                                <td class="px-3 py-2 text-xs text-gray-800 break-all">${escapeHtml(r.resource_key || '—')}</td>
+                                <td class="px-3 py-2 font-mono text-xs text-gray-600 break-all">${formatPortalPayloadSnippet(r.payload)}</td>
+                            </tr>
+                        `;
+                    })
+                    .join('');
+            } catch (e) {
+                console.error('이용 로그 조회 오류:', e);
+                tbody.innerHTML =
+                    '<tr><td colspan="6" class="px-4 py-6 text-center text-red-600">목록을 불러오지 못했습니다.</td></tr>';
+            }
+        }
+
+        document.getElementById('admin-activity-refresh')?.addEventListener('click', () => loadAdminPortalActivityLogs());
+        document.getElementById('admin-activity-days')?.addEventListener('change', () => loadAdminPortalActivityLogs());
+
         // 탭 전환
         document.querySelectorAll('.admin-tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -3257,6 +3419,9 @@ async function renderAdminDashboardPage() {
                 tab.classList.remove('text-gray-500');
                 document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
                 document.getElementById(`admin-tab-${tab.dataset.tab}`)?.classList.remove('hidden');
+                if (tab.dataset.tab === 'activity') {
+                    loadAdminPortalActivityLogs();
+                }
             });
         });
 
@@ -3316,6 +3481,19 @@ async function renderAdminDashboardPage() {
                         email: newEmail,
                         role: newRole,
                         grade: newGrade
+                    });
+                    void logPortalActivity({
+                        eventType: 'admin_user_update',
+                        resourceCategory: 'admin',
+                        resourceKey: String(userId),
+                        payload: {
+                            profile_id: Number(userId),
+                            username: newUsername,
+                            email: newEmail.toLowerCase(),
+                            role: newRole,
+                            grade: newGrade,
+                            warning_only: !!result.warning,
+                        },
                     });
                     const idx = allUsers.findIndex(u => String(u.profile_id) === String(userId));
                     if (idx >= 0) {
@@ -3642,6 +3820,20 @@ async function renderAdminDashboardPage() {
                             email: newEmail,
                             role: u.role,
                             grade: u.grade
+                        });
+                        void logPortalActivity({
+                            eventType: 'admin_user_update',
+                            resourceCategory: 'admin',
+                            resourceKey: String(u.profile_id),
+                            payload: {
+                                profile_id: Number(u.profile_id),
+                                username: newUsername,
+                                email: newEmail.toLowerCase(),
+                                role: u.role,
+                                grade: u.grade,
+                                source: 'admin_detail_modal',
+                                warning_only: !!result.warning,
+                            },
                         });
                         syncTableRow(newUsername, newEmail.toLowerCase());
                         if (result.warning) {
@@ -5024,6 +5216,9 @@ async function initBusinessCardUpload() {
                 return;
             }
 
+            const routeFullRaw = window.location.hash.replace(/^#/, '') || '/home';
+            logRouteViewDebounced(routeFullRaw);
+
             let hash = window.location.hash.replace('#','') || '/home';
             const qIdx = hash.indexOf('?');
             if (qIdx !== -1) {
@@ -5405,6 +5600,7 @@ async function initBusinessCardUpload() {
                 }
 
                 console.log('✅ 인증됨');
+                logSessionStartOnce();
 
                 // 관리자 여부 확인하여 네비게이션 필터링
                 const currentUserInfo = await window.authService?.getUserInfo();
