@@ -4,6 +4,7 @@
 
 import { DTC_META, parseActionSteps, DTC_STORAGE_BUCKET } from './dtcMapping.js';
 import { resolveImageSlices, indicesForPhase } from './dtcImageLayout.js';
+import { createWatermarkedDataUrl, renderWatermarkedImage } from './imageWatermark.js';
 
 const WORKFLOW_VERSION = 3;
 const PHASES = [
@@ -111,7 +112,7 @@ function renderPhaseImagesShell(entry, state, phaseId) {
             ${showNav ? `<span id="dtc-phase-img-counter" class="text-xs text-gray-500 shrink-0">1 / ${count}</span>` : ''}
         </div>
         <div id="dtc-phase-image-view" class="rounded-xl border border-gray-200 bg-white min-h-[180px] flex items-center justify-center overflow-hidden cursor-zoom-in">
-            <p class="text-sm text-gray-400 p-4 text-center">이미지 로드 중…</p>
+            <p class="text-sm text-gray-400 p-4 text-center">워터마크 처리 중…</p>
         </div>
         <div class="flex gap-2 mt-2 justify-center items-center ${showNav ? '' : 'hidden'}" id="dtc-phase-image-nav">
             <button type="button" id="dtc-phase-img-prev" class="px-3 py-2 text-xs border border-gray-300 rounded-lg min-h-[40px]">←</button>
@@ -485,19 +486,15 @@ function openDtcImageModal(signedUrl, title, index, total) {
         if (e.target === modal) closeDtcImageModal();
     });
     const viewerEl = document.getElementById('dtc-modal-viewer');
-    const img = new Image();
-    img.className = 'max-w-full max-h-full object-contain';
-    img.alt = title;
-    img.onload = () => {
-        if (viewerEl) {
-            viewerEl.innerHTML = '';
-            viewerEl.appendChild(img);
-        }
-    };
-    img.onerror = () => {
-        if (viewerEl) viewerEl.innerHTML = '<p class="text-red-300 text-sm">이미지 로드 실패</p>';
-    };
-    img.src = signedUrl;
+    if (viewerEl) {
+        renderWatermarkedImage(viewerEl, signedUrl, {
+            className: 'max-w-full max-h-full object-contain',
+            alt: title,
+            loadingHtml: '<p class="text-gray-300 text-sm">워터마크 처리 중…</p>',
+        }).catch(() => {
+            if (viewerEl) viewerEl.innerHTML = '<p class="text-red-300 text-sm">이미지 로드 실패</p>';
+        });
+    }
 }
 
 /** @type {{ codeDisplay: string, items: { key: string, url: string }[], ready: boolean } | null} */
@@ -528,7 +525,7 @@ async function ensureDtcImageCache(entry) {
     return dtcImageCache;
 }
 
-function syncPhaseCarousel(root, entry, state, cache) {
+async function syncPhaseCarousel(root, entry, state, cache) {
     const view = root.querySelector('#dtc-phase-image-view');
     if (!view || state.phase === 'complete') return;
 
@@ -552,15 +549,19 @@ function syncPhaseCarousel(root, entry, state, cache) {
     }
 
     const phaseLabel = PHASES.find((p) => p.id === state.phase)?.label || '';
-    view.innerHTML = `<img src="${item.url}" alt="${phaseLabel} 참고 이미지" class="max-w-full max-h-[min(50vh,420px)] object-contain" />`;
-    view.onclick = () =>
-        openDtcImageModal(item.url, `${entry.codeDisplay} ${phaseLabel} (${globalIdx + 1})`, globalIdx, cache.items.length);
+    const title = `${entry.codeDisplay} ${phaseLabel} (${globalIdx + 1})`;
+    view.onclick = () => openDtcImageModal(item.url, title, globalIdx, cache.items.length);
+
+    await renderWatermarkedImage(view, item.url, {
+        className: 'max-w-full max-h-[min(50vh,420px)] object-contain',
+        alt: `${phaseLabel} 참고 이미지`,
+    });
 
     if (nav) nav.classList.toggle('hidden', indices.length <= 1);
     if (counter) counter.textContent = `${slide + 1} / ${indices.length}`;
 }
 
-function syncCompleteImagesGrid(root, entry, cache) {
+async function syncCompleteImagesGrid(root, entry, cache) {
     const grid = root.querySelector('#dtc-complete-images-grid');
     if (!grid || !cache?.items?.length) return;
 
@@ -570,15 +571,26 @@ function syncCompleteImagesGrid(root, entry, cache) {
         return;
     }
 
-    grid.innerHTML = indices
-        .map((globalIdx) => {
+    grid.innerHTML = '<p class="text-sm text-gray-400 col-span-full text-center py-4">워터마크 처리 중…</p>';
+
+    const cells = await Promise.all(
+        indices.map(async (globalIdx) => {
             const item = cache.items.find((x) => x.index === globalIdx);
             if (!item?.url) return '';
-            return `<button type="button" class="dtc-complete-thumb relative aspect-[4/3] rounded-lg border overflow-hidden bg-gray-100 hover:ring-2 hover:ring-brand" data-dtc-img-idx="${globalIdx}">
+            try {
+                const wmUrl = await createWatermarkedDataUrl(item.url);
+                return `<button type="button" class="dtc-complete-thumb relative aspect-[4/3] rounded-lg border overflow-hidden bg-gray-100 hover:ring-2 hover:ring-brand" data-dtc-img-idx="${globalIdx}">
+                <img src="${wmUrl}" alt="" class="w-full h-full object-cover" loading="lazy" />
+            </button>`;
+            } catch {
+                return `<button type="button" class="dtc-complete-thumb relative aspect-[4/3] rounded-lg border overflow-hidden bg-gray-100" data-dtc-img-idx="${globalIdx}">
                 <img src="${item.url}" alt="" class="w-full h-full object-cover" loading="lazy" />
             </button>`;
+            }
         })
-        .join('');
+    );
+
+    grid.innerHTML = cells.filter(Boolean).join('');
 
     grid.querySelectorAll('.dtc-complete-thumb').forEach((btn) => {
         btn.addEventListener('click', () => {
