@@ -8,7 +8,7 @@ EVKMC A/S 정비 포털(GSW) 운영·배포·보안을 정기적으로 점검하
 |------|------|
 | Production 브랜치 | `master` → Vercel 자동 배포 |
 | 개발 브랜치 | `develop` |
-| 배포 후 스모크 | 로그인(이메일 OTP), 정비지침서 PDF, 공지/커뮤니티, PWA 홈 화면 |
+| 배포 후 스모크 | 로그인(이메일 OTP), 정비지침서 PDF, `#/dtc` 배선표·도면, 공지/커뮤니티, PWA 홈 화면 |
 | 정적 캐시 | `vercel.json` — `/js/` 장기 캐시, HTML은 `must-revalidate` |
 
 ## 2. 인증·보안
