@@ -1,6 +1,6 @@
 /**
  * DTC 코드 데이터 (자동 생성 — 수정하지 마세요)
- * 생성: 2026-05-20T05:41:04.442Z
+ * 생성: 2026-05-20T05:51:04.755Z
  * 원본: DTC/dtc_data.json (XLSX 가이드) + DTC코드.xlsx(보조)
  * 건수: 114 (마이그레이션 109 + xlsx 보조 5)
  *
@@ -49,22 +49,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0420/image_11.png",
       "dtc/E-0420/image_12.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
-        4,
-        5
+        2
       ],
-      [
-        6,
-        7,
-        8,
-        9,
+      "parts": [
+        3,
+        4
+      ],
+      "wiring": [
+        [
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9
+        ]
+      ],
+      "complete": [
         10,
         11
+      ]
+    },
+    "imagePlan": [
+      [
+        5,
+        6,
+        7
+      ],
+      [
+        8,
+        9
       ]
     ]
   },
@@ -133,31 +152,61 @@ export const DTC_ENTRIES = [
       "dtc/E-0421/image_14.png",
       "dtc/E-0421/image_15.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1
+      ],
+      "parts": [
+        2,
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          12,
+          13
+        ]
+      ],
+      "complete": [
+        14
+      ]
+    },
     "imagePlan": [
       [
-        0,
-        1,
-        2
-      ],
-      [
-        3,
         4,
         5
       ],
       [
         6,
-        7,
-        8
+        7
       ],
       [
-        9,
+        8,
+        9
+      ],
+      [
         10,
         11
       ],
       [
         12,
-        13,
-        14
+        13
       ]
     ]
   },
@@ -220,11 +269,13 @@ export const DTC_ENTRIES = [
       "dtc/E-0422/image_23.jpg",
       "dtc/E-0422/image_24.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
@@ -233,21 +284,39 @@ export const DTC_ENTRIES = [
         8,
         9,
         10,
-        11
-      ],
-      [
+        11,
         12,
         13,
         14,
-        15,
-        16,
-        17,
-        18,
-        19,
-        20,
-        21,
+        15
+      ],
+      "wiring": [
+        [
+          16,
+          17,
+          18
+        ],
+        [
+          19,
+          20,
+          21
+        ]
+      ],
+      "complete": [
         22,
         23
+      ]
+    },
+    "imagePlan": [
+      [
+        16,
+        17,
+        18
+      ],
+      [
+        19,
+        20,
+        21
       ]
     ]
   },
@@ -310,11 +379,13 @@ export const DTC_ENTRIES = [
       "dtc/E-0423/image_23.jpg",
       "dtc/E-0423/image_24.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
@@ -323,21 +394,39 @@ export const DTC_ENTRIES = [
         8,
         9,
         10,
-        11
-      ],
-      [
+        11,
         12,
         13,
         14,
-        15,
-        16,
-        17,
-        18,
-        19,
-        20,
-        21,
+        15
+      ],
+      "wiring": [
+        [
+          16,
+          17,
+          18
+        ],
+        [
+          19,
+          20,
+          21
+        ]
+      ],
+      "complete": [
         22,
         23
+      ]
+    },
+    "imagePlan": [
+      [
+        16,
+        17,
+        18
+      ],
+      [
+        19,
+        20,
+        21
       ]
     ]
   },
@@ -400,11 +489,13 @@ export const DTC_ENTRIES = [
       "dtc/E-0425/image_23.jpg",
       "dtc/E-0425/image_24.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
@@ -413,21 +504,39 @@ export const DTC_ENTRIES = [
         8,
         9,
         10,
-        11
-      ],
-      [
+        11,
         12,
         13,
         14,
-        15,
-        16,
-        17,
-        18,
-        19,
-        20,
-        21,
+        15
+      ],
+      "wiring": [
+        [
+          16,
+          17,
+          18
+        ],
+        [
+          19,
+          20,
+          21
+        ]
+      ],
+      "complete": [
         22,
         23
+      ]
+    },
+    "imagePlan": [
+      [
+        16,
+        17,
+        18
+      ],
+      [
+        19,
+        20,
+        21
       ]
     ]
   },
@@ -498,31 +607,59 @@ export const DTC_ENTRIES = [
       "dtc/E-0426/image_14.png",
       "dtc/E-0426/image_15.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
-        1,
-        2
+        1
       ],
-      [
+      "parts": [
+        2,
         3,
         4,
         5
       ],
+      "wiring": [
+        [
+          6,
+          7
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          10
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          13
+        ]
+      ],
+      "complete": [
+        14
+      ]
+    },
+    "imagePlan": [
       [
         6,
-        7,
-        8
+        7
       ],
       [
-        9,
-        10,
-        11
+        8,
+        9
       ],
       [
-        12,
-        13,
-        14
+        10
+      ],
+      [
+        11,
+        12
+      ],
+      [
+        13
       ]
     ]
   },
@@ -593,31 +730,59 @@ export const DTC_ENTRIES = [
       "dtc/E-0427/image_14.png",
       "dtc/E-0427/image_15.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
-        1,
-        2
+        1
       ],
-      [
+      "parts": [
+        2,
         3,
         4,
         5
       ],
+      "wiring": [
+        [
+          6,
+          7
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          10
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          13
+        ]
+      ],
+      "complete": [
+        14
+      ]
+    },
+    "imagePlan": [
       [
         6,
-        7,
-        8
+        7
       ],
       [
-        9,
-        10,
-        11
+        8,
+        9
       ],
       [
-        12,
-        13,
-        14
+        10
+      ],
+      [
+        11,
+        12
+      ],
+      [
+        13
       ]
     ]
   },
@@ -660,21 +825,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0428/image_10.png",
       "dtc/E-0428/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -717,21 +902,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0429/image_10.png",
       "dtc/E-0429/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -778,22 +983,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0430/image_11.png",
       "dtc/E-0430/image_12.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
-        1,
+        1
+      ],
+      "parts": [
         2,
         3,
         4,
         5
       ],
+      "wiring": [
+        [
+          6,
+          7,
+          8
+        ],
+        [
+          9,
+          10
+        ]
+      ],
+      "complete": [
+        11
+      ]
+    },
+    "imagePlan": [
       [
         6,
         7,
-        8,
+        8
+      ],
+      [
         9,
-        10,
-        11
+        10
       ]
     ]
   },
@@ -840,22 +1064,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0431/image_11.png",
       "dtc/E-0431/image_12.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
-        1,
+        1
+      ],
+      "parts": [
         2,
         3,
         4,
         5
       ],
+      "wiring": [
+        [
+          6,
+          7,
+          8
+        ],
+        [
+          9,
+          10
+        ]
+      ],
+      "complete": [
+        11
+      ]
+    },
+    "imagePlan": [
       [
         6,
         7,
-        8,
+        8
+      ],
+      [
         9,
-        10,
-        11
+        10
       ]
     ]
   },
@@ -898,21 +1141,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0432/image_10.png",
       "dtc/E-0432/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -955,21 +1218,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0433/image_10.png",
       "dtc/E-0433/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -1012,21 +1295,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0434/image_10.png",
       "dtc/E-0434/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -1069,21 +1372,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0435/image_10.png",
       "dtc/E-0435/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -1144,11 +1467,13 @@ export const DTC_ENTRIES = [
       "dtc/E-0436/image_22.jpg",
       "dtc/E-0436/image_23.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
@@ -1157,20 +1482,38 @@ export const DTC_ENTRIES = [
         8,
         9,
         10,
-        11
-      ],
-      [
+        11,
         12,
         13,
-        14,
-        15,
-        16,
-        17,
-        18,
-        19,
-        20,
+        14
+      ],
+      "wiring": [
+        [
+          15,
+          16,
+          17
+        ],
+        [
+          18,
+          19,
+          20
+        ]
+      ],
+      "complete": [
         21,
         22
+      ]
+    },
+    "imagePlan": [
+      [
+        15,
+        16,
+        17
+      ],
+      [
+        18,
+        19,
+        20
       ]
     ]
   },
@@ -1231,11 +1574,13 @@ export const DTC_ENTRIES = [
       "dtc/E-0437/image_22.jpg",
       "dtc/E-0437/image_23.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
@@ -1244,20 +1589,38 @@ export const DTC_ENTRIES = [
         8,
         9,
         10,
-        11
-      ],
-      [
+        11,
         12,
         13,
-        14,
-        15,
-        16,
-        17,
-        18,
-        19,
-        20,
+        14
+      ],
+      "wiring": [
+        [
+          15,
+          16,
+          17
+        ],
+        [
+          18,
+          19,
+          20
+        ]
+      ],
+      "complete": [
         21,
         22
+      ]
+    },
+    "imagePlan": [
+      [
+        15,
+        16,
+        17
+      ],
+      [
+        18,
+        19,
+        20
       ]
     ]
   },
@@ -1300,21 +1663,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0438/image_10.png",
       "dtc/E-0438/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -1357,21 +1740,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0439/image_10.png",
       "dtc/E-0439/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -1404,6 +1807,31 @@ export const DTC_ENTRIES = [
       "dtc/E-0440/image_15.png",
       "dtc/E-0440/image_16.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "parts": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "wiring": [],
+      "complete": [
+        12,
+        13,
+        14,
+        15
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -1435,6 +1863,31 @@ export const DTC_ENTRIES = [
       "dtc/E-0441/image_15.png",
       "dtc/E-0441/image_16.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "parts": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "wiring": [],
+      "complete": [
+        12,
+        13,
+        14,
+        15
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -1476,21 +1929,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0442/image_10.png",
       "dtc/E-0442/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -1549,26 +2022,51 @@ export const DTC_ENTRIES = [
       "dtc/E-0443/image_11.png",
       "dtc/E-0443/image_12.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1
+      ],
+      "parts": [
+        2,
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          10
+        ]
+      ],
+      "complete": [
+        11
+      ]
+    },
     "imagePlan": [
       [
-        0,
-        1,
-        2
-      ],
-      [
-        3,
         4,
         5
       ],
       [
         6,
-        7,
-        8
+        7
       ],
       [
-        9,
-        10,
-        11
+        8,
+        9
+      ],
+      [
+        10
       ]
     ]
   },
@@ -1627,26 +2125,51 @@ export const DTC_ENTRIES = [
       "dtc/E-0444/image_11.png",
       "dtc/E-0444/image_12.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1
+      ],
+      "parts": [
+        2,
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          10
+        ]
+      ],
+      "complete": [
+        11
+      ]
+    },
     "imagePlan": [
       [
-        0,
-        1,
-        2
-      ],
-      [
-        3,
         4,
         5
       ],
       [
         6,
-        7,
-        8
+        7
       ],
       [
-        9,
-        10,
-        11
+        8,
+        9
+      ],
+      [
+        10
       ]
     ]
   },
@@ -1689,21 +2212,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0445/image_10.png",
       "dtc/E-0445/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -1746,21 +2289,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0446/image_10.png",
       "dtc/E-0446/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -1803,21 +2366,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0447/image_10.png",
       "dtc/E-0447/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -1886,31 +2469,61 @@ export const DTC_ENTRIES = [
       "dtc/E-0448/image_14.png",
       "dtc/E-0448/image_15.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1
+      ],
+      "parts": [
+        2,
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          12,
+          13
+        ]
+      ],
+      "complete": [
+        14
+      ]
+    },
     "imagePlan": [
       [
-        0,
-        1,
-        2
-      ],
-      [
-        3,
         4,
         5
       ],
       [
         6,
-        7,
-        8
+        7
       ],
       [
-        9,
+        8,
+        9
+      ],
+      [
         10,
         11
       ],
       [
         12,
-        13,
-        14
+        13
       ]
     ]
   },
@@ -1943,6 +2556,31 @@ export const DTC_ENTRIES = [
       "dtc/E-0449/image_15.png",
       "dtc/E-0449/image_16.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "parts": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "wiring": [],
+      "complete": [
+        12,
+        13,
+        14,
+        15
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -1974,6 +2612,31 @@ export const DTC_ENTRIES = [
       "dtc/E-0450/image_15.png",
       "dtc/E-0450/image_16.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "parts": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "wiring": [],
+      "complete": [
+        12,
+        13,
+        14,
+        15
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2032,19 +2695,42 @@ export const DTC_ENTRIES = [
       "dtc/E-0451/image_17.jpg",
       "dtc/E-0451/image_18.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
-        5
-      ],
-      [
+        5,
         6,
         7,
-        8,
+        8
+      ],
+      "wiring": [
+        [
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14
+        ],
+        [
+          15,
+          16
+        ]
+      ],
+      "complete": [
+        17
+      ]
+    },
+    "imagePlan": [
+      [
         9,
         10,
         11
@@ -2052,10 +2738,11 @@ export const DTC_ENTRIES = [
       [
         12,
         13,
-        14,
+        14
+      ],
+      [
         15,
-        16,
-        17
+        16
       ]
     ]
   },
@@ -2124,31 +2811,61 @@ export const DTC_ENTRIES = [
       "dtc/E-0452/image_14.png",
       "dtc/E-0452/image_15.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1
+      ],
+      "parts": [
+        2,
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          12,
+          13
+        ]
+      ],
+      "complete": [
+        14
+      ]
+    },
     "imagePlan": [
       [
-        0,
-        1,
-        2
-      ],
-      [
-        3,
         4,
         5
       ],
       [
         6,
-        7,
-        8
+        7
       ],
       [
-        9,
+        8,
+        9
+      ],
+      [
         10,
         11
       ],
       [
         12,
-        13,
-        14
+        13
       ]
     ]
   },
@@ -2191,21 +2908,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0453/image_10.png",
       "dtc/E-0453/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -2233,6 +2970,26 @@ export const DTC_ENTRIES = [
       "dtc/E-0454/image_10.png",
       "dtc/E-0454/image_11.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "parts": [
+        6,
+        7
+      ],
+      "wiring": [],
+      "complete": [
+        8,
+        9,
+        10
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2264,6 +3021,31 @@ export const DTC_ENTRIES = [
       "dtc/E-0455/image_15.png",
       "dtc/E-0455/image_16.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "parts": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "wiring": [],
+      "complete": [
+        12,
+        13,
+        14,
+        15
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2281,6 +3063,12 @@ export const DTC_ENTRIES = [
       }
     ],
     "imageKeys": [],
+    "imageSlices": {
+      "overview": [],
+      "parts": [],
+      "wiring": [],
+      "complete": []
+    },
     "imagePlan": []
   },
   {
@@ -2298,6 +3086,12 @@ export const DTC_ENTRIES = [
       }
     ],
     "imageKeys": [],
+    "imageSlices": {
+      "overview": [],
+      "parts": [],
+      "wiring": [],
+      "complete": []
+    },
     "imagePlan": []
   },
   {
@@ -2315,6 +3109,12 @@ export const DTC_ENTRIES = [
       }
     ],
     "imageKeys": [],
+    "imageSlices": {
+      "overview": [],
+      "parts": [],
+      "wiring": [],
+      "complete": []
+    },
     "imagePlan": []
   },
   {
@@ -2343,6 +3143,28 @@ export const DTC_ENTRIES = [
       "dtc/E-0520/image_12.png",
       "dtc/E-0520/image_13.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "parts": [
+        7,
+        8,
+        9
+      ],
+      "wiring": [],
+      "complete": [
+        10,
+        11,
+        12
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2371,6 +3193,28 @@ export const DTC_ENTRIES = [
       "dtc/E-0521/image_12.png",
       "dtc/E-0521/image_13.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "parts": [
+        7,
+        8,
+        9
+      ],
+      "wiring": [],
+      "complete": [
+        10,
+        11,
+        12
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2393,6 +3237,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0522/image_6.jpg",
       "dtc/E-0522/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2415,6 +3275,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0523/image_6.jpg",
       "dtc/E-0523/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2437,6 +3313,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0524/image_6.jpg",
       "dtc/E-0524/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2459,6 +3351,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0525/image_6.jpg",
       "dtc/E-0525/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2481,6 +3389,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0526/image_6.jpg",
       "dtc/E-0526/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2503,6 +3427,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0527/image_6.jpg",
       "dtc/E-0527/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2525,6 +3465,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0528/image_6.jpg",
       "dtc/E-0528/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2547,6 +3503,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0529/image_6.jpg",
       "dtc/E-0529/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2569,6 +3541,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0530/image_6.jpg",
       "dtc/E-0530/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2591,6 +3579,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0531/image_6.jpg",
       "dtc/E-0531/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2613,6 +3617,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0532/image_6.jpg",
       "dtc/E-0532/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2635,6 +3655,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0533/image_6.jpg",
       "dtc/E-0533/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2657,6 +3693,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0534/image_6.jpg",
       "dtc/E-0534/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2688,6 +3740,30 @@ export const DTC_ENTRIES = [
       "dtc/E-0535/image_14.jpg",
       "dtc/E-0535/image_15.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "parts": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "wiring": [],
+      "complete": [
+        12,
+        13,
+        14
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2719,6 +3795,30 @@ export const DTC_ENTRIES = [
       "dtc/E-0536/image_14.jpg",
       "dtc/E-0536/image_15.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "parts": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "wiring": [],
+      "complete": [
+        12,
+        13,
+        14
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2750,6 +3850,30 @@ export const DTC_ENTRIES = [
       "dtc/E-0537/image_14.jpg",
       "dtc/E-0537/image_15.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "parts": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "wiring": [],
+      "complete": [
+        12,
+        13,
+        14
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2772,6 +3896,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0538/image_6.jpg",
       "dtc/E-0538/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2794,6 +3934,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0539/image_6.jpg",
       "dtc/E-0539/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2816,6 +3972,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0540/image_6.jpg",
       "dtc/E-0540/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2838,6 +4010,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0541/image_6.jpg",
       "dtc/E-0541/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2860,6 +4048,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0542/image_6.jpg",
       "dtc/E-0542/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2882,6 +4086,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0543/image_6.jpg",
       "dtc/E-0543/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2904,6 +4124,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0544/image_6.jpg",
       "dtc/E-0544/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2926,6 +4162,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0545/image_6.jpg",
       "dtc/E-0545/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2943,6 +4195,19 @@ export const DTC_ENTRIES = [
       "dtc/E-0546/image_3.png",
       "dtc/E-0546/image_4.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1
+      ],
+      "parts": [
+        2
+      ],
+      "wiring": [],
+      "complete": [
+        3
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -2988,24 +4253,44 @@ export const DTC_ENTRIES = [
       "dtc/E-0548/image_13.png",
       "dtc/E-0548/image_14.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
-        5,
-        6
+        5
       ],
-      [
-        7,
-        8,
-        9,
-        10,
-        11,
+      "wiring": [
+        [
+          6,
+          7,
+          8
+        ],
+        [
+          9,
+          10,
+          11
+        ]
+      ],
+      "complete": [
         12,
         13
+      ]
+    },
+    "imagePlan": [
+      [
+        6,
+        7,
+        8
+      ],
+      [
+        9,
+        10,
+        11
       ]
     ]
   },
@@ -3057,24 +4342,47 @@ export const DTC_ENTRIES = [
       "dtc/E-0549/image_11.jpg",
       "dtc/E-0549/image_12.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
-        1,
+        1
+      ],
+      "parts": [
         2,
         3
       ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          9,
+          10
+        ]
+      ],
+      "complete": [
+        11
+      ]
+    },
+    "imagePlan": [
       [
         4,
         5,
-        6,
-        7
+        6
       ],
       [
-        8,
+        7,
+        8
+      ],
+      [
         9,
-        10,
-        11
+        10
       ]
     ]
   },
@@ -3098,6 +4406,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0550/image_6.jpg",
       "dtc/E-0550/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -3120,6 +4444,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0551/image_6.jpg",
       "dtc/E-0551/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -3142,6 +4482,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0552/image_6.jpg",
       "dtc/E-0552/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -3164,6 +4520,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0553/image_6.jpg",
       "dtc/E-0553/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -3186,6 +4558,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0554/image_6.jpg",
       "dtc/E-0554/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -3208,6 +4596,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0555/image_6.jpg",
       "dtc/E-0555/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -3230,6 +4634,22 @@ export const DTC_ENTRIES = [
       "dtc/E-0556/image_6.jpg",
       "dtc/E-0556/image_7.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4
+      ],
+      "wiring": [],
+      "complete": [
+        5,
+        6
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -3246,6 +4666,14 @@ export const DTC_ENTRIES = [
     "imageKeys": [
       "dtc/E-0557/image_1.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0
+      ],
+      "parts": [],
+      "wiring": [],
+      "complete": []
+    },
     "imagePlan": []
   },
   {
@@ -3263,6 +4691,12 @@ export const DTC_ENTRIES = [
       }
     ],
     "imageKeys": [],
+    "imageSlices": {
+      "overview": [],
+      "parts": [],
+      "wiring": [],
+      "complete": []
+    },
     "imagePlan": []
   },
   {
@@ -3310,26 +4744,46 @@ export const DTC_ENTRIES = [
       "dtc/E-0559/image_15.jpg",
       "dtc/E-0559/image_16.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
         2,
-        3,
+        3
+      ],
+      "parts": [
         4,
         5,
         6,
         7
       ],
+      "wiring": [
+        [
+          8,
+          9,
+          10
+        ],
+        [
+          11,
+          12,
+          13
+        ]
+      ],
+      "complete": [
+        14,
+        15
+      ]
+    },
+    "imagePlan": [
       [
         8,
         9,
-        10,
+        10
+      ],
+      [
         11,
         12,
-        13,
-        14,
-        15
+        13
       ]
     ]
   },
@@ -3348,6 +4802,12 @@ export const DTC_ENTRIES = [
       }
     ],
     "imageKeys": [],
+    "imageSlices": {
+      "overview": [],
+      "parts": [],
+      "wiring": [],
+      "complete": []
+    },
     "imagePlan": []
   },
   {
@@ -3360,6 +4820,12 @@ export const DTC_ENTRIES = [
     "wiring_steps": [],
     "causes": null,
     "imageKeys": [],
+    "imageSlices": {
+      "overview": [],
+      "parts": [],
+      "wiring": [],
+      "complete": []
+    },
     "imagePlan": []
   },
   {
@@ -3401,21 +4867,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0620/image_10.jpg",
       "dtc/E-0620/image_11.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -3472,30 +4958,50 @@ export const DTC_ENTRIES = [
       "dtc/E-0621/image_19.png",
       "dtc/E-0621/image_20.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
         6,
         7,
         8,
-        9
-      ],
-      [
+        9,
         10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16,
-        17,
+        11
+      ],
+      "wiring": [
+        [
+          12,
+          13,
+          14
+        ],
+        [
+          15,
+          16,
+          17
+        ]
+      ],
+      "complete": [
         18,
         19
+      ]
+    },
+    "imagePlan": [
+      [
+        12,
+        13,
+        14
+      ],
+      [
+        15,
+        16,
+        17
       ]
     ]
   },
@@ -3545,28 +5051,51 @@ export const DTC_ENTRIES = [
       "dtc/E-0622/image_17.png",
       "dtc/E-0622/image_18.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
         2,
         3,
-        4,
-        5,
-        6,
-        7,
-        8
+        4
       ],
+      "parts": [
+        5,
+        6
+      ],
+      "wiring": [
+        [
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14,
+          15
+        ]
+      ],
+      "complete": [
+        16,
+        17
+      ]
+    },
+    "imagePlan": [
       [
+        7,
+        8,
         9,
         10,
-        11,
+        11
+      ],
+      [
         12,
         13,
         14,
-        15,
-        16,
-        17
+        15
       ]
     ]
   },
@@ -3613,25 +5142,46 @@ export const DTC_ENTRIES = [
       "dtc/E-0624/image_14.png",
       "dtc/E-0624/image_15.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
         2,
-        3,
-        4,
-        5,
-        6,
-        7
+        3
       ],
-      [
-        8,
-        9,
-        10,
-        11,
-        12,
+      "parts": [
+        4,
+        5
+      ],
+      "wiring": [
+        [
+          6,
+          7,
+          8,
+          9
+        ],
+        [
+          10,
+          11,
+          12
+        ]
+      ],
+      "complete": [
         13,
         14
+      ]
+    },
+    "imagePlan": [
+      [
+        6,
+        7,
+        8,
+        9
+      ],
+      [
+        10,
+        11,
+        12
       ]
     ]
   },
@@ -3661,6 +5211,27 @@ export const DTC_ENTRIES = [
       "dtc/E-0625/image_11.png",
       "dtc/E-0625/image_12.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "parts": [
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "wiring": [],
+      "complete": [
+        10,
+        11
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -3689,6 +5260,27 @@ export const DTC_ENTRIES = [
       "dtc/E-0626/image_11.png",
       "dtc/E-0626/image_12.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "parts": [
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "wiring": [],
+      "complete": [
+        10,
+        11
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -3730,21 +5322,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0627/image_10.jpg",
       "dtc/E-0627/image_11.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -3801,30 +5413,50 @@ export const DTC_ENTRIES = [
       "dtc/E-0628/image_19.png",
       "dtc/E-0628/image_20.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
         6,
         7,
         8,
-        9
-      ],
-      [
+        9,
         10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16,
-        17,
+        11
+      ],
+      "wiring": [
+        [
+          12,
+          13,
+          14
+        ],
+        [
+          15,
+          16,
+          17
+        ]
+      ],
+      "complete": [
         18,
         19
+      ]
+    },
+    "imagePlan": [
+      [
+        12,
+        13,
+        14
+      ],
+      [
+        15,
+        16,
+        17
       ]
     ]
   },
@@ -3871,25 +5503,46 @@ export const DTC_ENTRIES = [
       "dtc/E-0629/image_14.jpg",
       "dtc/E-0629/image_15.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
         2,
-        3,
-        4,
-        5,
-        6,
-        7
+        3
       ],
-      [
-        8,
-        9,
-        10,
-        11,
-        12,
+      "parts": [
+        4,
+        5
+      ],
+      "wiring": [
+        [
+          6,
+          7,
+          8,
+          9
+        ],
+        [
+          10,
+          11,
+          12
+        ]
+      ],
+      "complete": [
         13,
         14
+      ]
+    },
+    "imagePlan": [
+      [
+        6,
+        7,
+        8,
+        9
+      ],
+      [
+        10,
+        11,
+        12
       ]
     ]
   },
@@ -3941,11 +5594,13 @@ export const DTC_ENTRIES = [
       "dtc/E-0720/image_16.jpg",
       "dtc/E-0720/image_17.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
@@ -3953,15 +5608,33 @@ export const DTC_ENTRIES = [
         7,
         8
       ],
+      "wiring": [
+        [
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14
+        ]
+      ],
+      "complete": [
+        15,
+        16
+      ]
+    },
+    "imagePlan": [
       [
         9,
         10,
-        11,
+        11
+      ],
+      [
         12,
         13,
-        14,
-        15,
-        16
+        14
       ]
     ]
   },
@@ -4013,11 +5686,13 @@ export const DTC_ENTRIES = [
       "dtc/E-0721/image_16.jpg",
       "dtc/E-0721/image_17.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
@@ -4025,15 +5700,33 @@ export const DTC_ENTRIES = [
         7,
         8
       ],
+      "wiring": [
+        [
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14
+        ]
+      ],
+      "complete": [
+        15,
+        16
+      ]
+    },
+    "imagePlan": [
       [
         9,
         10,
-        11,
+        11
+      ],
+      [
         12,
         13,
-        14,
-        15,
-        16
+        14
       ]
     ]
   },
@@ -4085,11 +5778,13 @@ export const DTC_ENTRIES = [
       "dtc/E-0722/image_16.jpg",
       "dtc/E-0722/image_17.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
@@ -4097,15 +5792,33 @@ export const DTC_ENTRIES = [
         7,
         8
       ],
+      "wiring": [
+        [
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14
+        ]
+      ],
+      "complete": [
+        15,
+        16
+      ]
+    },
+    "imagePlan": [
       [
         9,
         10,
-        11,
+        11
+      ],
+      [
         12,
         13,
-        14,
-        15,
-        16
+        14
       ]
     ]
   },
@@ -4157,11 +5870,13 @@ export const DTC_ENTRIES = [
       "dtc/E-0723/image_16.jpg",
       "dtc/E-0723/image_17.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
@@ -4169,15 +5884,33 @@ export const DTC_ENTRIES = [
         7,
         8
       ],
+      "wiring": [
+        [
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14
+        ]
+      ],
+      "complete": [
+        15,
+        16
+      ]
+    },
+    "imagePlan": [
       [
         9,
         10,
-        11,
+        11
+      ],
+      [
         12,
         13,
-        14,
-        15,
-        16
+        14
       ]
     ]
   },
@@ -4229,11 +5962,13 @@ export const DTC_ENTRIES = [
       "dtc/E-0724/image_16.jpg",
       "dtc/E-0724/image_17.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
         5,
@@ -4241,15 +5976,33 @@ export const DTC_ENTRIES = [
         7,
         8
       ],
+      "wiring": [
+        [
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14
+        ]
+      ],
+      "complete": [
+        15,
+        16
+      ]
+    },
+    "imagePlan": [
       [
         9,
         10,
-        11,
+        11
+      ],
+      [
         12,
         13,
-        14,
-        15,
-        16
+        14
       ]
     ]
   },
@@ -4327,34 +6080,66 @@ export const DTC_ENTRIES = [
       "dtc/E-0725/image_15.png",
       "dtc/E-0725/image_16.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1
+      ],
+      "parts": [
+        2,
+        3,
+        4
+      ],
+      "wiring": [
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          9
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          12,
+          13
+        ],
+        [
+          14
+        ]
+      ],
+      "complete": [
+        15
+      ]
+    },
     "imagePlan": [
       [
-        0,
-        1,
-        2
+        5,
+        6
       ],
       [
-        3,
-        4,
-        5
+        7,
+        8
       ],
       [
-        6,
-        7
+        9
       ],
       [
-        8,
-        9,
-        10
+        10,
+        11
       ],
       [
-        11,
         12,
         13
       ],
       [
-        14,
-        15
+        14
       ]
     ]
   },
@@ -4433,34 +6218,66 @@ export const DTC_ENTRIES = [
       "dtc/E-0726/image_15.jpg",
       "dtc/E-0726/image_16.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1
+      ],
+      "parts": [
+        2,
+        3,
+        4
+      ],
+      "wiring": [
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          9
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          12,
+          13
+        ],
+        [
+          14
+        ]
+      ],
+      "complete": [
+        15
+      ]
+    },
     "imagePlan": [
       [
-        0,
-        1,
-        2
+        5,
+        6
       ],
       [
-        3,
-        4,
-        5
+        7,
+        8
       ],
       [
-        6,
-        7
+        9
       ],
       [
-        8,
-        9,
-        10
+        10,
+        11
       ],
       [
-        11,
         12,
         13
       ],
       [
-        14,
-        15
+        14
       ]
     ]
   },
@@ -4487,6 +6304,24 @@ export const DTC_ENTRIES = [
       "dtc/E-0727/image_8.jpg",
       "dtc/E-0727/image_9.png"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4,
+        5,
+        6
+      ],
+      "wiring": [],
+      "complete": [
+        7,
+        8
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -4512,6 +6347,24 @@ export const DTC_ENTRIES = [
       "dtc/E-0728/image_8.jpg",
       "dtc/E-0728/image_9.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4,
+        5,
+        6
+      ],
+      "wiring": [],
+      "complete": [
+        7,
+        8
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -4537,6 +6390,24 @@ export const DTC_ENTRIES = [
       "dtc/E-0729/image_8.jpg",
       "dtc/E-0729/image_9.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4,
+        5,
+        6
+      ],
+      "wiring": [],
+      "complete": [
+        7,
+        8
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -4565,6 +6436,26 @@ export const DTC_ENTRIES = [
       "dtc/E-0730/image_10.jpg",
       "dtc/E-0730/image_11.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "parts": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "wiring": [],
+      "complete": [
+        9,
+        10
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -4606,21 +6497,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0731/image_10.jpg",
       "dtc/E-0731/image_11.png"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -4665,23 +6576,43 @@ export const DTC_ENTRIES = [
       "dtc/E-0732/image_12.png",
       "dtc/E-0732/image_13.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
-        4,
-        5,
-        6
+        2
       ],
-      [
-        7,
-        8,
-        9,
-        10,
+      "parts": [
+        3,
+        4
+      ],
+      "wiring": [
+        [
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10
+        ]
+      ],
+      "complete": [
         11,
         12
+      ]
+    },
+    "imagePlan": [
+      [
+        5,
+        6,
+        7
+      ],
+      [
+        8,
+        9,
+        10
       ]
     ]
   },
@@ -4726,23 +6657,43 @@ export const DTC_ENTRIES = [
       "dtc/E-0733/image_12.png",
       "dtc/E-0733/image_13.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
-        4,
-        5,
-        6
+        2
       ],
-      [
-        7,
-        8,
-        9,
-        10,
+      "parts": [
+        3,
+        4
+      ],
+      "wiring": [
+        [
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10
+        ]
+      ],
+      "complete": [
         11,
         12
+      ]
+    },
+    "imagePlan": [
+      [
+        5,
+        6,
+        7
+      ],
+      [
+        8,
+        9,
+        10
       ]
     ]
   },
@@ -4764,6 +6715,20 @@ export const DTC_ENTRIES = [
       "dtc/E-0734/image_4.jpg",
       "dtc/E-0734/image_5.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [],
+      "complete": [
+        4
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -4781,6 +6746,19 @@ export const DTC_ENTRIES = [
       "dtc/E-0735/image_3.jpg",
       "dtc/E-0735/image_4.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0,
+        1
+      ],
+      "parts": [
+        2
+      ],
+      "wiring": [],
+      "complete": [
+        3
+      ]
+    },
     "imagePlan": []
   },
   {
@@ -4817,16 +6795,32 @@ export const DTC_ENTRIES = [
       "dtc/E-0736/image_5.jpg",
       "dtc/E-0736/image_6.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
-        1,
+        1
+      ],
+      "parts": [
         2
       ],
-      [
-        3,
-        4,
+      "wiring": [
+        [
+          3
+        ],
+        [
+          4
+        ]
+      ],
+      "complete": [
         5
+      ]
+    },
+    "imagePlan": [
+      [
+        3
+      ],
+      [
+        4
       ]
     ]
   },
@@ -4878,24 +6872,47 @@ export const DTC_ENTRIES = [
       "dtc/E-0737/image_11.jpg",
       "dtc/E-0737/image_12.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
-        1,
+        1
+      ],
+      "parts": [
         2,
         3
       ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          9,
+          10
+        ]
+      ],
+      "complete": [
+        11
+      ]
+    },
+    "imagePlan": [
       [
         4,
         5,
-        6,
-        7
+        6
       ],
       [
-        8,
+        7,
+        8
+      ],
+      [
         9,
-        10,
-        11
+        10
       ]
     ]
   },
@@ -4938,21 +6955,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0738/image_10.jpg",
       "dtc/E-0738/image_11.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -4995,21 +7032,41 @@ export const DTC_ENTRIES = [
       "dtc/E-0739/image_10.jpg",
       "dtc/E-0739/image_11.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
-        3,
+        2
+      ],
+      "parts": [
+        3
+      ],
+      "wiring": [
+        [
+          4,
+          5,
+          6
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      "complete": [
+        10
+      ]
+    },
+    "imagePlan": [
+      [
         4,
-        5
+        5,
+        6
       ],
       [
-        6,
         7,
         8,
-        9,
-        10
+        9
       ]
     ]
   },
@@ -5025,6 +7082,14 @@ export const DTC_ENTRIES = [
     "imageKeys": [
       "dtc/E-0740/image_1.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0
+      ],
+      "parts": [],
+      "wiring": [],
+      "complete": []
+    },
     "imagePlan": []
   },
   {
@@ -5082,31 +7147,58 @@ export const DTC_ENTRIES = [
       "dtc/E-0741/image_18.jpg",
       "dtc/E-0741/image_19.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
-        5,
-        6
+        5
       ],
-      [
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
+      "wiring": [
+        [
+          6,
+          7,
+          8,
+          9
+        ],
+        [
+          10,
+          11,
+          12,
+          13
+        ],
+        [
+          14,
+          15,
+          16
+        ]
       ],
-      [
-        13,
-        14,
-        15,
-        16,
+      "complete": [
         17,
         18
+      ]
+    },
+    "imagePlan": [
+      [
+        6,
+        7,
+        8,
+        9
+      ],
+      [
+        10,
+        11,
+        12,
+        13
+      ],
+      [
+        14,
+        15,
+        16
       ]
     ]
   },
@@ -5165,31 +7257,58 @@ export const DTC_ENTRIES = [
       "dtc/E-0742/image_18.jpg",
       "dtc/E-0742/image_19.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
-        5,
-        6
+        5
       ],
-      [
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
+      "wiring": [
+        [
+          6,
+          7,
+          8,
+          9
+        ],
+        [
+          10,
+          11,
+          12,
+          13
+        ],
+        [
+          14,
+          15,
+          16
+        ]
       ],
-      [
-        13,
-        14,
-        15,
-        16,
+      "complete": [
         17,
         18
+      ]
+    },
+    "imagePlan": [
+      [
+        6,
+        7,
+        8,
+        9
+      ],
+      [
+        10,
+        11,
+        12,
+        13
+      ],
+      [
+        14,
+        15,
+        16
       ]
     ]
   },
@@ -5248,31 +7367,58 @@ export const DTC_ENTRIES = [
       "dtc/E-0743/image_18.jpg",
       "dtc/E-0743/image_19.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
-        5,
-        6
+        5
       ],
-      [
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
+      "wiring": [
+        [
+          6,
+          7,
+          8,
+          9
+        ],
+        [
+          10,
+          11,
+          12,
+          13
+        ],
+        [
+          14,
+          15,
+          16
+        ]
       ],
-      [
-        13,
-        14,
-        15,
-        16,
+      "complete": [
         17,
         18
+      ]
+    },
+    "imagePlan": [
+      [
+        6,
+        7,
+        8,
+        9
+      ],
+      [
+        10,
+        11,
+        12,
+        13
+      ],
+      [
+        14,
+        15,
+        16
       ]
     ]
   },
@@ -5290,6 +7436,14 @@ export const DTC_ENTRIES = [
     "imageKeys": [
       "dtc/E-0744/image_1.jpg"
     ],
+    "imageSlices": {
+      "overview": [
+        0
+      ],
+      "parts": [],
+      "wiring": [],
+      "complete": []
+    },
     "imagePlan": []
   },
   {
@@ -5347,38 +7501,65 @@ export const DTC_ENTRIES = [
       "dtc/E-0745/image_18.jpg",
       "dtc/E-0745/image_19.jpg"
     ],
-    "imagePlan": [
-      [
+    "imageSlices": {
+      "overview": [
         0,
         1,
-        2,
+        2
+      ],
+      "parts": [
         3,
         4,
-        5,
-        6
+        5
       ],
-      [
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
+      "wiring": [
+        [
+          6,
+          7,
+          8,
+          9
+        ],
+        [
+          10,
+          11,
+          12,
+          13
+        ],
+        [
+          14,
+          15,
+          16
+        ]
       ],
-      [
-        13,
-        14,
-        15,
-        16,
+      "complete": [
         17,
         18
+      ]
+    },
+    "imagePlan": [
+      [
+        6,
+        7,
+        8,
+        9
+      ],
+      [
+        10,
+        11,
+        12,
+        13
+      ],
+      [
+        14,
+        15,
+        16
       ]
     ]
   }
 ];
 
 export const DTC_META = {
-  "builtAt": "2026-05-20T05:41:04.442Z",
+  "builtAt": "2026-05-20T05:51:04.755Z",
   "source": "DTC/dtc_data.json (XLSX 가이드) + DTC코드.xlsx(보조)",
   "guideXlsx": "DTC/EC31 35 DTC GUIDE 편집본 250630 기준.xlsx",
   "migratedCount": 109,

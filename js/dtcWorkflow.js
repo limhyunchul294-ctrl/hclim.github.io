@@ -1,15 +1,15 @@
 ﻿/**
- * DTC 인터랙티브 진단·수리 워크플로우 (XLSX 시트 구조: 개요 → 부위 → 배선 → 도면 → 완료)
+ * DTC 인터랙티브 진단·수리 워크플로우 (개요 → 부위 → 배선 → 완료)
  */
 
 import { DTC_META, parseActionSteps, DTC_STORAGE_BUCKET } from './dtcMapping.js';
+import { resolveImageSlices, indicesForPhase } from './dtcImageLayout.js';
 
-const WORKFLOW_VERSION = 2;
+const WORKFLOW_VERSION = 3;
 const PHASES = [
     { id: 'overview', label: '개요' },
     { id: 'parts', label: '부위' },
     { id: 'wiring', label: '배선' },
-    { id: 'diagrams', label: '도면' },
     { id: 'complete', label: '완료' },
 ];
 
@@ -48,7 +48,7 @@ function createDefaultState(entry) {
             .fill(null)
             .map(() => ({ status: null, measured: '', note: '' })),
         repairNotes: '',
-        diagramSlideIndex: 0,
+        imageSlideIndex: 0,
         updatedAt: null,
     };
 }
@@ -74,8 +74,11 @@ function normalizeState(entry, parsed) {
         wiringResults.push({ status: null, measured: '', note: '' });
     }
 
-    const phase = PHASES.some((p) => p.id === parsed.phase) ? parsed.phase : 'overview';
+    let phase = PHASES.some((p) => p.id === parsed.phase) ? parsed.phase : 'overview';
+    if (phase === 'diagrams') phase = 'complete';
     const wiringIndex = Math.min(Math.max(0, parsed.wiringIndex ?? 0), Math.max(0, wiringLen - 1));
+    const slide =
+        parsed.imageSlideIndex ?? parsed.diagramSlideIndex ?? 0;
 
     return {
         version: WORKFLOW_VERSION,
@@ -84,37 +87,48 @@ function normalizeState(entry, parsed) {
         partsChecked,
         wiringResults,
         repairNotes: parsed.repairNotes ?? '',
-        diagramSlideIndex: Math.max(0, parsed.diagramSlideIndex ?? 0),
+        imageSlideIndex: Math.max(0, slide),
         updatedAt: parsed.updatedAt ?? null,
     };
 }
 
-/** @param {number} imageCount @param {number} wiringStepCount @returns {number[][]} */
-function buildImagePlan(imageCount, wiringStepCount) {
-    if (!imageCount || !wiringStepCount) return [];
-    const plan = Array.from({ length: wiringStepCount }, () => []);
-    for (let i = 0; i < imageCount; i++) {
-        const step = Math.min(wiringStepCount - 1, Math.floor((i * wiringStepCount) / imageCount));
-        plan[step].push(i);
-    }
-    for (let s = 0; s < wiringStepCount; s++) {
-        if (plan[s].length === 0) plan[s].push(Math.min(s, imageCount - 1));
-    }
-    return plan;
+function currentPhaseImageIndices(entry, state) {
+    const slices = resolveImageSlices(entry);
+    return indicesForPhase(slices, state.phase, { wiringIndex: state.wiringIndex });
 }
 
-function getImagePlan(entry) {
-    if (entry.imagePlan?.length) return entry.imagePlan;
-    const n = entry.imageKeys?.length || 0;
-    const w = entry.wiring_steps?.length || 0;
-    return buildImagePlan(n, w);
+/** 단계별 참고 이미지 뷰어(캐러셀) 마크업 */
+function renderPhaseImagesShell(entry, state, phaseId) {
+    const indices = indicesForPhase(resolveImageSlices(entry), phaseId, {
+        wiringIndex: state.wiringIndex,
+    });
+    if (!indices.length) return '';
+    const count = indices.length;
+    const showNav = count > 1;
+    return `<div class="dtc-phase-images" data-phase-images="${phaseId}">
+        <div class="flex items-center justify-between mb-2 gap-2">
+            <h4 class="text-sm font-semibold text-gray-800">참고 이미지</h4>
+            ${showNav ? `<span id="dtc-phase-img-counter" class="text-xs text-gray-500 shrink-0">1 / ${count}</span>` : ''}
+        </div>
+        <div id="dtc-phase-image-view" class="rounded-xl border border-gray-200 bg-white min-h-[180px] flex items-center justify-center overflow-hidden cursor-zoom-in">
+            <p class="text-sm text-gray-400 p-4 text-center">이미지 로드 중…</p>
+        </div>
+        <div class="flex gap-2 mt-2 justify-center items-center ${showNav ? '' : 'hidden'}" id="dtc-phase-image-nav">
+            <button type="button" id="dtc-phase-img-prev" class="px-3 py-2 text-xs border border-gray-300 rounded-lg min-h-[40px]">←</button>
+            <button type="button" id="dtc-phase-img-next" class="px-3 py-2 text-xs border border-gray-300 rounded-lg min-h-[40px]">→</button>
+        </div>
+    </div>`;
 }
 
-function stepLabelForImage(plan, imageIndex) {
-    for (let s = 0; s < plan.length; s++) {
-        if (plan[s].includes(imageIndex)) return s + 1;
-    }
-    return null;
+function renderCompleteImagesGridShell(entry) {
+    const indices = resolveImageSlices(entry).complete;
+    if (!indices.length) return '';
+    return `<div class="dtc-phase-images" data-phase-images="complete">
+        <h4 class="text-sm font-semibold text-gray-800 mb-2">참고 이미지</h4>
+        <div id="dtc-complete-images-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 min-h-[4rem]">
+            <p class="text-sm text-gray-400 col-span-full text-center py-4">이미지 로드 중…</p>
+        </div>
+    </div>`;
 }
 
 export function saveWorkflowState(entry, state) {
@@ -199,7 +213,7 @@ export function renderDtcWorkflowHtml(entry) {
             </header>
             <nav class="flex gap-1 mb-4 overflow-x-auto pb-1" aria-label="진단 단계">${phaseNav}</nav>
             <div id="dtc-phase-panels">${renderPhasePanel(entry, state)}</div>
-            <p class="text-xs text-gray-400 mt-6 pt-4 border-t border-gray-100">DTC 진단 가이드 · ${DTC_META.count} codes · 세션 자동 저장</p>
+            <p class="text-xs text-gray-400 mt-6 pt-4 border-t border-gray-100">DTC 진단 가이드 · ${DTC_META.count}건</p>
         </article>`;
 }
 
@@ -209,8 +223,6 @@ function renderPhasePanel(entry, state) {
             return renderPartsPhase(entry, state);
         case 'wiring':
             return renderWiringPhase(entry, state);
-        case 'diagrams':
-            return renderDiagramsPhase(entry);
         case 'complete':
             return renderCompletePhase(entry, state);
         default:
@@ -222,7 +234,7 @@ function renderOverviewPhase(entry, state) {
     const causes = entry.causes?.filter((c) => c && (c.cause !== '—' || c.action !== '—'));
     const causesHtml = causes?.length
         ? `<section class="mt-4 border-t border-gray-100 pt-4">
-            <h3 class="text-sm font-semibold text-gray-700 mb-2">보조 조치 (엑셀 요약)</h3>
+            <h3 class="text-sm font-semibold text-gray-700 mb-2">보조 조치</h3>
             ${causes
                 .map((row) => {
                     const steps = parseActionSteps(row.action);
@@ -240,12 +252,12 @@ function renderOverviewPhase(entry, state) {
         : '';
 
     return `<section class="dtc-phase-panel space-y-4" data-phase="overview">
-        <p class="text-sm text-gray-600">XLSX 가이드 순서대로 단계를 진행하세요. 진행 상태는 이 기기에 자동 저장됩니다.</p>
         <div class="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
             <h3 class="text-sm font-semibold text-gray-800 mb-2">고장 코드 설명</h3>
             <p class="text-sm text-gray-800 leading-relaxed">${escapeHtml(entry.explanation || '설명 없음')}</p>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        ${renderPhaseImagesShell(entry, state, 'overview')}
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
             ${PHASES.filter((p) => p.id !== 'overview' && p.id !== 'complete')
                 .map(
                     (p) => `<button type="button" class="dtc-goto-phase px-3 py-3 rounded-lg border border-gray-200 bg-white text-sm font-medium hover:border-gray-900" data-phase="${p.id}">${escapeHtml(p.label)} 시작 →</button>`
@@ -262,8 +274,9 @@ function renderOverviewPhase(entry, state) {
 function renderPartsPhase(entry, state) {
     const parts = entry.suspected_parts || [];
     if (parts.length === 0) {
-        return `<section class="dtc-phase-panel" data-phase="parts">
+        return `<section class="dtc-phase-panel space-y-4" data-phase="parts">
             <p class="text-sm text-gray-500">등록된 예상 고장 부위가 없습니다.</p>
+            ${renderPhaseImagesShell(entry, state, 'parts')}
             <button type="button" class="dtc-goto-phase mt-4 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm" data-phase="wiring">배선 점검으로 →</button>
         </section>`;
     }
@@ -287,6 +300,7 @@ function renderPartsPhase(entry, state) {
         <label class="flex items-center gap-2 text-xs text-gray-600">
             <input type="checkbox" id="dtc-parts-select-all" ${allChecked ? 'checked' : ''} /> 전체 확인 완료
         </label>
+        ${renderPhaseImagesShell(entry, state, 'parts')}
         <div class="flex flex-wrap gap-2 justify-between pt-2">
             <button type="button" class="dtc-goto-phase px-3 py-2 rounded-lg border text-sm" data-phase="overview">← 개요</button>
             <button type="button" class="dtc-goto-phase px-4 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium" data-phase="wiring">배선 점검 →</button>
@@ -299,7 +313,8 @@ function renderWiringPhase(entry, state) {
     if (steps.length === 0) {
         return `<section class="dtc-phase-panel" data-phase="wiring">
             <p class="text-sm text-gray-500">배선 점검 항목이 없습니다.</p>
-            <button type="button" class="dtc-goto-phase mt-4 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm" data-phase="diagrams">도면 보기 →</button>
+            ${renderPhaseImagesShell(entry, state, 'wiring')}
+            <button type="button" class="dtc-goto-phase mt-4 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm" data-phase="complete">완료 요약 →</button>
         </section>`;
     }
 
@@ -323,8 +338,7 @@ function renderWiringPhase(entry, state) {
         })
         .join('');
 
-    const plan = getImagePlan(entry);
-    const stepImageCount = plan[idx]?.length || 0;
+    const wiringImages = renderPhaseImagesShell(entry, state, 'wiring');
 
     return `<section class="dtc-phase-panel space-y-4" data-phase="wiring">
         <div class="flex items-center justify-between gap-2">
@@ -365,39 +379,16 @@ function renderWiringPhase(entry, state) {
             </label>
         </div>
         <div class="mt-4 lg:mt-0 lg:sticky lg:top-2">
-            <div class="flex items-center justify-between mb-2 gap-2">
-                <h4 class="text-sm font-semibold text-gray-800">연결 정비 도면</h4>
-                <span class="text-xs text-gray-500 shrink-0">배선 ${idx + 1} · ${stepImageCount}장</span>
-            </div>
-            <div id="dtc-inline-diagram" class="rounded-xl border border-gray-200 bg-white min-h-[220px] flex items-center justify-center overflow-hidden cursor-zoom-in" data-wiring-step="${idx}">
-                <p class="text-sm text-gray-400 p-4 text-center">도면 로드 중…</p>
-            </div>
-            <div class="flex gap-2 mt-2 justify-center items-center ${stepImageCount > 1 ? '' : 'hidden'}" id="dtc-inline-diagram-nav">
-                <button type="button" id="dtc-inline-prev" class="px-3 py-2 text-xs border border-gray-300 rounded-lg min-h-[40px]">←</button>
-                <span id="dtc-inline-counter" class="text-xs text-gray-600 min-w-[4rem] text-center">1 / ${stepImageCount || 1}</span>
-                <button type="button" id="dtc-inline-next" class="px-3 py-2 text-xs border border-gray-300 rounded-lg min-h-[40px]">→</button>
-            </div>
-            <p class="text-[11px] text-gray-400 mt-2 text-center">엑셀 시트 도면 순서 ↔ 배선 단계 자동 연동 · 탭하여 확대</p>
+            ${wiringImages}
         </div>
         </div>
         <div class="flex gap-2 lg:col-span-2">
             <button type="button" id="dtc-wiring-prev" class="flex-1 py-2.5 rounded-lg border text-sm ${idx === 0 ? 'opacity-40 pointer-events-none' : ''}" ${idx === 0 ? 'disabled' : ''}>← 이전</button>
-            <button type="button" id="dtc-wiring-next" class="flex-1 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium">${idx < steps.length - 1 ? '다음 단계 →' : '전체 도면 →'}</button>
+            <button type="button" id="dtc-wiring-next" class="flex-1 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium">${idx < steps.length - 1 ? '다음 단계 →' : '완료 요약 →'}</button>
         </div>
         <div class="flex justify-between pt-1 lg:col-span-2">
             <button type="button" class="dtc-goto-phase text-xs text-gray-500 underline" data-phase="parts">← 부위</button>
-            <button type="button" class="dtc-goto-phase text-xs text-gray-500 underline" data-phase="diagrams">전체 도면</button>
         </div>
-    </section>`;
-}
-
-function renderDiagramsPhase(entry) {
-    const n = entry.imageKeys?.length || 0;
-    return `<section class="dtc-phase-panel space-y-3" data-phase="diagrams">
-        <h3 class="text-sm font-semibold text-gray-800">정비 도면 ${n > 0 ? `(${n}장)` : ''}</h3>
-        <p class="text-xs text-gray-500">엑셀 시트 순서대로 배선 단계와 연동됩니다. 썸네일의 「배선 N」배지를 확인하세요.</p>
-        <div id="dtc-images-panel" class="text-sm text-gray-500 min-h-[4rem]">도면을 불러오는 중...</div>
-        <button type="button" class="dtc-goto-phase w-full py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium" data-phase="complete">진단 완료 요약 →</button>
     </section>`;
 }
 
@@ -435,6 +426,7 @@ function renderCompletePhase(entry, state) {
             <h4 class="text-xs font-semibold text-gray-600 uppercase mb-2">이상 배선 항목</h4>
             ${ngList}
         </div>
+        ${renderCompleteImagesGridShell(entry)}
         <label class="block">
             <span class="text-sm font-medium text-gray-800">수리·조치 기록</span>
             <textarea id="dtc-repair-notes" rows="3" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="교환 부품, 조치 내용, DTC 클리어 여부 등">${escapeHtml(state.repairNotes)}</textarea>
@@ -503,7 +495,7 @@ function openDtcImageModal(signedUrl, title, index, total) {
         }
     };
     img.onerror = () => {
-        if (viewerEl) viewerEl.innerHTML = '<p class="text-red-300 text-sm">도면 로드 실패</p>';
+        if (viewerEl) viewerEl.innerHTML = '<p class="text-red-300 text-sm">이미지 로드 실패</p>';
     };
     img.src = signedUrl;
 }
@@ -536,100 +528,65 @@ async function ensureDtcImageCache(entry) {
     return dtcImageCache;
 }
 
-function bindGalleryThumbs(panel, entry, cache, { highlightStep = null } = {}) {
-    const plan = getImagePlan(entry);
-    panel.querySelectorAll('.dtc-thumb').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const idx = parseInt(btn.getAttribute('data-dtc-img-idx'), 10);
-            const item = cache.items[idx];
-            if (item) {
-                openDtcImageModal(item.url, `${entry.codeDisplay} 도면 ${idx + 1}`, idx, cache.items.length);
-            }
-        });
-        if (highlightStep != null) {
-            const imgIdx = parseInt(btn.getAttribute('data-dtc-img-idx'), 10);
-            const step = stepLabelForImage(plan, imgIdx);
-            if (step === highlightStep) btn.classList.add('ring-2', 'ring-brand');
-        }
-    });
-}
+function syncPhaseCarousel(root, entry, state, cache) {
+    const view = root.querySelector('#dtc-phase-image-view');
+    if (!view || state.phase === 'complete') return;
 
-function renderGalleryHtml(entry, cache) {
-    const plan = getImagePlan(entry);
-    if (!cache.items.length) {
-        return '<p class="text-amber-700 text-sm">도면을 불러올 수 없습니다. Storage 업로드를 확인하세요.</p>';
-    }
-    return `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        ${cache.items
-            .map((item) => {
-                const step = stepLabelForImage(plan, item.index);
-                const badge = step
-                    ? `<span class="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-gray-900/80 text-white text-[10px]">배선 ${step}</span>`
-                    : '';
-                return `
-            <button type="button" class="dtc-thumb relative aspect-[4/3] rounded-lg border overflow-hidden bg-gray-100 hover:ring-2 hover:ring-brand" data-dtc-img-idx="${item.index}">
-                <img src="${item.url}" alt="" class="w-full h-full object-cover" loading="lazy" />
-                ${badge}
-                <span class="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] py-0.5 text-center">도면 ${item.index + 1}</span>
-            </button>`;
-            })
-            .join('')}
-    </div>`;
-}
+    const indices = currentPhaseImageIndices(entry, state);
+    const nav = root.querySelector('#dtc-phase-image-nav');
+    const counter = root.querySelector('#dtc-phase-img-counter');
 
-async function loadDtcImages(panel, entry, cache) {
-    if (!panel) return;
-    const keys = entry.imageKeys || [];
-    if (keys.length === 0) {
-        panel.innerHTML = '<p class="text-gray-400 text-sm">연동된 정비 도면이 없습니다.</p>';
-        return;
-    }
-    if (!window.supabaseClient) {
-        panel.innerHTML = '<p class="text-amber-700 text-sm">인증 후 도면을 불러올 수 있습니다.</p>';
-        return;
-    }
-    panel.innerHTML = '<p class="text-gray-400 text-sm">도면 URL 생성 중...</p>';
-    const c = cache || (await ensureDtcImageCache(entry));
-    panel.innerHTML = renderGalleryHtml(entry, c);
-    bindGalleryThumbs(panel, entry, c);
-}
-
-function syncInlineDiagram(root, entry, state, cache) {
-    const panel = root.querySelector('#dtc-inline-diagram');
-    if (!panel || state.phase !== 'wiring') return;
-
-    const plan = getImagePlan(entry);
-    const stepIndices = plan[state.wiringIndex] || [];
-    const nav = root.querySelector('#dtc-inline-diagram-nav');
-    const counter = root.querySelector('#dtc-inline-counter');
-
-    if (!stepIndices.length || !cache?.items?.length) {
-        panel.innerHTML =
-            '<p class="text-sm text-gray-400 p-4 text-center">이 배선 단계에 연결된 도면이 없습니다.<br><button type="button" class="dtc-goto-phase underline mt-2" data-phase="diagrams">전체 도면 보기</button></p>';
-        panel.querySelector('.dtc-goto-phase')?.addEventListener('click', (e) => {
-            const btn = e.target.closest('[data-phase]');
-            if (btn) root.querySelector(`.dtc-phase-btn[data-phase="${btn.getAttribute('data-phase')}"]`)?.click();
-        });
+    if (!indices.length || !cache?.items?.length) {
+        view.innerHTML = '<p class="text-sm text-gray-400 p-4 text-center">이 단계에 표시할 참고 이미지가 없습니다.</p>';
+        view.onclick = null;
         if (nav) nav.classList.add('hidden');
         return;
     }
 
-    const slide = Math.min(state.diagramSlideIndex || 0, stepIndices.length - 1);
-    const globalIdx = stepIndices[slide];
-    const item = cache.items[globalIdx];
-    if (!item) {
-        panel.innerHTML = '<p class="text-sm text-red-500 p-4">도면 로드 실패</p>';
+    const slide = Math.min(state.imageSlideIndex || 0, indices.length - 1);
+    const globalIdx = indices[slide];
+    const item = cache.items.find((x) => x.index === globalIdx);
+    if (!item?.url) {
+        view.innerHTML = '<p class="text-sm text-red-500 p-4">이미지 로드 실패</p>';
         return;
     }
 
-    panel.innerHTML = `<img src="${item.url}" alt="배선 ${state.wiringIndex + 1} 도면" class="max-w-full max-h-[min(50vh,420px)] object-contain" />`;
-    panel.onclick = () =>
-        openDtcImageModal(item.url, `${entry.codeDisplay} 배선${state.wiringIndex + 1} 도면`, globalIdx, cache.items.length);
+    const phaseLabel = PHASES.find((p) => p.id === state.phase)?.label || '';
+    view.innerHTML = `<img src="${item.url}" alt="${phaseLabel} 참고 이미지" class="max-w-full max-h-[min(50vh,420px)] object-contain" />`;
+    view.onclick = () =>
+        openDtcImageModal(item.url, `${entry.codeDisplay} ${phaseLabel} (${globalIdx + 1})`, globalIdx, cache.items.length);
 
-    if (nav) {
-        nav.classList.toggle('hidden', stepIndices.length <= 1);
-        if (counter) counter.textContent = `${slide + 1} / ${stepIndices.length} (전체 ${globalIdx + 1}번)`;
+    if (nav) nav.classList.toggle('hidden', indices.length <= 1);
+    if (counter) counter.textContent = `${slide + 1} / ${indices.length}`;
+}
+
+function syncCompleteImagesGrid(root, entry, cache) {
+    const grid = root.querySelector('#dtc-complete-images-grid');
+    if (!grid || !cache?.items?.length) return;
+
+    const indices = resolveImageSlices(entry).complete;
+    if (!indices.length) {
+        grid.closest('.dtc-phase-images')?.remove();
+        return;
     }
+
+    grid.innerHTML = indices
+        .map((globalIdx) => {
+            const item = cache.items.find((x) => x.index === globalIdx);
+            if (!item?.url) return '';
+            return `<button type="button" class="dtc-complete-thumb relative aspect-[4/3] rounded-lg border overflow-hidden bg-gray-100 hover:ring-2 hover:ring-brand" data-dtc-img-idx="${globalIdx}">
+                <img src="${item.url}" alt="" class="w-full h-full object-cover" loading="lazy" />
+            </button>`;
+        })
+        .join('');
+
+    grid.querySelectorAll('.dtc-complete-thumb').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.getAttribute('data-dtc-img-idx'), 10);
+            const item = cache.items.find((x) => x.index === idx);
+            if (item) openDtcImageModal(item.url, `${entry.codeDisplay} 참고 ${idx + 1}`, idx, cache.items.length);
+        });
+    });
 }
 
 /**
@@ -649,19 +606,13 @@ export function mountDtcWorkflow(root, entry) {
 
     const afterPanelRefresh = async () => {
         const cache = await ensureDtcImageCache(entry);
-        if (state.phase === 'wiring') syncInlineDiagram(root, entry, state, cache);
-        if (state.phase === 'diagrams') {
-            const panel = root.querySelector('#dtc-images-panel');
-            if (panel) {
-                panel.innerHTML = renderGalleryHtml(entry, cache);
-                bindGalleryThumbs(panel, entry, cache);
-            }
-        }
+        if (state.phase === 'complete') syncCompleteImagesGrid(root, entry, cache);
+        else syncPhaseCarousel(root, entry, state, cache);
     };
 
     const setPhase = (phaseId) => {
         state.phase = phaseId;
-        if (phaseId === 'wiring') state.diagramSlideIndex = 0;
+        state.imageSlideIndex = 0;
         persist();
         refreshPanels(root, entry, state);
         bindPanelEvents();
@@ -680,6 +631,7 @@ export function mountDtcWorkflow(root, entry) {
                 persist();
                 refreshPanels(root, entry, state);
                 bindPanelEvents();
+                afterPanelRefresh();
             });
         });
 
@@ -690,13 +642,14 @@ export function mountDtcWorkflow(root, entry) {
                 persist();
                 refreshPanels(root, entry, state);
                 bindPanelEvents();
+                afterPanelRefresh();
             });
         }
 
         root.querySelectorAll('.dtc-wiring-dot').forEach((dot) => {
             dot.addEventListener('click', () => {
                 state.wiringIndex = parseInt(dot.getAttribute('data-wiring-idx'), 10);
-                state.diagramSlideIndex = 0;
+                state.imageSlideIndex = 0;
                 persist();
                 refreshPanels(root, entry, state);
                 bindPanelEvents();
@@ -738,7 +691,7 @@ export function mountDtcWorkflow(root, entry) {
             saveWiringFields();
             if (state.wiringIndex > 0) {
                 state.wiringIndex -= 1;
-                state.diagramSlideIndex = 0;
+                state.imageSlideIndex = 0;
                 persist();
                 refreshPanels(root, entry, state);
                 bindPanelEvents();
@@ -751,33 +704,32 @@ export function mountDtcWorkflow(root, entry) {
             const total = entry.wiring_steps?.length || 0;
             if (state.wiringIndex < total - 1) {
                 state.wiringIndex += 1;
-                state.diagramSlideIndex = 0;
+                state.imageSlideIndex = 0;
                 persist();
                 refreshPanels(root, entry, state);
                 bindPanelEvents();
                 afterPanelRefresh();
             } else {
-                setPhase('diagrams');
+                setPhase('complete');
             }
         });
 
-        root.querySelector('#dtc-inline-prev')?.addEventListener('click', async () => {
-            if (state.diagramSlideIndex > 0) {
-                state.diagramSlideIndex -= 1;
+        root.querySelector('#dtc-phase-img-prev')?.addEventListener('click', async () => {
+            if (state.imageSlideIndex > 0) {
+                state.imageSlideIndex -= 1;
                 persist();
                 const cache = await ensureDtcImageCache(entry);
-                syncInlineDiagram(root, entry, state, cache);
+                syncPhaseCarousel(root, entry, state, cache);
             }
         });
 
-        root.querySelector('#dtc-inline-next')?.addEventListener('click', async () => {
-            const plan = getImagePlan(entry);
-            const max = (plan[state.wiringIndex]?.length || 1) - 1;
-            if (state.diagramSlideIndex < max) {
-                state.diagramSlideIndex += 1;
+        root.querySelector('#dtc-phase-img-next')?.addEventListener('click', async () => {
+            const max = currentPhaseImageIndices(entry, state).length - 1;
+            if (state.imageSlideIndex < max) {
+                state.imageSlideIndex += 1;
                 persist();
                 const cache = await ensureDtcImageCache(entry);
-                syncInlineDiagram(root, entry, state, cache);
+                syncPhaseCarousel(root, entry, state, cache);
             }
         });
 
