@@ -11,6 +11,7 @@ import XLSX from 'xlsx';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const MIGRATED_JSON = path.join(ROOT, 'DTC', 'dtc_data.json');
+const DEFAULT_GUIDE_XLSX = path.join(ROOT, 'DTC', 'EC31 35 DTC GUIDE 편집본 250630 기준.xlsx');
 const MAPPINGS_JSON = path.join(ROOT, 'DTC', 'images', 'dtc', 'mappings.json');
 const DEFAULT_XLSX = path.join(ROOT, 'data', 'source', 'DTC코드.xlsx');
 const OUT_FILE = path.join(ROOT, 'js', 'dtcData.js');
@@ -231,7 +232,10 @@ function main() {
     const withImages = entries.filter((e) => e.imageKeys?.length > 0).length;
     const meta = {
         builtAt: new Date().toISOString(),
-        source: 'DTC/dtc_data.json + DTC코드.xlsx(보조)',
+        source: 'DTC/dtc_data.json (XLSX 가이드) + DTC코드.xlsx(보조)',
+        guideXlsx: fs.existsSync(DEFAULT_GUIDE_XLSX)
+            ? path.relative(ROOT, DEFAULT_GUIDE_XLSX).replace(/\\/g, '/')
+            : null,
         migratedCount: migrated.length,
         xlsxOnlyCount,
         count: entries.length,

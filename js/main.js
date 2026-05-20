@@ -7,7 +7,8 @@ import './securityAgreement.js';
 import { maintenanceManualTreeData, maintenanceManualMapping } from './maintenanceManualMapping.js';
 import { qqMaintenanceManualTreeData, qqMaintenanceManualMapping, QQ_CHAPTERS } from './maintenanceManualMappingQQ.js';
 import { etmTreeData, etmMapping } from './etmMapping.js';
-import { dtcTreeData, getDtcEntry, parseActionSteps, DTC_META, DTC_STORAGE_BUCKET } from './dtcMapping.js';
+import { dtcTreeData, getDtcEntry, parseActionSteps, DTC_META } from './dtcMapping.js';
+import { renderDtcWorkflowHtml, mountDtcWorkflow } from './dtcWorkflow.js';
 import {
     isMobileExperience,
     saveRecentDoc,
@@ -1446,9 +1447,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             `;
         }
 
-        /**
-         * DTC 코드 상세 HTML
-         */
+        /** @deprecated — dtcWorkflow.js 사용 */
         function renderDtcDetail(entry) {
             const explanationBlock = entry.explanation
                 ? `<section class="mb-6">
@@ -1671,12 +1670,13 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             });
             treeItem.classList.add('active');
 
-            viewer.innerHTML = renderDtcDetail(entry);
+            viewer.innerHTML = renderDtcWorkflowHtml(entry);
             viewer.classList.remove('items-center', 'justify-center', 'text-gray-500');
 
-            window.enterDocMobileViewerMode?.();
+            const root = viewer.querySelector('.dtc-workflow-root');
+            if (root) mountDtcWorkflow(root, entry);
 
-            await loadDtcImages(entry);
+            window.enterDocMobileViewerMode?.();
 
             saveRecentDoc({
                 path: '/dtc',
@@ -1843,7 +1843,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             const selectedModel = isMaintenanceManual ? getMaintenanceModel() : 'masada-2van';
             const isQQManual = isMaintenanceManual && selectedModel === 'masada-qq';
             const viewerPlaceholder = isDtcManual
-                ? '왼쪽 목차에서 DTC 코드를 선택하세요'
+                ? '왼쪽에서 DTC를 선택하면 단계별 진단·수리 가이드가 시작됩니다'
                 : '문서를 선택하세요';
             
             return `

@@ -30,7 +30,7 @@ EVKMC A/S 정비 포털(GSW) 운영·배포·보안을 정기적으로 점검하
 |------|------|
 | 마이그레이션 | `supabase/migrations/` — 원격 반영 이력 유지 |
 | QQ 정비지침 PDF | `QQ_SM/*.pdf` 수정 후 `.\scripts\upload-qq-sm-pdfs.ps1 -Chapter NN` |
-| DTC 매뉴얼 데이터 | `DTC/dtc_data.json` 수정 후 `npm run build:dtc` → `js/dtcData.js` 커밋. 보조 5코드는 `data/source/DTC코드.xlsx` |
+| DTC 매뉴얼 데이터 | `DTC/dtc_data.json`(XLSX 시트 구조) 수정 후 `npm run build:dtc` → `js/dtcData.js` 커밋. 웹 UI는 [`js/dtcWorkflow.js`](../../js/dtcWorkflow.js) 단계별 진단(개요→부위→배선→도면→완료), `localStorage` 세션 저장 |
 | DTC 도면 매핑 | `DTC/images/dtc/mappings.json` (원본 PNG/JPG는 Git 제외, `DTC/images/dtc/**`) |
 | DTC Storage 업로드 | 마이그레이션 `029` 적용 후 `SUPABASE_SERVICE_ROLE_KEY` 설정 → `npm run upload:dtc` (버킷 `dtc`, 경로 `dtc/E-0420/...`) |
 | Storage 경로 | `manual/MASADA-QQ/qq-NN.pdf` ([`js/maintenanceManualMappingQQ.js`](../../js/maintenanceManualMappingQQ.js)) |
