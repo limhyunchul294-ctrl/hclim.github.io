@@ -48,6 +48,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.authSession._lastFetchTime = Date.now();
         }
 
+        try {
+            await window.supabaseClient.auth.setSession({
+                access_token: session.access_token,
+                refresh_token: session.refresh_token,
+            });
+        } catch (setSessionErr) {
+            console.warn('⚠️ setSession 경고:', setSessionErr);
+        }
+
         const userEmail = session.user.email;
         const { data: userInfo, error: userError } = await window.supabaseClient
             .from('users')
@@ -128,6 +137,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         console.log('✅ 사용자 정보 확인 완료:', userInfo);
+        if (window.authService) {
+            window.authService._userInfoCache = {
+                name: userInfo.name,
+                phone: userInfo.phone,
+                affiliation: userInfo.affiliation,
+                role: userInfo.role,
+                username: userInfo.username,
+                grade: userInfo.grade,
+            };
+            window.authService._userInfoCacheTime = Date.now();
+        }
         sessionStorage.removeItem(PENDING_EMAIL_OTP_KEY);
         sessionStorage.removeItem(PENDING_EMAIL_USERNAME_KEY);
         goToAppHome();
@@ -406,6 +426,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const resendEmailOtpBtn = document.getElementById('resend-email-otp-btn');
     const EMAIL_OTP_BTN_LABEL = '인증 코드 발송';
 
+    bindNumericOtpInput(emailOtpInput, 6);
+
     /**
      * 이메일 형식 검증
      */
@@ -438,6 +460,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     function hideEmailOtpError() {
         if (!emailOtpError) return;
         emailOtpError.classList.add('hidden');
+    }
+
+    /** OTP 입력란: 숫자만 허용 (최대 6자리) */
+    function bindNumericOtpInput(input, maxLen = 6) {
+        if (!input) return;
+
+        const sanitize = () => {
+            const digits = (input.value || '').replace(/\D/g, '').slice(0, maxLen);
+            if (input.value !== digits) input.value = digits;
+        };
+
+        input.addEventListener('input', sanitize);
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pasted = (e.clipboardData?.getData('text') || '').replace(/\D/g, '').slice(0, maxLen);
+            input.value = pasted;
+        });
+        input.addEventListener('keydown', (e) => {
+            const allowed = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+            if (allowed.includes(e.key) || e.ctrlKey || e.metaKey) return;
+            if (e.key.length === 1 && !/^\d$/.test(e.key)) e.preventDefault();
+        });
     }
 
     function setEmailOtpModalMessage(email) {

@@ -7,6 +7,7 @@ import './securityAgreement.js';
 import { maintenanceManualTreeData, maintenanceManualMapping } from './maintenanceManualMapping.js';
 import { qqMaintenanceManualTreeData, qqMaintenanceManualMapping, QQ_CHAPTERS } from './maintenanceManualMappingQQ.js';
 import { etmTreeData, etmMapping } from './etmMapping.js';
+import { dtcTreeData, getDtcEntry, parseActionSteps, DTC_META } from './dtcMapping.js';
 import {
     isMobileExperience,
     saveRecentDoc,
@@ -35,7 +36,6 @@ if (window.__APP_INIT__) {
         const authContainer = document.getElementById('auth-container');
         const desktopNav = document.getElementById('desktop-nav');
         const splashScreen = document.getElementById('splash-screen');
-        const { PDFDocument } = PDFLib;
 
         // ---- 2. 네비게이션 링크 ----
         const NAV_LINKS = [
@@ -135,6 +135,85 @@ if (window.__APP_INIT__) {
             Object.assign(PDF_MAPPING, etmMapping);
         }
 
+        // TSB 목차 라벨을 다운로드·뷰어 제목에 반영
+        const tsbTreeItems = getTreeDataByTitle('TSB');
+        if (Array.isArray(tsbTreeItems)) {
+            tsbTreeItems.forEach((item) => {
+                if (PDF_MAPPING[item.id]?.type === 'pdf' && item.label) {
+                    PDF_MAPPING[item.id].title = item.label;
+                }
+            });
+        }
+
+        /** 현재 열람 중인 문서 (다운로드 파일명 생성용) */
+        let currentDocDownloadMeta = null;
+
+        function setCurrentDocDownloadMeta(meta) {
+            currentDocDownloadMeta = meta;
+        }
+
+        function sanitizeFilenamePart(value) {
+            if (!value) return '';
+            return String(value)
+                .replace(/[\\/:*?"<>|]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/\s/g, '_')
+                .replace(/[·]/g, '-')
+                .slice(0, 100);
+        }
+
+        function getDownloadDocCategory(docId, fileName, bucketName) {
+            const route = getDocRoutePath();
+            if (route === '/shop') {
+                if (docId?.startsWith('qq-sm-') || (fileName && fileName.includes('MASADA-QQ'))) {
+                    return '정비지침서_MASADA-QQ';
+                }
+                return '정비지침서_MASADA-SM';
+            }
+            if (route === '/etm' || bucketName === 'etm') return '전장회로도';
+            if (route === '/tsb' || bucketName === 'tsb_documents') return 'TSB';
+            if (route === '/wiring' || bucketName === 'wiring_diagrams') return '와이어링커넥터';
+            if (fileName?.includes('MASADA-QQ')) return '정비지침서_MASADA-QQ';
+            if (bucketName === 'manual') return '정비지침서';
+            return '기술문서';
+        }
+
+        function normalizePageRange(pageRange) {
+            if (!pageRange) return null;
+            if (Array.isArray(pageRange) && pageRange.length >= 2) {
+                return [pageRange[0], pageRange[1]];
+            }
+            if (typeof pageRange === 'string') {
+                const m = pageRange.match(/^\[(\d+),\s*(\d+)\]$/);
+                if (m) return [parseInt(m[1], 10), parseInt(m[2], 10)];
+            }
+            return null;
+        }
+
+        function buildSecureDownloadFilename(fileName, bucketName, pageRange) {
+            const meta = currentDocDownloadMeta;
+            const category = meta?.category || getDownloadDocCategory(meta?.docId, fileName, bucketName);
+            const rawTitle = meta?.title || fileName?.split('/').pop()?.replace(/\.[a-z0-9]+$/i, '') || '문서';
+            const topic = sanitizeFilenamePart(rawTitle);
+            const categoryPart = sanitizeFilenamePart(category);
+
+            let name = `EVKMC_AS_${categoryPart}_${topic}`;
+
+            const range = normalizePageRange(pageRange) || normalizePageRange(meta?.pageRange);
+            if (range) {
+                name += `_p${range[0]}-${range[1]}`;
+            }
+
+            const extMatch = fileName?.match(/(\.[a-z0-9]+)$/i);
+            const ext = extMatch ? extMatch[1].toLowerCase() : '.pdf';
+            const normalizedExt = ext === '.jpeg' ? '.jpg' : ext;
+            if (!name.toLowerCase().endsWith(normalizedExt)) {
+                name += normalizedExt;
+            }
+            return name;
+        }
+
         registerQQDocIds(QQ_CHAPTERS.map((c) => `qq-sm-${c.num}`));
 
         const DOC_ROUTE_PATHS = ['/shop', '/etm', '/dtc', '/wiring', '/tsb'];
@@ -209,17 +288,7 @@ if (window.__APP_INIT__) {
                             ]
                         }
                     ],
-                'DTC 매뉴얼': [
-                    {
-                        id: 'dtc-1',
-                        label: '400번대 - 구동 계통',
-                        type: 'folder',
-                        children: [
-                            { id: 'dtc-1-1', label: 'E-0420_모터 컨트롤러(MCU) 이상', type: 'file' },
-                            { id: 'dtc-1-2', label: 'E-0421_모터 이상', type: 'file' }
-                        ]
-                    }
-                ],
+                'DTC 매뉴얼': dtcTreeData,
                 'TSB': [
                     { id: 'tsb-1', label: 'TSB_EVKMC_001 (22.11.09)', type: 'pdf' },
                     { id: 'tsb-2', label: 'TSB_EVKMC_002 (23.10.19)', type: 'pdf' },
@@ -371,7 +440,8 @@ if (window.__APP_INIT__) {
                 folder: '📁',
                 pdf: '📄',
                 image: '🖼️',
-                file: '📋'
+                file: '📋',
+                dtc: '⚠️',
             };
             return icons[type] || '📄';
         }
@@ -1193,7 +1263,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             if (fileBlobUrl) {
                 const link = document.createElement('a');
                 link.href = fileBlobUrl;
-                link.download = `워터마크_${fileName.split('/').pop()}`;
+                link.download = buildSecureDownloadFilename(fileName, bucketName, pageRange);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -1377,6 +1447,68 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
         }
 
         /**
+         * DTC 코드 상세 HTML
+         */
+        function renderDtcDetail(entry) {
+            const causesBlock = entry.causes
+                .map((row, idx) => {
+                    const steps = parseActionSteps(row.action);
+                    const actionHtml =
+                        steps.length > 1
+                            ? `<ol class="list-decimal list-inside space-y-1.5 text-sm text-gray-800">${steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ol>`
+                            : `<p class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">${escapeHtml(row.action || '—')}</p>`;
+                    const causeLabel = entry.causes.length > 1 ? `원인 ${idx + 1}` : '원인';
+                    return `
+                        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                            <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">${causeLabel}</h4>
+                            <p class="text-base font-medium text-gray-900 mb-4">${escapeHtml(row.cause || '—')}</p>
+                            <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">조치 방법</h4>
+                            ${actionHtml}
+                        </div>
+                    `;
+                })
+                .join('');
+
+            return `
+                <article class="dtc-detail w-full max-w-3xl mx-auto text-left p-2 md:p-4">
+                    <header class="mb-6 pb-4 border-b border-gray-200">
+                        <p class="inline-flex items-center px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-sm font-mono font-bold mb-3">${escapeHtml(entry.codeDisplay)}</p>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-900 leading-snug">${escapeHtml(entry.title)}</h2>
+                        <p class="text-xs text-gray-500 mt-2">MASADA series · 내부 코드 ${escapeHtml(entry.code)}</p>
+                    </header>
+                    <section class="space-y-3">
+                        ${causesBlock}
+                    </section>
+                    <p class="text-xs text-gray-400 mt-8 pt-4 border-t border-gray-100">DTC Guide · ${DTC_META.count} codes (${escapeHtml(DTC_META.source)})</p>
+                </article>
+            `;
+        }
+
+        function handleDtcSelection(treeItem, id) {
+            const viewer = document.getElementById('document-viewer');
+            const entry = getDtcEntry(id);
+            if (!viewer || !entry) return;
+
+            document.querySelectorAll('.tree-item.active').forEach((item) => {
+                if (item !== treeItem) item.classList.remove('active');
+            });
+            treeItem.classList.add('active');
+
+            viewer.innerHTML = renderDtcDetail(entry);
+            viewer.classList.remove('items-center', 'justify-center', 'text-gray-500');
+
+            window.enterDocMobileViewerMode?.();
+
+            saveRecentDoc({
+                path: '/dtc',
+                docId: id,
+                title: `${entry.codeDisplay} ${entry.title}`,
+                docTitle: entry.title,
+            });
+            updateDocDeepLink(id);
+        }
+
+        /**
          * ✅ 문서 선택 핸들러
          */
         async function handleDocumentSelection(treeItem, id) {
@@ -1388,6 +1520,15 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                     if (item !== treeItem) item.classList.remove('active');
                 });
                 treeItem.classList.add('active');
+
+                setCurrentDocDownloadMeta({
+                    docId: id,
+                    title: doc.title,
+                    fileName: doc.fileName,
+                    bucket: doc.bucket,
+                    pageRange: doc.pageRange || null,
+                    category: getDownloadDocCategory(id, doc.fileName, doc.bucket),
+                });
 
                 viewer.innerHTML = skeletonLoadingHTML();
                 
@@ -1519,11 +1660,15 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             
             const treeData = getTreeDataByTitle(title);
             const isMaintenanceManual = title === '정비지침서';
+            const isDtcManual = title === 'DTC 매뉴얼';
             const selectedModel = isMaintenanceManual ? getMaintenanceModel() : 'masada-2van';
             const isQQManual = isMaintenanceManual && selectedModel === 'masada-qq';
+            const viewerPlaceholder = isDtcManual
+                ? '왼쪽 목차에서 DTC 코드를 선택하세요'
+                : '문서를 선택하세요';
             
             return `
-                <section class="max-w-6xl mx-auto p-4 md:p-6 doc-page" data-doc-title="${title}">
+                <section class="max-w-6xl mx-auto p-4 md:p-6 doc-page" data-doc-title="${title}"${isDtcManual ? ' data-doc-kind="dtc"' : ''}>
                     <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 doc-model-bar">
                         <h1 class="text-xl md:text-2xl font-bold text-gray-900">${title}</h1>
                         ${isMaintenanceManual ? `
@@ -1546,7 +1691,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 <div class="tree-search mb-4" style="position: relative;">
                                     <input 
                                         type="text" 
-                                        placeholder="검색..." 
+                                        placeholder="${isDtcManual ? '코드·증상 검색...' : '검색...'}" 
                                         class="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                                         onfocus="showSearchHistory(this)"
                                         tabindex="0"
@@ -1566,7 +1711,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                         <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                         </svg>
-                                        <p>문서를 선택하세요</p>
+                                        <p>${viewerPlaceholder}</p>
                                     </div>
                                 </div>
                             </div>
@@ -4976,6 +5121,8 @@ async function initBusinessCardUpload() {
                             children.classList.add('collapsed');
                             toggle.classList.remove('expanded');
                         }
+                    } else if (getDtcEntry(id)) {
+                        handleDtcSelection(treeItem, id);
                     } else {
                         handleDocumentSelection(treeItem, id);
                     }
@@ -5033,10 +5180,17 @@ async function initBusinessCardUpload() {
         // ---- 10. 앱 초기화 ----
 
         async function initApp() {
+            const splashFailsafeMs = 10000;
+            const splashFailsafeId = setTimeout(() => {
+                console.warn('⚠️ 스플래시 강제 종료 (초기화 지연)');
+                hideSplashScreen();
+            }, splashFailsafeMs);
+
             try {
                 console.log('🚀 앱 초기화 시작...');
 
                 if (redirectAuthHashToLoginIfNeeded()) {
+                    clearTimeout(splashFailsafeId);
                     return;
                 }
 
@@ -5053,7 +5207,7 @@ async function initBusinessCardUpload() {
                     ]);
                 } catch (error) {
                     console.error('❌ 인증 체크 오류:', error);
-                    // 타임아웃이나 오류 발생 시 스플래시 숨기고 로그인 페이지로 이동
+                    clearTimeout(splashFailsafeId);
                     hideSplashScreen();
                     setTimeout(() => {
                         window.location.href = 'login.html';
@@ -5063,6 +5217,7 @@ async function initBusinessCardUpload() {
                 
                 if (!isAuthenticated) {
                     console.log('❌ 인증되지 않음 - 로그인 페이지로 이동');
+                    clearTimeout(splashFailsafeId);
                     hideSplashScreen();
                     setTimeout(() => {
                         window.location.href = 'login.html';
@@ -5209,34 +5364,32 @@ async function initBusinessCardUpload() {
                 setupEventListeners();
                 initMobileBottomNav();
                 initPwaInstall({ autoAndroidBanner: true, autoIosGuide: true });
-                await routerHandler();
-                
-                // 세션 타이머 시작
-                startSessionTimer();
-                
-                setTimeout(renderRecentNotices, 1000);
-                await setupWatermark();
-                
-                // 스플래시 화면 숨기기 (최대 2초 후 또는 모든 준비 완료 시)
+
+                const initBodyTimeoutMs = 20000;
+                await Promise.race([
+                    (async () => {
+                        await routerHandler();
+                        startSessionTimer();
+                        setTimeout(renderRecentNotices, 1000);
+                        await setupWatermark();
+                    })(),
+                    new Promise((resolve) => setTimeout(resolve, initBodyTimeoutMs)),
+                ]);
+
+                clearTimeout(splashFailsafeId);
+                hideSplashScreen();
+                showToast('환영합니다!', 'success');
+                window.securityAgreement?.checkAndShow();
                 setTimeout(() => {
-                    hideSplashScreen();
-                    showToast('환영합니다!', 'success');
-                    
-                    // 보안서약서 확인 및 표시
-                    window.securityAgreement?.checkAndShow();
-                    
-                    // 첫 방문 온보딩 가이드 표시 (보안서약서 동의 후)
-                    setTimeout(() => {
-                        checkAndShowOnboarding();
-                    }, 500);
-                }, 1500);
-                
+                    checkAndShowOnboarding();
+                }, 500);
+
                 console.log('✅ 앱 초기화 완료');
                 
             } catch (error) {
                 console.error('❌ 앱 초기화 오류:', error);
+                clearTimeout(splashFailsafeId);
                 hideSplashScreen();
-                // 오류 발생 시에도 로그인 페이지로 이동 시도
                 setTimeout(() => {
                     window.location.href = 'login.html';
                 }, 1000);

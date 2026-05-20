@@ -252,10 +252,11 @@
                     <label for="email-otp-code" class="sr-only">인증 코드</label>
                     <input
                         id="email-otp-code"
-                        type="text"
+                        type="tel"
                         inputmode="numeric"
+                        pattern="[0-9]*"
                         autocomplete="one-time-code"
-                        maxlength="8"
+                        maxlength="6"
                         required
                         class="w-full px-4 py-3 text-center text-lg tracking-[0.35em] font-mono border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-800"
                         placeholder="000000"

@@ -191,8 +191,9 @@ otp_expiry = 3600
 subject = "EVKMC A/S 로그인 인증 코드"
 content_path = "./supabase/templates/magic_link.html"
 
+# SMS(Twilio) 미사용 — 로그인은 이메일 OTP만 운영. 프로바이더는 Dashboard에서도 비활성 유지.
 [auth.sms]
-enable_signup = true
+enable_signup = false
 enable_confirmations = false
 template = "EVKMC A/S 접속 인증코드 입니다. {{ .Code }}"
 max_frequency = "5s"

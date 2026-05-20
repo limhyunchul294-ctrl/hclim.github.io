@@ -10,7 +10,8 @@
     "postbuild": "node --input-type=commonjs -e \"const fs=require('fs');const dist='dist';const assets='dist/assets';if(!fs.existsSync(dist)){console.error('❌ dist 폴더 없음');process.exit(1);}if(!fs.existsSync(assets)){console.error('❌ assets 폴더 없음');process.exit(1);}const files=fs.readdirSync(assets);const jsFiles=files.filter(f=>f.endsWith('.js'));console.log('✅ 생성된 JS 파일:',jsFiles.length);jsFiles.forEach(f=>console.log('  -',f));if(jsFiles.length===0){console.error('❌ JS 번들 파일이 생성되지 않았습니다!');process.exit(1);}const hasMain=jsFiles.some(f=>f.includes('main'));const hasLogin=jsFiles.some(f=>f.includes('login'));if(!hasMain||!hasLogin){console.error('❌ main 또는 login 번들 파일이 없습니다!');process.exit(1);}console.log('✅ 빌드 결과 확인 완료!');\"",
     "preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx",
-    "upload:qq-sm": "node scripts/upload-qq-sm-pdfs.mjs"
+    "upload:qq-sm": "node scripts/upload-qq-sm-pdfs.mjs",
+    "build:dtc": "node scripts/build-dtc-data.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
@@ -21,7 +22,8 @@
     "postcss": "^8.4.25",
     "tailwindcss": "^3.3.0",
     "terser": "^5.44.1",
-    "vite": "^4.4.9"
+    "vite": "^4.4.9",
+    "xlsx": "^0.18.5"
   },
   "engines": {
     "node": "22.x"

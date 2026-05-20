@@ -18,6 +18,8 @@ EVKMC A/S 정비 포털(GSW) 운영·배포·보안을 정기적으로 점검하
 | 이메일 OTP | [`EMAIL-MAGIC-LINK-SETUP.md`](EMAIL-MAGIC-LINK-SETUP.md) — 템플릿 `{{ .Token }}`, Redirect URL |
 | 미등록 계정 차단 | `shouldCreateUser: false` + `check_user_email` + `public.users` 검증 ([`js/login.js`](../../js/login.js)). **`auth.email.enable_signup`은 true 유지** (false면 OTP 전체 차단) |
 | Supabase Auth 설정 | [`supabase/config.toml`](../../supabase/config.toml) — **push 전 `site_url` 확인** |
+| Supabase CLI | `supabase link --project-ref sesedcotooihnpjklqzs` (연결 완료 시 Storage 업로드·`config push` 등) |
+| SMS / Twilio | **미사용** — `[auth.sms.twilio] enabled = false`. 로그인은 **이메일 OTP**만 운영. `config push` 후에도 Dashboard에서 SMS 프로바이더를 켜지 않음 |
 | config push | `supabase config push --project-ref sesedcotooihnpjklqzs --yes` |
 | 비밀 파일 | `.env`, `.env.bak` — Git 제외 ([`.gitignore`](../../.gitignore)) |
 | HTTP 헤더 | [`vercel.json`](../../vercel.json) — `X-Frame-Options`, `nosniff` 등 |
@@ -28,6 +30,7 @@ EVKMC A/S 정비 포털(GSW) 운영·배포·보안을 정기적으로 점검하
 |------|------|
 | 마이그레이션 | `supabase/migrations/` — 원격 반영 이력 유지 |
 | QQ 정비지침 PDF | `QQ_SM/*.pdf` 수정 후 `.\scripts\upload-qq-sm-pdfs.ps1 -Chapter NN` |
+| DTC 매뉴얼 | `data/source/DTC코드.xlsx` 수정 후 `npm run build:dtc` → `js/dtcData.js` 커밋 |
 | Storage 경로 | `manual/MASADA-QQ/qq-NN.pdf` ([`js/maintenanceManualMappingQQ.js`](../../js/maintenanceManualMappingQQ.js)) |
 | RLS·게시판 | 마이그레이션 `016`~`028` 및 Dashboard 정책 |
 
