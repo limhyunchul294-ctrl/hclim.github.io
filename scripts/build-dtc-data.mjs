@@ -1,5 +1,5 @@
 /**
- * DTC코드.xlsx → js/dtcData.js
+ * DTC 마이그레이션 JSON + DTC코드.xlsx(보조) → js/dtcData.js
  * 사용: npm run build:dtc
  */
 
@@ -10,15 +10,56 @@ import XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
+const MIGRATED_JSON = path.join(ROOT, 'DTC', 'dtc_data.json');
+const MAPPINGS_JSON = path.join(ROOT, 'DTC', 'images', 'dtc', 'mappings.json');
 const DEFAULT_XLSX = path.join(ROOT, 'data', 'source', 'DTC코드.xlsx');
 const OUT_FILE = path.join(ROOT, 'js', 'dtcData.js');
 
 const XLSX_PATH = process.env.DTC_XLSX_PATH || DEFAULT_XLSX;
 
+export const DTC_STORAGE_BUCKET = 'dtc';
+
 export function formatDtcCode(raw) {
     const digits = String(raw ?? '').replace(/\D/g, '');
     if (!digits) return '';
     return `E-${digits.padStart(4, '0')}`;
+}
+
+export function normCode(raw) {
+    const digits = String(raw ?? '').replace(/\D/g, '').replace(/^0+/, '');
+    return digits || '0';
+}
+
+/** images/dtc/E-0420/foo.JPG → dtc/E-0420/foo.jpg */
+export function normalizeStorageKey(relativePath) {
+    let p = String(relativePath || '').replace(/\\/g, '/').trim();
+    p = p.replace(/^images\/dtc\//i, 'dtc/');
+    if (!p.startsWith('dtc/')) {
+        const m = p.match(/(?:^|\/)dtc\/(E-\d{4}\/.+)$/i);
+        if (m) p = `dtc/${m[1]}`;
+    }
+    const parts = p.split('/');
+    const file = parts.pop();
+    if (!file) return p;
+    const ext = path.extname(file).toLowerCase() || '.jpg';
+    const base = path.basename(file, path.extname(file));
+    parts.push(`${base}${ext === '.jpeg' ? '.jpg' : ext}`);
+    return parts.join('/');
+}
+
+function stripTitlePrefix(title, codeDisplay) {
+    const t = String(title || '').trim();
+    const prefix = new RegExp(`^${codeDisplay.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'i');
+    return t.replace(prefix, '').trim() || t;
+}
+
+function inferCategory(code) {
+    const n = parseInt(code, 10);
+    if (n >= 420 && n < 520) return '구동 시스템 (MCU & 모터)';
+    if (n >= 520 && n < 620) return '고전압 배터리 시스템 (HVB & BMS)';
+    if (n >= 620 && n < 720) return '충전 및 전력 변환 시스템 (OBC & DC-DC)';
+    if (n >= 720) return '차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)';
+    return '기타';
 }
 
 function cellStr(v) {
@@ -28,8 +69,7 @@ function cellStr(v) {
 
 function isCodeCell(v) {
     if (v == null) return false;
-    const s = String(v).trim();
-    return /^\d{3,4}$/.test(s);
+    return /^\d{3,4}$/.test(String(v).trim());
 }
 
 function findDataStartRow(rows) {
@@ -43,7 +83,7 @@ function findDataStartRow(rows) {
     return 3;
 }
 
-function parseSheet(rows) {
+function parseXlsxSheet(rows) {
     const entries = [];
     let cur = null;
     const startRow = findDataStartRow(rows);
@@ -82,8 +122,54 @@ function parseSheet(rows) {
             e.causes.push({ cause: '—', action: '—' });
         }
     }
-
     return entries;
+}
+
+function loadImageMap() {
+    if (!fs.existsSync(MAPPINGS_JSON)) {
+        console.warn('⚠️ mappings.json 없음:', MAPPINGS_JSON);
+        return {};
+    }
+    const raw = JSON.parse(fs.readFileSync(MAPPINGS_JSON, 'utf8'));
+    const out = {};
+    for (const [codeDisplay, paths] of Object.entries(raw)) {
+        if (!Array.isArray(paths)) continue;
+        out[codeDisplay] = paths.map(normalizeStorageKey).filter(Boolean);
+    }
+    return out;
+}
+
+function migratedToEntry(row, imageMap) {
+    const code = normCode(row.code);
+    const codeDisplay = formatDtcCode(code);
+    const imageKeys = imageMap[codeDisplay] || imageMap[row.code] || [];
+    return {
+        code,
+        codeDisplay,
+        title: stripTitlePrefix(row.title, codeDisplay),
+        category: row.category || inferCategory(code),
+        explanation: row.explanation || '',
+        suspected_parts: Array.isArray(row.suspected_parts) ? row.suspected_parts : [],
+        wiring_steps: Array.isArray(row.wiring_steps) ? row.wiring_steps : [],
+        causes: null,
+        imageKeys,
+    };
+}
+
+function xlsxToEntry(row, imageMap) {
+    const code = normCode(row.code);
+    const codeDisplay = row.codeDisplay || formatDtcCode(code);
+    return {
+        code,
+        codeDisplay,
+        title: stripTitlePrefix(row.title, codeDisplay),
+        category: inferCategory(code),
+        explanation: '',
+        suspected_parts: [],
+        wiring_steps: [],
+        causes: row.causes,
+        imageKeys: imageMap[codeDisplay] || [],
+    };
 }
 
 function buildJsModule(entries, meta) {
@@ -92,7 +178,7 @@ function buildJsModule(entries, meta) {
  * DTC 코드 데이터 (자동 생성 — 수정하지 마세요)
  * 생성: ${meta.builtAt}
  * 원본: ${meta.source}
- * 건수: ${entries.length}
+ * 건수: ${entries.length} (마이그레이션 ${meta.migratedCount} + xlsx 보조 ${meta.xlsxOnlyCount})
  *
  * 재생성: npm run build:dtc
  */
@@ -101,41 +187,69 @@ function buildJsModule(entries, meta) {
 export const DTC_ENTRIES = ${json};
 
 export const DTC_META = ${JSON.stringify(meta, null, 2)};
+
+export const DTC_STORAGE_BUCKET = ${JSON.stringify(DTC_STORAGE_BUCKET)};
 `;
 }
 
 function main() {
-    if (!fs.existsSync(XLSX_PATH)) {
-        console.error('❌ 엑셀 파일 없음:', XLSX_PATH);
+    if (!fs.existsSync(MIGRATED_JSON)) {
+        console.error('❌ 마이그레이션 JSON 없음:', MIGRATED_JSON);
         process.exit(1);
     }
 
-    const wb = XLSX.readFile(XLSX_PATH, { cellDates: false });
-    const sheetName = wb.SheetNames.includes('DTC') ? 'DTC' : wb.SheetNames[0];
-    const sheet = wb.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+    const imageMap = loadImageMap();
+    const migrated = JSON.parse(fs.readFileSync(MIGRATED_JSON, 'utf8'));
+    const masterCodes = new Set();
+    const entries = [];
 
-    const entries = parseSheet(rows);
-    if (entries.length === 0) {
-        console.error('❌ 파싱된 DTC 항목이 없습니다.');
-        process.exit(1);
+    for (const row of migrated) {
+        const entry = migratedToEntry(row, imageMap);
+        masterCodes.add(entry.code);
+        entries.push(entry);
     }
 
-    const multi = entries.filter((e) => e.causes.length > 1).length;
+    let xlsxOnlyCount = 0;
+    if (fs.existsSync(XLSX_PATH)) {
+        const wb = XLSX.readFile(XLSX_PATH, { cellDates: false });
+        const sheetName = wb.SheetNames.includes('DTC') ? 'DTC' : wb.SheetNames[0];
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: null });
+        const xlsxEntries = parseXlsxSheet(rows);
+
+        for (const row of xlsxEntries) {
+            const code = normCode(row.code);
+            if (masterCodes.has(code)) continue;
+            entries.push(xlsxToEntry(row, imageMap));
+            xlsxOnlyCount += 1;
+        }
+    } else {
+        console.warn('⚠️ 보조 xlsx 없음:', XLSX_PATH);
+    }
+
+    entries.sort((a, b) => Number(a.code) - Number(b.code));
+
+    const withImages = entries.filter((e) => e.imageKeys?.length > 0).length;
     const meta = {
         builtAt: new Date().toISOString(),
-        source: path.relative(ROOT, XLSX_PATH).replace(/\\/g, '/'),
-        sheet: sheetName,
+        source: 'DTC/dtc_data.json + DTC코드.xlsx(보조)',
+        migratedCount: migrated.length,
+        xlsxOnlyCount,
         count: entries.length,
-        multiCauseCount: multi,
+        withImagesCount: withImages,
+        storageBucket: DTC_STORAGE_BUCKET,
     };
 
     fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
     fs.writeFileSync(OUT_FILE, buildJsModule(entries, meta), 'utf8');
 
     console.log(`✅ ${entries.length}건 → ${path.relative(ROOT, OUT_FILE)}`);
-    console.log(`   다중 원인: ${multi}건`);
+    console.log(`   마이그레이션: ${migrated.length}, xlsx 보조: ${xlsxOnlyCount}`);
+    console.log(`   도면 연동: ${withImages}건`);
     console.log(`   샘플: ${entries[0].codeDisplay} ${entries[0].title}`);
 }
 
-main();
+const isMain =
+    process.argv[1] &&
+    path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+
+if (isMain) main();

@@ -1,0 +1,2278 @@
+[
+  {
+    "code": "E-0420",
+    "title": "E-0420 모터 컨트롤러(MCU) 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 내부 이상이 발생한 경우 고장코드 E-0420이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0421",
+    "title": "E-0421 모터 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 이상이 발생한 경우 고장코드 E-0421이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)",
+      "● 모터 불량"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "모터 온도 센서 신호 (20)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "모터 온도 센서 접지선 (5)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "Sin+ 포지티브",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0422",
+    "title": "E-0422 모터 과열",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 과열이 발생한 경우 고장코드 E-0422가 표출된다.",
+    "suspected_parts": [
+      "냉각 시스템 고장",
+      "● 냉각수 통로 막힘",
+      "● 냉각수 부족",
+      "● 워터펌프 고장",
+      "● 라디에이터 팬 고장",
+      "● 모터 온도센서 고장",
+      "● 차량 컨트롤러(VCU) 고장",
+      "● 모터 컨트롤러(MCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "워터펌프",
+        "terminal_1": "워터펌프 전원 (1)",
+        "terminal_2": "워터펌프 접지 (2)",
+        "normal": "무한대 (저항)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "VCU 신호선 (40)",
+        "terminal_2": "VCU 신호선 (81)",
+        "normal": "80 ~ 100 (저항) 통전 (전압)"
+      }
+    ]
+  },
+  {
+    "code": "E-0423",
+    "title": "E-0423 모터 과열",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 과열이 발생한 경우 고장코드 E-0423이 표출된다.",
+    "suspected_parts": [
+      "냉각 시스템 고장",
+      "● 냉각수 통로 막힘",
+      "● 냉각수 부족",
+      "● 워터펌프 고장",
+      "● 라디에이터 팬 고장",
+      "● 모터 온도센서 고장",
+      "● 차량 컨트롤러(VCU) 고장",
+      "● 모터 컨트롤러(MCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "워터펌프",
+        "terminal_1": "워터펌프 전원 (1)",
+        "terminal_2": "워터펌프 접지 (2)",
+        "normal": "무한대 (저항)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "VCU 신호선 (40)",
+        "terminal_2": "VCU 신호선 (81)",
+        "normal": "80 ~ 100 (저항) 통전 (전압)"
+      }
+    ]
+  },
+  {
+    "code": "E-0425",
+    "title": "E-0425 모터 과열",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 과열이 발생한 경우 고장코드 E-0425가 표출된다.",
+    "suspected_parts": [
+      "냉각 시스템 고장",
+      "● 냉각수 통로 막힘",
+      "● 냉각수 부족",
+      "● 워터펌프 고장",
+      "● 라디에이터 팬 고장",
+      "● 모터 온도센서 고장",
+      "● 차량 컨트롤러(VCU) 고장",
+      "● 모터 컨트롤러(MCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "워터펌프",
+        "terminal_1": "워터펌프 전원 (1)",
+        "terminal_2": "워터펌프 접지 (2)",
+        "normal": "무한대 (저항)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "VCU 신호선 (40)",
+        "terminal_2": "VCU 신호선 (81)",
+        "normal": "80 ~ 100 (저항) 통전 (전압)"
+      }
+    ]
+  },
+  {
+    "code": "E-0426",
+    "title": "E-0426 모터 과전류 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU)에서 모터로 전달되는 전류에 이상이 발생한 경우 고장코드 E-0426이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)",
+      "● 모터 절연 불량",
+      "● 모터 위치 센서 이상",
+      "● 모터 3상 케이블 단락"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "모터 온도 센서 신호 (20)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "모터 온도 센서 접지선 (5)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "Sin+ 포지티브",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0427",
+    "title": "E-0427 모터 과전류 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU)에서 모터로 전달되는 전류에 이상이 발생한 경우 고장코드 E-0427이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)",
+      "● 모터 절연 불량",
+      "● 모터 위치 센서 이상",
+      "● 모터 3상 케이블 단락"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "모터 온도 센서 신호 (20)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "모터 온도 센서 접지선 (5)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "Sin+ 포지티브",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0428",
+    "title": "E-0428 모터 컨트롤러(MCU)내부 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 내부 이상이 발생한 경우 고장코드 E-0428이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0429",
+    "title": "E-0429 모터 컨트롤러(MCU)내부 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 내부 이상이 발생한 경우 고장코드 E-0429가 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0430",
+    "title": "E-0430 모터 이상 - 단락",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 이상 - 단락 이 발생한 경우 고장코드 E-0430이 표출된다.",
+    "suspected_parts": [
+      "커넥터 접촉 불량",
+      "● 모터 회로 단선 또는 단락",
+      "● 모터 컨트롤러(MCU)",
+      "● 모터 불량"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0431",
+    "title": "E-0431 모터 이상 - 단락",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 이상 - 단락 이 발생한 경우 고장코드 E-0431이 표출된다.",
+    "suspected_parts": [
+      "커넥터 접촉 불량",
+      "● 모터 회로 단선 또는 단락",
+      "● 모터 컨트롤러(MCU)",
+      "● 모터 불량"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0432",
+    "title": "E-0432 모터 컨트롤러(MCU) 과열",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 과열이 발생한 경우 고장코드 E-0432가 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0433",
+    "title": "E-0433 모터 컨트롤러(MCU) 과열",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 과열이 발생한 경우 고장코드 E-0433이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0434",
+    "title": "E-0434 모터 컨트롤러(MCU) 과열",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 과열이 발생한 경우 고장코드 E-0434가 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0435",
+    "title": "E-0435 모터 컨트롤러(MCU)내부 기판이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 내부 기판 이상이 발생한 경우 고장코드 E-0435가 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0436",
+    "title": "E-0436 모터 컨트롤러(MCU)내부 기판과열",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU)내부 기판 과열이 발생한 경우 고장코드 E-0436이 표출된다.",
+    "suspected_parts": [
+      "냉각 시스템 고장",
+      "● 냉각수 통로 막힘",
+      "● 냉각수 부족",
+      "● 워터펌프 고장",
+      "● 라디에이터 팬 고장",
+      "● 차량 컨트롤러(VCU) 고장",
+      "● 모터 컨트롤러(MCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "워터펌프",
+        "terminal_1": "워터펌프 전원 (1)",
+        "terminal_2": "워터펌프 접지 (2)",
+        "normal": "무한대 (저항)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "VCU 신호선 (40)",
+        "terminal_2": "VCU 신호선 (81)",
+        "normal": "80 ~ 100 (저항) 통전 (전압)"
+      }
+    ]
+  },
+  {
+    "code": "E-0437",
+    "title": "E-0437 모터 컨트롤러(MCU)내부 기판과열",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU)내부 기판 과열이 발생한 경우 고장코드 E-0437이 표출된다.",
+    "suspected_parts": [
+      "냉각 시스템 고장",
+      "● 냉각수 통로 막힘",
+      "● 냉각수 부족",
+      "● 워터펌프 고장",
+      "● 라디에이터 팬 고장",
+      "● 차량 컨트롤러(VCU) 고장",
+      "● 모터 컨트롤러(MCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "워터펌프",
+        "terminal_1": "워터펌프 전원 (1)",
+        "terminal_2": "워터펌프 접지 (2)",
+        "normal": "무한대 (저항)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "VCU 신호선 (40)",
+        "terminal_2": "VCU 신호선 (81)",
+        "normal": "80 ~ 100 (저항) 통전 (전압)"
+      }
+    ]
+  },
+  {
+    "code": "E-0438",
+    "title": "E-0438 모터 컨트롤러(MCU) - 과전류",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU)  - 과전류 가 발생한 경우 고장코드 E-0438이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0439",
+    "title": "E-0439 모터 컨트롤러(MCU) - 과전류",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU)  - 과전류 가 발생한 경우 고장코드 E-0439가 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0440",
+    "title": "E-0440 모터 컨트롤러(MCU) - 과전압",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU)  - 과전압 이 발생한 경우 고장코드 E-0440이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0441",
+    "title": "E-0441 모터 컨트롤러(MCU) - 저전압",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU)  - 저전압 이 발생한 경우 고장코드 E-0441이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0442",
+    "title": "E-0442 모터 컨트롤러(MCU)내부 기판이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 내부 기판 이상이 발생한 경우 고장코드 E-0442가 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0443",
+    "title": "E-0443 모터 온도센서 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 온도센서 이상이 발생한 경우 고장코드 E-0443이 표출된다.",
+    "suspected_parts": [
+      "모터 온도센서 고장",
+      "● 모터 컨트롤러(MCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "모터 온도 센서 신호 (20)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "모터 온도 센서 접지선 (5)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0444",
+    "title": "E-0444 모터 온도센서 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 온도센서 이상이 발생한 경우 고장코드 E-0444가 표출된다.",
+    "suspected_parts": [
+      "모터 온도센서 고장",
+      "● 모터 컨트롤러(MCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "모터 온도 센서 신호 (20)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "모터 온도 센서 접지선 (5)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0445",
+    "title": "E-0445 모터 컨트롤러(MCU)내부 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 내부 이상이 발생한 경우 고장코드 E-0445가 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0446",
+    "title": "E-0446 모터 컨트롤러(MCU)내부 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 내부 이상이 발생한 경우 고장코드 E-0446이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0447",
+    "title": "E-0447 모터 컨트롤러(MCU)내부 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 내부 이상이 발생한 경우 고장코드 E-0447이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0448",
+    "title": "E-0448 모터 저전압 플러그 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 저전압 플러그 이상이 발생한 경우 고장코드 E-0448이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)",
+      "● 모터 불량"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "점검 조건",
+        "target": "측정부",
+        "terminal_1": "단자",
+        "terminal_2": "단자",
+        "normal": "정상값"
+      },
+      {
+        "condition": "EV ON",
+        "target": "모터 저전압 플러그",
+        "terminal_1": "Sin 위치 L",
+        "terminal_2": "Sin 위치 H",
+        "normal": "무한대 (저항)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "Cos 위치 L",
+        "terminal_2": "Cos 위치 H",
+        "normal": "무한대 (저항)"
+      }
+    ]
+  },
+  {
+    "code": "E-0449",
+    "title": "E-0449 모터 - 단선",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 - 단선이 발생한 경우 고장코드 E-0449가 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0450",
+    "title": "E-0450 모터 - 단선",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 - 단선이 발생한 경우 고장코드 E-0450이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0451",
+    "title": "E-0451 모터 컨트롤러(MCU) - 통신이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) - 통신이상 이 발생한 경우 고장코드 E-0451이 표출된다.",
+    "suspected_parts": [
+      "커넥터 접촉 불량",
+      "● 캔라인 단선/단락",
+      "● 차량 컨트롤러(VCU) 고장",
+      "● 모터 컨트롤러(MCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "차량 컨트롤러(VCU)",
+        "terminal_1": "12V 릴레이 제어 (23)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "전원 전압 제어 (45)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "IG OFF (배터리 분리)",
+        "target": "",
+        "terminal_1": "차량 캔 - 하이 (54)",
+        "terminal_2": "차량 캔 - 로우 (73)",
+        "normal": "약 60Ω (저항측정)"
+      }
+    ]
+  },
+  {
+    "code": "E-0452",
+    "title": "E-0452 모터 위치센서 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 위치센서 이상이 발생한 경우 고장코드 E-0452가 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)",
+      "● 모터 불량"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "Sin+ 포지티브",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "Sin- 네거티브",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "Cos+ 포지티브",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0453",
+    "title": "E-0453 모터 컨트롤러(MCU)내부 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU) 내부 이상이 발생한 경우 고장코드 E-0453이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0454",
+    "title": "E-0454 고전압 플러그 이상",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "고전앞 플러그 이상이 발생한 경우 고장코드 E-0454가 표출된다.",
+    "suspected_parts": [
+      "고전압 플러그"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0455",
+    "title": "E-0455 모터 컨트롤러(MCU) - 과전압",
+    "category": "구동 시스템 (MCU & 모터)",
+    "explanation": "모터 컨트롤러(MCU)  - 과전압 이 발생한 경우 고장코드 E-0455가 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0520",
+    "title": "E-0520 고전압 하네스 - 단락",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 하네스 - 단락 이 발생한 경우 고장코드 E-0520이 표출된다.",
+    "suspected_parts": [
+      "고전압 하네스"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0521",
+    "title": "E-0521 고전압 하네스 - 단락",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 하네스 - 단락 이 발생한 경우 고장코드 E-0521이 표출된다.",
+    "suspected_parts": [
+      "고전압 하네스"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0522",
+    "title": "E-0522 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0522가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0523",
+    "title": "E-0523 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0523이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0524",
+    "title": "E-0524 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0524가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0525",
+    "title": "E-0525 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0525가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0526",
+    "title": "E-0526 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0526이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0527",
+    "title": "E-0527 - 고전압 배터리(HVB) - 저온 감지",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 저온 감지가 발생한 경우 고장코드 E-0527이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0528",
+    "title": "E-0528 - 고전압 배터리(HVB) - 저온 감지",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 저온 감지가 발생한 경우 고장코드 E-0528이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0529",
+    "title": "E-0529 - 고전압 배터리(HVB) - 저온 감지",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 저온 감지가 발생한 경우 고장코드 E-0529가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0530",
+    "title": "E-0530 - 고전압 배터리(HVB) - 고온 감지",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 고온 감지가 발생한 경우 고장코드 E-0530이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0531",
+    "title": "E-0531 - 고전압 배터리(HVB) - 고온 감지",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 고온 감지가 발생한 경우 고장코드 E-0531이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0532",
+    "title": "E-0532 - 고전압 배터리(HVB) - 고온 감지",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 고온 감지가 발생한 경우 고장코드 E-0532가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0533",
+    "title": "E-0533 - 고전압 배터리(HVB) - 고온 감지",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 고온 감지가 발생한 경우 고장코드 E-0533이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0534",
+    "title": "E-0534 - 고전압 배터리(HVB) - 고온 감지",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 고온 감지가 발생한 경우 고장코드 E-0534가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0535",
+    "title": "E-0535 고전압 배터리(HVB) - 전류 과다",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 전류 과다가 발생한 경우 고장코드 E-0535가 표출된다.",
+    "suspected_parts": [
+      "고전압 하네스",
+      "● 고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0536",
+    "title": "E-0536 고전압 배터리(HVB) - 전류 과다",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 전류 과다가 발생한 경우 고장코드 E-0536이 표출된다.",
+    "suspected_parts": [
+      "고전압 하네스",
+      "● 고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0537",
+    "title": "E-0537 고전압 배터리(HVB) - 전류 과다",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 전류 과다가 발생한 경우 고장코드 E-0537이 표출된다.",
+    "suspected_parts": [
+      "고전압 하네스",
+      "● 고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0538",
+    "title": "E-0538 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0538이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0539",
+    "title": "E-0539 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0539가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0540",
+    "title": "E-0540 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0540이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0541",
+    "title": "E-0541 - 고전압 배터리(HVB) - 셀 전압차 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 셀 전압차 이상이 발생한 경우 고장코드 E-0541이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0542",
+    "title": "E-0542 - 고전압 배터리(HVB) - 셀 전압차 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 셀 전압차 이상이 발생한 경우 고장코드 E-0542가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0543",
+    "title": "E-0543 - 고전압 배터리(HVB) - 셀 전압차 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 셀 전압차 이상이 발생한 경우 고장코드 E-0543이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0544",
+    "title": "E-0544 - 고전압 배터리(HVB) - 셀 전압차 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 셀 전압차 이상이 발생한 경우 고장코드 E-0544가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0545",
+    "title": "E-0545 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0545가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0546",
+    "title": "E-0546 고전압 배터리(HVB) - 전압 낮음",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - 전압값이 낮을 경우 고장코드 E-0546이 표출된다.",
+    "suspected_parts": [],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0548",
+    "title": "E-0548 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0548이 표출된다.",
+    "suspected_parts": [
+      "차량 컨트롤러(VCU)",
+      "● 고전압 배터리(HVB)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "차량 컨트롤러(VCU)",
+        "terminal_1": "12V 릴레이 제어 (23)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "전원 전압 제어 (45)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0549",
+    "title": "E-0549 고전압 배터리(HVB) - OBC+DC/DC 컨버터 통신 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB) - OBC+DC/DC 컨버터 통신 이상이 발생한 경우 고장코드 E-0549가 표출된다.",
+    "suspected_parts": [
+      "OBC+DC/DC 컨버터",
+      "● 고전압 배터리(HVB)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "OBC+DC/DC 컨버터",
+        "terminal_1": "DC/DC 활성화 (B6)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (G4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "IG OFF (배터리 분리)",
+        "target": "",
+        "terminal_1": "차량 캔 - 하이 (B2)",
+        "terminal_2": "차량 캔 - 로우 (B11)",
+        "normal": "약 60Ω (저항측정)"
+      }
+    ]
+  },
+  {
+    "code": "E-0550",
+    "title": "E-0550 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0550이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0551",
+    "title": "E-0551 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0551이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0552",
+    "title": "E-0552 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0552가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0553",
+    "title": "E-0553 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0553이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0554",
+    "title": "E-0554 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0554가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0555",
+    "title": "E-0555 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0555가 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0556",
+    "title": "E-0556 - 고전압 배터리(HVB)내부 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 배터리(HVB)내부 이상이 발생한 경우 고장코드 E-0556이 표출된다.",
+    "suspected_parts": [
+      "고전압 배터리(HVB)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0557",
+    "title": "E-0557 - 고전압 차단 스위치 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "고전압 차단 스위치 이상이 발생한 경우 고장코드 E-0557이 표출된다.",
+    "suspected_parts": [
+      "고전압 차단 스위치"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0559",
+    "title": "E-0559 차량 컨트롤러(VCU) - 충전 통신 컨트롤러(EVCC) 통신 이상",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "차량 컨트롤러(VCU) - 충전 통신 컨트롤러(EVCC) 통신 이상이 발생한 경우 고장코드 E-0559가 표출된다.",
+    "suspected_parts": [
+      "차량 컨트롤러(VCU) 고장",
+      "● 충전 통신 컨트롤러(EVCC) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "차량 컨트롤러(VCU)",
+        "terminal_1": "12V 릴레이 제어 (23)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "전원 전압 제어 (45)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0565",
+    "title": "E-0565 - 고전압 배터리(HVB) 비정상 과열",
+    "category": "고전압 배터리 시스템 (HVB & BMS)",
+    "explanation": "",
+    "suspected_parts": [],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0620",
+    "title": "E-0620 OBC+DC/DC 컨버터 이상",
+    "category": "충전 및 전력 변환 시스템 (OBC & DC-DC)",
+    "explanation": "OBC+DC/DC 컨버터 이상이 발생한 경우 고장코드 E-0620이 표출된다.",
+    "suspected_parts": [
+      "OBC+DC/DC 컨버터"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "OBC+DC/DC 컨버터",
+        "terminal_1": "DC/DC 활성화 (B6)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (G4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0621",
+    "title": "E-0621 OBC+DC/DC 컨버터 온도 이상",
+    "category": "충전 및 전력 변환 시스템 (OBC & DC-DC)",
+    "explanation": "OBC+DC/DC 컨버터 온도 이상이 발생한 경우 고장코드 E-0621이 표출된다.",
+    "suspected_parts": [
+      "OBC+DC/DC 컨버터",
+      "● 냉각 시스템 고장",
+      "● 냉각수 통로 막힘",
+      "● 냉각수 부족",
+      "● 워터펌프 고장",
+      "● 라디에이터 팬 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "OBC+DC/DC 컨버터",
+        "terminal_1": "DC/DC 활성화 (B6)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (G4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0622",
+    "title": "E-0622 OBC+DC/DC 컨버터 - 전압 이상",
+    "category": "충전 및 전력 변환 시스템 (OBC & DC-DC)",
+    "explanation": "OBC+DC/DC 컨버터 - 전압 이상이 발생한 경우 고장코드 E-0622가 표출된다.",
+    "suspected_parts": [
+      "OBC+DC/DC 컨버터"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "OBC+DC/DC 컨버터",
+        "terminal_1": "DC/DC 활성화 (B6)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (G4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0624",
+    "title": "E-0624 OBC+DC/DC 컨버터 - 통신이상",
+    "category": "충전 및 전력 변환 시스템 (OBC & DC-DC)",
+    "explanation": "OBC+DC/DC 컨버터 - 통신 이상이 발생한 경우 고장코드 E-0624가 표출된다.",
+    "suspected_parts": [
+      "OBC+DC/DC 컨버터"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "OBC+DC/DC 컨버터",
+        "terminal_1": "DC/DC 활성화 (B6)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (G4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0625",
+    "title": "E-0625 충전건 이상",
+    "category": "충전 및 전력 변환 시스템 (OBC & DC-DC)",
+    "explanation": "충전건 이상이 발생한 경우 고장코드 E-0625가 표출된다.",
+    "suspected_parts": [
+      "충전 플러그 & 인렛 와이어링 하네스",
+      "● 충전기 & 충전건"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0626",
+    "title": "E-0626 충전건 이상",
+    "category": "충전 및 전력 변환 시스템 (OBC & DC-DC)",
+    "explanation": "충전건 이상이 발생한 경우 고장코드 E-0626이 표출된다.",
+    "suspected_parts": [
+      "충전 플러그 & 인렛 와이어링 하네스",
+      "● 충전기 & 충전건"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0627",
+    "title": "E-0627 OBC+DC/DC 컨버터 이상",
+    "category": "충전 및 전력 변환 시스템 (OBC & DC-DC)",
+    "explanation": "OBC+DC/DC 컨버터 이상이 발생한 경우 고장코드 E-0627이 표출된다.",
+    "suspected_parts": [
+      "OBC+DC/DC 컨버터"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "OBC+DC/DC 컨버터",
+        "terminal_1": "DC/DC 활성화 (B6)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (G4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0628",
+    "title": "E-0628 OBC+DC/DC 컨버터 온도 이상",
+    "category": "충전 및 전력 변환 시스템 (OBC & DC-DC)",
+    "explanation": "OBC+DC/DC 컨버터 온도 이상이 발생한 경우 고장코드 E-0628이 표출된다.",
+    "suspected_parts": [
+      "OBC+DC/DC 컨버터",
+      "● 냉각 시스템 고장",
+      "● 냉각수 통로 막힘",
+      "● 냉각수 부족",
+      "● 워터펌프 고장",
+      "● 라디에이터 팬 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "OBC+DC/DC 컨버터",
+        "terminal_1": "DC/DC 활성화 (B6)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (G4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0629",
+    "title": "E-0629 OBC+DC/DC 컨버터 - 전압 이상",
+    "category": "충전 및 전력 변환 시스템 (OBC & DC-DC)",
+    "explanation": "OBC+DC/DC 컨버터 - 전압 이상이 발생한 경우 고장코드 E-0629가 표출된다.",
+    "suspected_parts": [
+      "OBC+DC/DC 컨버터"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "OBC+DC/DC 컨버터",
+        "terminal_1": "DC/DC 활성화 (B6)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (G4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0720",
+    "title": "E-0720 가속 페달 센서 신호1 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "가속 페달 센서 신호1 이상이 발생한 경우 고장코드 E-0720이 표출된다.",
+    "suspected_parts": [
+      "가속 페달 고장",
+      "● 커넥터 접촉 불량",
+      "● 배선 단선",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "차량 컨트롤러(VCU)",
+        "terminal_1": "12V 릴레이 제어 (23)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "전원 전압 제어 (45)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0721",
+    "title": "E-0721 가속 페달 센서 신호1 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "가속 페달 센서 신호1 이상이 발생한 경우 고장코드 E-0721이 표출된다.",
+    "suspected_parts": [
+      "가속 페달 고장",
+      "● 커넥터 접촉 불량",
+      "● 배선 단선",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "차량 컨트롤러(VCU)",
+        "terminal_1": "12V 릴레이 제어 (23)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "전원 전압 제어 (45)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0722",
+    "title": "E-0722 가속 페달 센서 신호2 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "가속 페달 센서 신호2 이상이 발생한 경우 고장코드 E-0722가 표출된다.",
+    "suspected_parts": [
+      "가속 페달 고장",
+      "● 커넥터 접촉 불량",
+      "● 배선 단선",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "차량 컨트롤러(VCU)",
+        "terminal_1": "12V 릴레이 제어 (23)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "전원 전압 제어 (45)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0723",
+    "title": "E-0723 가속 페달 센서 신호2 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "가속 페달 센서 신호2 이상이 발생한 경우 고장코드 E-0723이 표출된다.",
+    "suspected_parts": [
+      "가속 페달 고장",
+      "● 커넥터 접촉 불량",
+      "● 배선 단선",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "차량 컨트롤러(VCU)",
+        "terminal_1": "12V 릴레이 제어 (23)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "전원 전압 제어 (45)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0724",
+    "title": "E-0724 가속 페달 센서 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "가속 페달 센서 이상이 발생한 경우 고장코드 E-0724가 표출된다.",
+    "suspected_parts": [
+      "가속 페달 고장",
+      "● 커넥터 접촉 불량",
+      "● 배선 단선",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "차량 컨트롤러(VCU)",
+        "terminal_1": "12V 릴레이 제어 (23)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "전원 전압 제어 (45)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0725",
+    "title": "E-0725 진공 압렵 센서 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "진공 압력 센서 이상이 발생한 경우 고장코드 E-0725가 표출된다.",
+    "suspected_parts": [
+      "커넥터 접촉 불량",
+      "● 진공 압력 센서 이상",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "진공 압력 센서",
+        "terminal_1": "진공 압력 센서 / 브레이크 페달 센서 전원 공급 장치 (3)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "진공 압력 센서 접지 (1)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "",
+        "target": "차량 컨트롤러(VCU) 진공 압력 센서",
+        "terminal_1": "진공 압력 센서 / 브레이크 페달 센서 전원 공급 장치 (29)",
+        "terminal_2": "진공 압력 센서 / 브레이크 페달 센서 전원 공급 장치 (3)",
+        "normal": "약 1Ω 이하"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "진공 압력 센서 접지 (67)",
+        "terminal_2": "진공 압력 센서 접지 (1)",
+        "normal": "약 1Ω 이하"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "외기 온도 센서 신호 (32)",
+        "terminal_2": "외기 온도 센서 신호 (2)",
+        "normal": "약 1Ω 이하"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "진공 압력 센서 신호 (12)",
+        "terminal_2": "진공 압력 센서 신호 (4)",
+        "normal": "약 1Ω 이하"
+      }
+    ]
+  },
+  {
+    "code": "E-0726",
+    "title": "E-0726 진공 압렵 센서 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "진공 압력 센서 이상이 발생한 경우 고장코드 E-0726이 표출된다.",
+    "suspected_parts": [
+      "커넥터 접촉 불량",
+      "● 진공 압력 센서 이상",
+      "● 진공 호스 이상",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "진공 압력 센서",
+        "terminal_1": "진공 압력 센서 / 브레이크 페달 센서 전원 공급 장치 (3)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "진공 압력 센서 접지 (1)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "",
+        "target": "차량 컨트롤러(VCU) 진공 압력 센서",
+        "terminal_1": "진공 압력 센서 / 브레이크 페달 센서 전원 공급 장치 (29)",
+        "terminal_2": "진공 압력 센서 / 브레이크 페달 센서 전원 공급 장치 (3)",
+        "normal": "약 1Ω 이하"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "진공 압력 센서 접지 (67)",
+        "terminal_2": "진공 압력 센서 접지 (1)",
+        "normal": "약 1Ω 이하"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "외기 온도 센서 신호 (32)",
+        "terminal_2": "외기 온도 센서 신호 (2)",
+        "normal": "약 1Ω 이하"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "진공 압력 센서 신호 (12)",
+        "terminal_2": "진공 압력 센서 신호 (4)",
+        "normal": "약 1Ω 이하"
+      }
+    ]
+  },
+  {
+    "code": "E-0727",
+    "title": "E-0727 진공 펌프 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "진공 펌프 이상이 발생한 경우 고장코드 E-0727이 표출된다.",
+    "suspected_parts": [
+      "커넥터 접촉 불량",
+      "● 진공 펌프 이상"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0728",
+    "title": "E-0728 스티어링 컬럼 샤프트(MDPS) 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "스티어링 컬럼 샤프트(MDPS) 이상이 발생한 경우 고장코드 E-0728이 표출된다.",
+    "suspected_parts": [
+      "커넥터 접촉 불량",
+      "● 스티어링 컬럼 샤프트(MDPS)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0729",
+    "title": "E-0729 스티어링 컬럼 샤프트(MDPS) 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "스티어링 컬럼 샤프트(MDPS) 이상이 발생한 경우 고장코드 E-0729가 표출된다.",
+    "suspected_parts": [
+      "커넥터 접촉 불량",
+      "● 스티어링 컬럼 샤프트(MDPS)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0730",
+    "title": "E-0730 고전압 배전기(PDU) - 단선",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "고전압 배전기(PDU) 단선이 발생한 경우 고장코드 E-0730이 표출된다.",
+    "suspected_parts": [
+      "고전압 배전기(PDU)",
+      "● 고전압 배전기(PDU) 릴레이",
+      "● 고전압 배전기(PDU) 퓨즈"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0731",
+    "title": "E-0731 모터 컨트롤러(MCU) 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "모터 컨트롤러(MCU) 내부 이상이 발생한 경우 고장코드 E-0731이 표출된다.",
+    "suspected_parts": [
+      "모터 컨트롤러(MCU)"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "모터 컨트롤러(MCU)",
+        "terminal_1": "웨이크업 릴레이 87 (11)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0732",
+    "title": "E-0732 차량 컨트롤러(VCU)내부 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "차량 컨트롤러(VCU)내부 이상이 발생한 경우 고장코드 E-0732가 표출된다.",
+    "suspected_parts": [
+      "차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "차량 컨트롤러(VCU)",
+        "terminal_1": "12V 릴레이 제어 (23)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "전원 전압 제어 (45)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0733",
+    "title": "E-0733 차량 컨트롤러(VCU)내부 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "차량 컨트롤러(VCU)내부 이상이 발생한 경우 고장코드 E-0733이 표출된다.",
+    "suspected_parts": [
+      "차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "차량 컨트롤러(VCU)",
+        "terminal_1": "12V 릴레이 제어 (23)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "전원 전압 제어 (45)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      }
+    ]
+  },
+  {
+    "code": "E-0734",
+    "title": "E-0734 보조 배터리(12V) - 전압 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "보조 배터리(12V) - 전압 이상이 발생한 경우 고장코드 E-0734가 표출된다.",
+    "suspected_parts": [
+      "보조 배터리(12V)"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0735",
+    "title": "E-0735 냉각수 없음",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "냉각수 없음 혹은 부족할 경우 고장코드 E-0735가 표출된다.",
+    "suspected_parts": [],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0736",
+    "title": "E-0736 워터펌프 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "워터펌프 이상이 발생한 경우 고장코드 E-0736이 표출된다.",
+    "suspected_parts": [
+      "워터펌프 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "워터펌프",
+        "terminal_1": "워터펌프 전원 (1)",
+        "terminal_2": "워터펌프 접지 (2)",
+        "normal": "무한대 (저항)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "VCU 신호선 (40)",
+        "terminal_2": "VCU 신호선 (81)",
+        "normal": "80 ~ 100 (저항) 통전 (전압)"
+      }
+    ]
+  },
+  {
+    "code": "E-0737",
+    "title": "E-0737 차량 가상 사운드(AVAS) 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "차량 가상 사운드(AVAS) 이상이 발생한 경우 고장코드 E-0737이 표출된다.",
+    "suspected_parts": [
+      "차량 가상 사운드(AVAS) 고장",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "차량 가상 사운드(AVAS)",
+        "terminal_1": "웨이크업 전원 12V(+) (9)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지 (6)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      },
+      {
+        "condition": "IG OFF (배터리 분리)",
+        "target": "",
+        "terminal_1": "차량 캔 - 하이 (11)",
+        "terminal_2": "차량 캔 - 로우 (12)",
+        "normal": "약 60Ω (저항측정)"
+      }
+    ]
+  },
+  {
+    "code": "E-0738",
+    "title": "E-0738 OBC+DC/DC 컨버터 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "OBC+DC/DC 컨버터 이상이 발생한 경우 고장코드 E-0738이 표출된다.",
+    "suspected_parts": [
+      "OBC+DC/DC 컨버터"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "OBC+DC/DC 컨버터",
+        "terminal_1": "DC/DC 활성화 (B6)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (G4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0739",
+    "title": "E-0739 OBC+DC/DC 컨버터 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "OBC+DC/DC 컨버터 이상이 발생한 경우 고장코드 E-0739가 표출된다.",
+    "suspected_parts": [
+      "OBC+DC/DC 컨버터"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "OBC+DC/DC 컨버터",
+        "terminal_1": "DC/DC 활성화 (B6)",
+        "terminal_2": "차체 접지",
+        "normal": "약 5V"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "접지선 (G4)",
+        "terminal_2": "차체 접지",
+        "normal": "약 0V"
+      }
+    ]
+  },
+  {
+    "code": "E-0740",
+    "title": "E-0740 메인 릴레이 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "",
+    "suspected_parts": [],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0741",
+    "title": "E-0741 ESC 모듈 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "ESC 모듈 이상이 발생한 경우 고장코드 E-0741이 표출된다.",
+    "suspected_parts": [
+      "ABS 하이드로릭 유닛 + ESC 모듈",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "ABS 하이드로릭 유닛 + ESC 모듈",
+        "terminal_1": "모터 전원 B+ (25)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "솔레노이드 전원 B+ (9)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "IG OFF (배터리 분리)",
+        "target": "",
+        "terminal_1": "차량 캔 - 하이 (11)",
+        "terminal_2": "차량 캔 - 로우 (10)",
+        "normal": "약 60Ω (저항측정)"
+      }
+    ]
+  },
+  {
+    "code": "E-0742",
+    "title": "E-0742 ABS 하이드로릭 유닛 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "ABS 하이드로릭 유닛 이상이 발생한 경우 고장코드 E-0742가 표출된다.",
+    "suspected_parts": [
+      "ABS 하이드로릭 유닛 + ESC 모듈",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "ABS 하이드로릭 유닛 + ESC 모듈",
+        "terminal_1": "모터 전원 B+ (25)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "솔레노이드 전원 B+ (9)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "IG OFF (배터리 분리)",
+        "target": "",
+        "terminal_1": "차량 캔 - 하이 (11)",
+        "terminal_2": "차량 캔 - 로우 (10)",
+        "normal": "약 60Ω (저항측정)"
+      }
+    ]
+  },
+  {
+    "code": "E-0743",
+    "title": "E-0743 ABS 하이드로릭 유닛 - 통신 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "ABS 하이드로릭 유닛 - 통신 이상이 발생한 경우 고장코드 E-0743이 표출된다.",
+    "suspected_parts": [
+      "ABS 하이드로릭 유닛 + ESC 모듈",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "ABS 하이드로릭 유닛 + ESC 모듈",
+        "terminal_1": "모터 전원 B+ (25)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "솔레노이드 전원 B+ (9)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "IG OFF (배터리 분리)",
+        "target": "",
+        "terminal_1": "차량 캔 - 하이 (11)",
+        "terminal_2": "차량 캔 - 로우 (10)",
+        "normal": "약 60Ω (저항측정)"
+      }
+    ]
+  },
+  {
+    "code": "E-0744",
+    "title": "E-0744 - 고전압 차단 스위치 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "고전압 차단 스위치 이상이 발생한 경우 고장코드 E-0744가 표출된다.",
+    "suspected_parts": [
+      "고전압 차단 스위치"
+    ],
+    "wiring_steps": []
+  },
+  {
+    "code": "E-0745",
+    "title": "E-0745 ESC 모듈 이상",
+    "category": "차량 제어 및 편의/샤시 시스템 (VCU, 브레이크, 조향 등)",
+    "explanation": "ESC 모듈 이상이 발생한 경우 고장코드 E-0745가 표출된다.",
+    "suspected_parts": [
+      "ABS 하이드로릭 유닛 + ESC 모듈",
+      "● 차량 컨트롤러(VCU) 고장"
+    ],
+    "wiring_steps": [
+      {
+        "condition": "EV ON",
+        "target": "ABS 하이드로릭 유닛 + ESC 모듈",
+        "terminal_1": "모터 전원 B+ (25)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "",
+        "target": "",
+        "terminal_1": "솔레노이드 전원 B+ (9)",
+        "terminal_2": "차체 접지",
+        "normal": "약 12V (배터리 전압)"
+      },
+      {
+        "condition": "IG OFF (배터리 분리)",
+        "target": "",
+        "terminal_1": "차량 캔 - 하이 (11)",
+        "terminal_2": "차량 캔 - 로우 (10)",
+        "normal": "약 60Ω (저항측정)"
+      }
+    ]
+  }
+]

@@ -33,5 +33,9 @@ organize-files.ps1
 # QQ 정비지침서 원본 PDF (Supabase Storage 업로드용)
 QQ_SM/*.pdf
 
+# DTC 도면 원본 (Storage 업로드용, mappings.json만 Git 추적)
+DTC/images/dtc/**
+!DTC/images/dtc/mappings.json
+
 # public 폴더는 Git에 포함되어야 함 (정적 파일)
 # public/

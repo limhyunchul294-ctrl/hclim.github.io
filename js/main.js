@@ -7,7 +7,7 @@ import './securityAgreement.js';
 import { maintenanceManualTreeData, maintenanceManualMapping } from './maintenanceManualMapping.js';
 import { qqMaintenanceManualTreeData, qqMaintenanceManualMapping, QQ_CHAPTERS } from './maintenanceManualMappingQQ.js';
 import { etmTreeData, etmMapping } from './etmMapping.js';
-import { dtcTreeData, getDtcEntry, parseActionSteps, DTC_META } from './dtcMapping.js';
+import { dtcTreeData, getDtcEntry, parseActionSteps, DTC_META, DTC_STORAGE_BUCKET } from './dtcMapping.js';
 import {
     isMobileExperience,
     saveRecentDoc,
@@ -1450,41 +1450,218 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
          * DTC 코드 상세 HTML
          */
         function renderDtcDetail(entry) {
-            const causesBlock = entry.causes
-                .map((row, idx) => {
-                    const steps = parseActionSteps(row.action);
-                    const actionHtml =
-                        steps.length > 1
-                            ? `<ol class="list-decimal list-inside space-y-1.5 text-sm text-gray-800">${steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ol>`
-                            : `<p class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">${escapeHtml(row.action || '—')}</p>`;
-                    const causeLabel = entry.causes.length > 1 ? `원인 ${idx + 1}` : '원인';
-                    return `
+            const explanationBlock = entry.explanation
+                ? `<section class="mb-6">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2">고장 코드 설명</h3>
+                        <p class="text-sm text-gray-800 leading-relaxed">${escapeHtml(entry.explanation)}</p>
+                   </section>`
+                : '';
+
+            const partsBlock =
+                entry.suspected_parts?.length > 0
+                    ? `<section class="mb-6">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2">예상 고장 부위</h3>
+                        <ul class="list-none space-y-1 text-sm text-gray-800">
+                            ${entry.suspected_parts.map((p) => `<li>${escapeHtml(p)}</li>`).join('')}
+                        </ul>
+                   </section>`
+                    : '';
+
+            const wiringRows = (entry.wiring_steps || [])
+                .map(
+                    (w) => `
+                <tr class="border-b border-gray-100">
+                    <td class="px-2 py-2 text-xs text-gray-700 whitespace-nowrap">${escapeHtml(w.condition || '—')}</td>
+                    <td class="px-2 py-2 text-xs text-gray-700">${escapeHtml(w.target || '—')}</td>
+                    <td class="px-2 py-2 text-xs text-gray-800 font-mono">${escapeHtml(w.terminal_1 || '—')}</td>
+                    <td class="px-2 py-2 text-xs text-gray-800 font-mono">${escapeHtml(w.terminal_2 || '—')}</td>
+                    <td class="px-2 py-2 text-xs font-medium text-gray-900">${escapeHtml(w.normal || '—')}</td>
+                </tr>`
+                )
+                .join('');
+
+            const wiringBlock =
+                wiringRows.length > 0
+                    ? `<section class="mb-6">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2">배선 점검</h3>
+                        <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                            <table class="min-w-full text-left">
+                                <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                                    <tr>
+                                        <th class="px-2 py-2">조건</th>
+                                        <th class="px-2 py-2">대상</th>
+                                        <th class="px-2 py-2">단자 1</th>
+                                        <th class="px-2 py-2">단자 2</th>
+                                        <th class="px-2 py-2">정상값</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${wiringRows}</tbody>
+                            </table>
+                        </div>
+                   </section>`
+                    : '';
+
+            const causesFiltered = entry.causes?.filter(
+                (c) => c && (c.cause !== '—' || c.action !== '—')
+            );
+            const causesInner = causesFiltered?.length
+                ? causesFiltered
+                      .map((row, idx) => {
+                          const steps = parseActionSteps(row.action);
+                          const actionHtml =
+                              steps.length > 1
+                                  ? `<ol class="list-decimal list-inside space-y-1.5 text-sm text-gray-800">${steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ol>`
+                                  : `<p class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">${escapeHtml(row.action || '—')}</p>`;
+                          const causeLabel = causesFiltered.length > 1 ? `원인 ${idx + 1}` : '원인';
+                          return `
                         <div class="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
                             <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">${causeLabel}</h4>
                             <p class="text-base font-medium text-gray-900 mb-4">${escapeHtml(row.cause || '—')}</p>
                             <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">조치 방법</h4>
                             ${actionHtml}
-                        </div>
-                    `;
-                })
-                .join('');
+                        </div>`;
+                      })
+                      .join('')
+                : '';
+
+            const causesBlock = causesInner
+                ? `<section class="mb-6 space-y-3">
+                        <h3 class="text-sm font-semibold text-gray-700">원인 및 조치 (보조 데이터)</h3>
+                        ${causesInner}
+                   </section>`
+                : '';
+
+            const imageCount = entry.imageKeys?.length || 0;
+            const imagesSection = `<section class="mb-6" id="dtc-images-section">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2">정비 도면 ${imageCount > 0 ? `(${imageCount}장)` : ''}</h3>
+                        <div id="dtc-images-panel" class="text-sm text-gray-500">도면을 불러오는 중...</div>
+                   </section>`;
 
             return `
-                <article class="dtc-detail w-full max-w-3xl mx-auto text-left p-2 md:p-4">
+                <article class="dtc-detail w-full max-w-4xl mx-auto text-left p-2 md:p-4">
                     <header class="mb-6 pb-4 border-b border-gray-200">
-                        <p class="inline-flex items-center px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-sm font-mono font-bold mb-3">${escapeHtml(entry.codeDisplay)}</p>
+                        <p class="inline-flex items-center px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-sm font-mono font-bold mb-2">${escapeHtml(entry.codeDisplay)}</p>
+                        ${entry.category ? `<p class="text-xs text-gray-500 mb-2">${escapeHtml(entry.category)}</p>` : ''}
                         <h2 class="text-xl md:text-2xl font-bold text-gray-900 leading-snug">${escapeHtml(entry.title)}</h2>
-                        <p class="text-xs text-gray-500 mt-2">MASADA series · 내부 코드 ${escapeHtml(entry.code)}</p>
                     </header>
-                    <section class="space-y-3">
-                        ${causesBlock}
-                    </section>
-                    <p class="text-xs text-gray-400 mt-8 pt-4 border-t border-gray-100">DTC Guide · ${DTC_META.count} codes (${escapeHtml(DTC_META.source)})</p>
+                    ${explanationBlock}
+                    ${partsBlock}
+                    ${wiringBlock}
+                    ${causesBlock}
+                    ${imagesSection}
+                    <p class="text-xs text-gray-400 mt-8 pt-4 border-t border-gray-100">DTC Guide · ${DTC_META.count} codes · ${escapeHtml(DTC_META.source)}</p>
                 </article>
             `;
         }
 
-        function handleDtcSelection(treeItem, id) {
+        function closeDtcImageModal() {
+            const modal = document.getElementById('dtc-image-modal');
+            if (modal) modal.remove();
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function openDtcImageModal(signedUrl, title, index, total) {
+            closeDtcImageModal();
+            document.body.classList.add('overflow-hidden');
+            const modal = document.createElement('div');
+            modal.id = 'dtc-image-modal';
+            modal.className = 'fixed inset-0 z-[200] flex flex-col bg-black/80 p-4';
+            modal.innerHTML = `
+                <div class="flex items-center justify-between text-white mb-2 shrink-0">
+                    <h3 class="text-sm font-medium truncate pr-4">${escapeHtml(title)} (${index + 1}/${total})</h3>
+                    <button type="button" id="dtc-modal-close" class="p-2 rounded-lg hover:bg-white/10" aria-label="닫기">✕</button>
+                </div>
+                <div id="dtc-modal-viewer" class="flex-1 flex items-center justify-center overflow-auto bg-gray-900/50 rounded-lg min-h-0">
+                    <p class="text-gray-300 text-sm">로딩 중...</p>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.querySelector('#dtc-modal-close')?.addEventListener('click', closeDtcImageModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeDtcImageModal();
+            });
+
+            const viewerEl = document.getElementById('dtc-modal-viewer');
+            if (!viewerEl) return;
+
+            const img = new Image();
+            img.className = 'max-w-full max-h-full object-contain';
+            img.alt = title;
+            img.onload = () => {
+                viewerEl.innerHTML = '';
+                viewerEl.appendChild(img);
+            };
+            img.onerror = () => {
+                viewerEl.innerHTML = '<p class="text-red-300 text-sm">도면을 표시할 수 없습니다. Storage 업로드를 확인하세요.</p>';
+            };
+            img.src = signedUrl;
+        }
+
+        async function loadDtcImages(entry) {
+            const panel = document.getElementById('dtc-images-panel');
+            if (!panel) return;
+
+            const keys = entry.imageKeys || [];
+            if (keys.length === 0) {
+                panel.innerHTML = '<p class="text-gray-400 text-sm">연동된 정비 도면이 없습니다.</p>';
+                return;
+            }
+
+            if (!window.supabaseClient) {
+                panel.innerHTML = '<p class="text-amber-700 text-sm">인증 클라이언트를 사용할 수 없습니다.</p>';
+                return;
+            }
+
+            panel.innerHTML = '<p class="text-gray-400 text-sm">도면 URL 생성 중...</p>';
+
+            const signed = [];
+            for (const key of keys) {
+                const { data, error } = await window.supabaseClient.storage
+                    .from(DTC_STORAGE_BUCKET)
+                    .createSignedUrl(key, 3600);
+                if (!error && data?.signedUrl) {
+                    signed.push({ key, url: data.signedUrl });
+                }
+            }
+
+            if (signed.length === 0) {
+                panel.innerHTML =
+                    '<p class="text-amber-700 text-sm">도면을 불러올 수 없습니다. Supabase Storage 버킷「dtc」에 업로드되었는지 확인하세요.<br><code class="text-xs">npm run upload:dtc</code></p>';
+                return;
+            }
+
+            panel.innerHTML = `
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    ${signed
+                        .map(
+                            (item, i) => `
+                        <button type="button" class="dtc-thumb group relative aspect-[4/3] rounded-lg border border-gray-200 overflow-hidden bg-gray-100 hover:ring-2 hover:ring-brand focus:outline-none focus:ring-2 focus:ring-brand"
+                            data-dtc-img-idx="${i}" aria-label="도면 ${i + 1}">
+                            <img src="${item.url}" alt="" class="w-full h-full object-cover" loading="lazy" />
+                            <span class="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] py-0.5 text-center">${i + 1}</span>
+                        </button>`
+                        )
+                        .join('')}
+                </div>
+            `;
+
+            panel.querySelectorAll('.dtc-thumb').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.getAttribute('data-dtc-img-idx'), 10);
+                    const item = signed[idx];
+                    if (item) {
+                        openDtcImageModal(
+                            item.url,
+                            `${entry.codeDisplay} 도면 ${idx + 1}`,
+                            idx,
+                            signed.length
+                        );
+                    }
+                });
+            });
+        }
+
+        async function handleDtcSelection(treeItem, id) {
             const viewer = document.getElementById('document-viewer');
             const entry = getDtcEntry(id);
             if (!viewer || !entry) return;
@@ -1498,6 +1675,8 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             viewer.classList.remove('items-center', 'justify-center', 'text-gray-500');
 
             window.enterDocMobileViewerMode?.();
+
+            await loadDtcImages(entry);
 
             saveRecentDoc({
                 path: '/dtc',

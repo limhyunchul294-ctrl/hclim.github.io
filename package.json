@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx",
     "upload:qq-sm": "node scripts/upload-qq-sm-pdfs.mjs",
-    "build:dtc": "node scripts/build-dtc-data.mjs"
+    "build:dtc": "node scripts/build-dtc-data.mjs",
+    "upload:dtc": "node scripts/upload-dtc-images.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
