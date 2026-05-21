@@ -1,5 +1,7 @@
 /** 작업 차량(VIN) 세션 컨텍스트 */
 
+import { LINE_QQ, setProductLine } from './productLine.js';
+
 const STORAGE_KEY = 'gsw-work-vehicle-v1';
 
 /**
@@ -71,6 +73,9 @@ export function inferMaintenanceModel(modelStr, year) {
 export function workVehicleFromWarrantyRow(warrantyRow, odometer = null) {
     if (!warrantyRow?.vin) return null;
     const maintenanceModel = inferMaintenanceModel(warrantyRow.model, warrantyRow.year);
+    if (maintenanceModel === 'masada-qq') {
+        setProductLine(LINE_QQ);
+    }
     return {
         vin: warrantyRow.vin,
         model: warrantyRow.model || '',

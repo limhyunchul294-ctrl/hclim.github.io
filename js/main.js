@@ -61,6 +61,23 @@ import {
     fetchFieldTechNotes,
     renderFieldTechNotesList,
 } from './fieldTechNotes.js';
+import {
+    LINE_VAN,
+    LINE_QQ,
+    getProductLine,
+    setProductLine,
+    clearProductLineForPicker,
+    getNavLinksForLine,
+    parseRouteFromHash,
+    toAppHash,
+    getDocRoutePathsForLine,
+    isVanOnlyDocPath,
+    resolveLegacyHashRedirect,
+    applyProductLineTheme,
+    getDefaultHomeHash,
+    getLineConfig,
+} from './productLine.js';
+import { renderPortalPickerPageHtml, mountPortalPickerPage } from './portalPicker.js';
 
 // js/main.js (Final Version)
 // ✅ 수정사항: localStorage 완전 제거, authSession 사용으로 변경
@@ -76,39 +93,27 @@ if (window.__APP_INIT__) {
         const mainContent = document.getElementById('main-content');
         const authContainer = document.getElementById('auth-container');
         const desktopNav = document.getElementById('desktop-nav');
-        const splashScreen = document.getElementById('splash-screen');
+        const splashScreenVan = document.getElementById('splash-screen-van');
+        const splashScreenQq = document.getElementById('splash-screen-qq');
 
-        // ---- 2. 네비게이션 링크 ----
-        const NAV_LINKS = [
-          { href: '#/shop', label: '정비지침서', icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' },
-          { href: '#/etm', label: '전장회로도', icon: '<path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2z" stroke="currentColor" stroke-width="2"/><path d="M3 12c1 0 2-1 2-2s-1-2-2-2-2 1-2 2 1 2 2 2z" stroke="currentColor" stroke-width="2"/><path d="M12 3c0 1-1 2-2 2s-2-1-2-2 1-2 2-2 2 1 2 2z" stroke="currentColor" stroke-width="2"/><path d="M12 21c0-1 1-2 2-2s2 1 2 2-1 2-2 2-2-1-2-2z" stroke="currentColor" stroke-width="2"/>' },
-          { href: '#/dtc', label: 'DTC 매뉴얼', icon: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' },
-          { href: '#/wiring', label: '와이어링 커넥터', icon: '<path d="M14 18v-2a2 2 0 1 0 -4 0v2" stroke="currentColor" stroke-width="2" /><path d="M7 8h10" stroke="currentColor" stroke-width="2" /><path d="M10 11v-3a2 2 0 1 1 4 0v3" stroke="currentColor" stroke-width="2" /><path d="M17 8v5a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2v-5" stroke="currentColor" stroke-width="2" />' },
-          { href: '#/tsb', label: 'TSB', icon: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="9" r="2" stroke="currentColor" stroke-width="2"/><path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' },
-          { 
-            type: 'dropdown',
-            label: '게시판',
-            icon: '<path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" stroke="currentColor" stroke-width="2"/>',
-            items: [
-              { href: '#/notices', label: '공지사항', icon: '<path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" stroke="currentColor" stroke-width="2"/>' },
-              { href: '#/community', label: '커뮤니티', icon: '<path d="M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm6 3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' }
-            ]
-          },
-          { href: '#/account', label: '내 정보', icon: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>' },
-          { href: '#/admin', label: '관리자', icon: '<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>', adminOnly: true },
-        ];
+        function getActiveNavLinks() {
+            const line = getProductLine() || LINE_VAN;
+            return getNavLinksForLine(line);
+        }
 
-        const MODELS = [
+        const VAN_MODELS = [
           { value: 'masada-2van', label: 'MASADA 2VAN' },
           { value: 'masada-4van', label: 'MASADA 4VAN' },
           { value: 'masada-cargo', label: 'MASADA Cargo(Pick-up)' },
-          { value: 'masada-qq', label: 'MASADA QQ' },
         ];
 
         const MAINTENANCE_MODEL_STORAGE_KEY = 'evkmc-maintenance-model';
 
         function getMaintenanceModel() {
-            return localStorage.getItem(MAINTENANCE_MODEL_STORAGE_KEY) || 'masada-2van';
+            if (getProductLine() === LINE_QQ) return 'masada-qq';
+            const stored = localStorage.getItem(MAINTENANCE_MODEL_STORAGE_KEY) || 'masada-2van';
+            if (stored === 'masada-qq') return 'masada-2van';
+            return stored;
         }
 
         function setMaintenanceModel(model) {
@@ -257,26 +262,25 @@ if (window.__APP_INIT__) {
 
         registerQQDocIds(QQ_CHAPTERS.map((c) => `qq-sm-${c.num}`));
 
-        const DOC_ROUTE_PATHS = ['/shop', '/etm', '/dtc', '/wiring', '/tsb'];
-
         function getDocRoutePath() {
-            let h = (window.location.hash || '').replace(/^#/, '') || '/home';
-            const q = h.indexOf('?');
-            if (q !== -1) h = h.slice(0, q);
-            const seg = h.split('/').filter(Boolean)[0];
-            return seg ? `/${seg}` : '/home';
+            return parseRouteFromHash(window.location.hash).path;
+        }
+
+        function getCurrentProductLine() {
+            return getProductLine() || LINE_VAN;
         }
 
         function updateDocDeepLink(docId) {
             const path = getDocRoutePath();
-            if (!DOC_ROUTE_PATHS.includes(path)) return;
-            let next = `#${path}`;
-            if (path === '/shop') {
-                next += `?model=${encodeURIComponent(getMaintenanceModel())}`;
+            const line = getCurrentProductLine();
+            const docPaths = getDocRoutePathsForLine(line);
+            if (!docPaths.includes(path)) return;
+            const query = {};
+            if (path === '/shop' && line === LINE_VAN) {
+                query.model = getMaintenanceModel();
             }
-            if (docId) {
-                next += `${path === '/shop' ? '&' : '?'}doc=${encodeURIComponent(docId)}`;
-            }
+            if (docId) query.doc = docId;
+            const next = toAppHash(path, line, query);
             if (window.location.hash !== next) {
                 history.replaceState(null, '', next);
             }
@@ -292,7 +296,7 @@ if (window.__APP_INIT__) {
 
         /** 정비지침서 차종 변경 시 목차·뷰어·URL 동기화 (doc 쿼리 포함 hash 대응) */
         async function applyMaintenanceModelChange(model) {
-            const modelLabel = MODELS.find((m) => m.value === model)?.label || model;
+            const modelLabel = VAN_MODELS.find((m) => m.value === model)?.label || model;
             setMaintenanceModel(model);
 
             if (getDocRoutePath() !== '/shop') {
@@ -300,7 +304,7 @@ if (window.__APP_INIT__) {
                 return;
             }
 
-            const isQQ = model === 'masada-qq';
+            const isQQ = getCurrentProductLine() === LINE_QQ;
             const treeContainer = document.getElementById('tree-container');
             if (treeContainer) {
                 treeContainer.innerHTML = renderTree(getMaintenanceTreeData(model), 0, isQQ);
@@ -323,7 +327,7 @@ if (window.__APP_INIT__) {
             document.body.classList.remove('doc-mobile-viewer-mode');
             document.body.classList.add('doc-mobile-toc-open');
 
-            history.replaceState(null, '', `#/shop?model=${encodeURIComponent(model)}`);
+            history.replaceState(null, '', toAppHash('/shop', LINE_VAN, { model }));
             window.__gswPendingDocId = null;
 
             const bannerSlot = document.getElementById('doc-version-banner-slot');
@@ -346,6 +350,10 @@ if (window.__APP_INIT__) {
         window.navigateQQChapter = (docId) => {
             const el = document.querySelector(`.tree-item[data-id="${docId}"]`);
             if (el) el.click();
+        };
+
+        window.goAppHome = () => {
+            window.location.hash = getDefaultHomeHash(getCurrentProductLine());
         };
 
         // ---- 3. 트리 데이터 ----
@@ -549,12 +557,13 @@ if (window.__APP_INIT__) {
         }
 
         function hideSplashScreen() {
-            if (splashScreen) {
-                splashScreen.style.opacity = '0';
+            [splashScreenVan, splashScreenQq].forEach((el) => {
+                if (!el) return;
+                el.style.opacity = '0';
                 setTimeout(() => {
-                    splashScreen.style.display = 'none';
+                    el.style.display = 'none';
                 }, 500);
-            }
+            });
         }
 
         // ---- 5. 핵심 함수 ----
@@ -1804,6 +1813,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                 docId: id,
                 title: `${entry.codeDisplay} ${entry.title}`,
                 docTitle: entry.title,
+                productLine: getCurrentProductLine(),
             });
             updateDocDeepLink(id);
         }
@@ -1874,6 +1884,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                     title: doc.title,
                     docTitle: doc.title,
                     model: routePath === '/shop' ? getMaintenanceModel() : undefined,
+                    productLine: getCurrentProductLine(),
                 });
                 updateDocDeepLink(id);
             }
@@ -1884,13 +1895,20 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
         async function renderHomePage() {
             const homeUserInfo = await window.authService?.getUserInfo();
             const homeCanOperate = canAccessAdminPortal(homeUserInfo);
-            const homeLinks = NAV_LINKS.filter(link => link.type !== 'dropdown' && link.href && (!link.adminOnly || homeCanOperate));
+            const line = getCurrentProductLine();
+            const lineCfg = getLineConfig(line);
+            const homeLinks = getActiveNavLinks().filter(
+                (link) => link.type !== 'dropdown' && link.href && (!link.adminOnly || homeCanOperate),
+            );
+            const prefix = line === LINE_QQ ? '#/qq' : '#';
+            const warrantyHref = `${prefix}/warranty`;
+            const fieldNotesHref = `${prefix}/field-notes`;
             
             return `
                 <div class="max-w-4xl mx-auto p-4 md:p-6">
                     <div class="mb-6 md:mb-8">
-                        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">EVKMC A/S 포털</h1>
-                        <p class="text-gray-600">정비 기술 문서 및 서비스 정보에 오신 것을 환영합니다.</p>
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">${line === LINE_QQ ? 'MASADA QQ 포털' : 'EVKMC A/S 포털'}</h1>
+                        <p class="text-gray-600">${lineCfg.homeSubtitle}</p>
                     </div>
 
                     ${renderResumeDocCardHtml()}
@@ -1915,7 +1933,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                         `).join('')}
                         
                         <!-- 차량 보증 조회 카드 -->
-                        <a href="#/warranty" class="block p-6 bg-white rounded-xl shadow-soft hover:shadow-lg transition-all duration-200 border border-gray-100 bg-gradient-to-br from-white to-sky-50">
+                        <a href="${warrantyHref}" class="block p-6 bg-white rounded-xl shadow-soft hover:shadow-lg transition-all duration-200 border border-gray-100 bg-gradient-to-br from-white to-sky-50">
                             <div class="flex items-center mb-3">
                                 <svg class="w-6 h-6 text-sky-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
@@ -1934,15 +1952,15 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 <h3 class="text-lg font-semibold text-gray-900">게시판</h3>
                             </div>
                             <div class="space-y-2">
-                                <a href="#/notices" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700 hover:text-blue-600">
+                                <a href="${prefix}/notices" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700 hover:text-blue-600">
                                     <span class="font-medium">📢 공지사항</span>
                                     <span class="text-gray-500 text-xs ml-2">중요 공지 확인</span>
                                 </a>
-                                <a href="#/community" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700 hover:text-blue-600">
+                                <a href="${prefix}/community" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700 hover:text-blue-600">
                                     <span class="font-medium">💬 커뮤니티</span>
                                     <span class="text-gray-500 text-xs ml-2">자유로운 소통</span>
                                 </a>
-                                <a href="#/field-notes" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700 hover:text-violet-600">
+                                <a href="${fieldNotesHref}" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700 hover:text-violet-600">
                                     <span class="font-medium">📝 현장 기술 노트</span>
                                     <span class="text-gray-500 text-xs ml-2">승인 후 공유</span>
                                 </a>
@@ -1979,7 +1997,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 • 관리자에게 계정 등록을 요청하세요
                             </p>
                         </div>
-                        <button onclick="window.location.hash='#/home'" 
+                        <button onclick="window.goAppHome()" 
                                 class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
                             홈으로 돌아가기
                         </button>
@@ -1990,8 +2008,10 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
             const treeData = getTreeDataByTitle(title);
             const isMaintenanceManual = title === '정비지침서';
             const isDtcManual = title === 'DTC 매뉴얼';
+            const line = getCurrentProductLine();
             const selectedModel = isMaintenanceManual ? getMaintenanceModel() : 'masada-2van';
-            const isQQManual = isMaintenanceManual && selectedModel === 'masada-qq';
+            const isQQManual = isMaintenanceManual && (line === LINE_QQ || selectedModel === 'masada-qq');
+            const showModelSelect = isMaintenanceManual && line === LINE_VAN;
             const viewerPlaceholder = isDtcManual
                 ? '왼쪽에서 DTC를 선택하면 단계별 진단·수리 가이드가 시작됩니다'
                 : '문서를 선택하세요';
@@ -2007,14 +2027,14 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                     ${tsbPanel}
                     <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 doc-model-bar">
                         <h1 class="text-xl md:text-2xl font-bold text-gray-900">${title}</h1>
-                        ${isMaintenanceManual ? `
+                        ${showModelSelect ? `
                         <div class="flex items-center gap-4">
                             <label for="model-select" class="text-sm text-gray-600 shrink-0">차종</label>
                             <select id="model-select" class="flex-1 sm:flex-none px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand max-w-full sm:max-w-[14rem]">
-                                ${MODELS.map(model => `<option value="${model.value}"${model.value === selectedModel ? ' selected' : ''}>${model.label}</option>`).join('')}
+                                ${VAN_MODELS.map(model => `<option value="${model.value}"${model.value === selectedModel ? ' selected' : ''}>${model.label}</option>`).join('')}
                             </select>
                         </div>
-                        ` : ''}
+                        ` : isQQManual ? `<span class="text-sm font-medium text-sky-700">MASADA QQ</span>` : ''}
                     </header>
 
                     <div class="doc-page-mobile-ui doc-mobile-toolbar"><button type="button" id="doc-toc-toggle" class="min-h-[44px]">📋 목차</button></div>
@@ -2069,7 +2089,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                             <p class="text-sm text-gray-700 mb-4">
                                 공지사항 열람은 등록된 사용자만 가능합니다.
                             </p>
-                            <button onclick="window.location.hash='#/home'" 
+                            <button onclick="window.goAppHome()" 
                                     class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
                                 홈으로 돌아가기
                             </button>
@@ -2185,7 +2205,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                             <p class="text-sm text-gray-700 mb-4">
                                 공지사항 열람은 등록된 사용자만 가능합니다.
                             </p>
-                            <button onclick="window.location.hash='#/home'" 
+                            <button onclick="window.goAppHome()" 
                                     class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
                                 홈으로 돌아가기
                             </button>
@@ -2267,7 +2287,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                             <p class="text-sm text-gray-700 mb-4">
                                 커뮤니티 열람은 등록된 사용자만 가능합니다.
                             </p>
-                            <button onclick="window.location.hash='#/home'" 
+                            <button onclick="window.goAppHome()" 
                                     class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
                                 홈으로 돌아가기
                             </button>
@@ -2658,10 +2678,11 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
         }
 
 async function renderWarrantyPage() {
+    const homeHref = getDefaultHomeHash(getCurrentProductLine());
     const warrantyHtml = `
         <div class="max-w-5xl mx-auto p-6">
             <div class="mb-6">
-                <a href="#/home" class="text-sm text-gray-500 hover:text-gray-800 mb-2 inline-flex items-center gap-1">
+                <a href="${homeHref}" class="text-sm text-gray-500 hover:text-gray-800 mb-2 inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                     홈으로
                 </a>
@@ -5577,6 +5598,7 @@ async function initBusinessCardUpload() {
         // ---- 7. 라우터 ----
 
         const routes = {
+            '/portal': async () => renderPortalPickerPageHtml(),
             '/home': renderHomePage,
             '/shop': () => renderDocPage('정비지침서'),
             '/etm': () => renderDocPage('전장회로도'),
@@ -5690,16 +5712,17 @@ async function initBusinessCardUpload() {
             document.body.appendChild(warningModal);
             
             // 확인 버튼 클릭 시 홈으로 리다이렉트
+            const homeHash = getDefaultHomeHash(getCurrentProductLine());
             warningModal.querySelector('#grade-restricted-modal-ok').addEventListener('click', () => {
                 warningModal.remove();
-                window.location.hash = '#/home';
+                window.location.hash = homeHash;
             });
             
             // 모달 외부 클릭 시에도 홈으로 리다이렉트
             warningModal.addEventListener('click', (e) => {
                 if (e.target === warningModal) {
                     warningModal.remove();
-                    window.location.hash = '#/home';
+                    window.location.hash = homeHash;
                 }
             });
         }
@@ -5749,14 +5772,14 @@ async function initBusinessCardUpload() {
                         // 확인 버튼 클릭 시 홈으로 리다이렉트
                         warningModal.querySelector('#restricted-warning-modal-ok').addEventListener('click', () => {
                             warningModal.remove();
-                            window.location.hash = '#/home';
+                            window.location.hash = getDefaultHomeHash(getCurrentProductLine());
                         });
                         
                         // 모달 외부 클릭 시에도 홈으로 리다이렉트
                         warningModal.addEventListener('click', (e) => {
                             if (e.target === warningModal) {
                                 warningModal.remove();
-                                window.location.hash = '#/home';
+                                window.location.hash = getDefaultHomeHash(getCurrentProductLine());
                             }
                         });
                         
@@ -5814,13 +5837,13 @@ async function initBusinessCardUpload() {
                             
                             warningModal.querySelector('#restricted-warning-modal-ok').addEventListener('click', () => {
                                 warningModal.remove();
-                                window.location.hash = '#/home';
+                                window.location.hash = getDefaultHomeHash(getCurrentProductLine());
                             });
                             
                             warningModal.addEventListener('click', (e) => {
                                 if (e.target === warningModal) {
                                     warningModal.remove();
-                                    window.location.hash = '#/home';
+                                    window.location.hash = getDefaultHomeHash(getCurrentProductLine());
                                 }
                             });
                             
@@ -5865,7 +5888,10 @@ async function initBusinessCardUpload() {
                                 if (path === '/home' || path === '') {
                                     setTimeout(() => {
                                         renderRecentNotices();
-                                        mountUnifiedSearchHome(document.getElementById('unified-search-home'));
+                                        mountUnifiedSearchHome(
+                                            document.getElementById('unified-search-home'),
+                                            getCurrentProductLine(),
+                                        );
                                     }, 100);
                                 }
 
@@ -5873,7 +5899,7 @@ async function initBusinessCardUpload() {
                                     setTimeout(() => void mountFieldTechNotesPage(), 100);
                                 }
 
-                                if (DOC_ROUTE_PATHS.includes(path)) {
+                                if (getDocRoutePathsForLine(getCurrentProductLine()).includes(path)) {
                                     const docTitle = {
                                         '/shop': '정비지침서',
                                         '/etm': '전장회로도',
@@ -5894,11 +5920,13 @@ async function initBusinessCardUpload() {
                                                 window.__gswPendingDocId = null;
                                             }, 550);
                                         }
-                                        void enhanceDocPageAfterRender(docTitle, path, param, {
-                                            getMaintenanceModel,
-                                            handleDocumentSelection,
-                                            handleDtcSelection,
-                                        });
+                                        if (path !== '/etm' || getCurrentProductLine() === LINE_VAN) {
+                                            void enhanceDocPageAfterRender(docTitle, path, param, {
+                                                getMaintenanceModel,
+                                                handleDocumentSelection,
+                                                handleDtcSelection,
+                                            });
+                                        }
                                     }, 300);
                                 }
                                 
@@ -5925,34 +5953,171 @@ async function initBusinessCardUpload() {
         }
 
         function highlightNav(hash) {
-            const normalizedHash = hash.replace('#', '');
-            
-            // 데스크톱 네비게이션 하이라이트
-            document.querySelectorAll('.nav-link').forEach(link => {
-                const href = link.getAttribute('href');
-                link.classList.remove('nav-active');
-                if (href && href.replace('#', '') === normalizedHash) {
-                    link.classList.add('nav-active');
-                }
+            let normalizedHash = (hash || window.location.hash || '#/home').replace('#', '');
+            const q = normalizedHash.indexOf('?');
+            if (q !== -1) normalizedHash = normalizedHash.slice(0, q);
+
+            const navPath = () => {
+                const { path, line } = parseRouteFromHash(`#${normalizedHash}`);
+                if (line === LINE_QQ) return `/qq${path}`;
+                return path;
+            };
+            const current = navPath();
+
+            const matchHref = (href) => {
+                if (!href) return false;
+                let h = href.replace('#', '');
+                const hq = h.indexOf('?');
+                if (hq !== -1) h = h.slice(0, hq);
+                return h === current || h === normalizedHash;
+            };
+
+            document.querySelectorAll('.nav-link').forEach((link) => {
+                link.classList.toggle('nav-active', matchHref(link.getAttribute('href')));
             });
-            
-            // 모바일 네비게이션 하이라이트
-            document.querySelectorAll('.mobile-nav-item').forEach(item => {
-                const href = item.getAttribute('href');
-                item.classList.remove('active');
-                if (href && href.replace('#', '') === normalizedHash) {
-                    item.classList.add('active');
-                }
+            document.querySelectorAll('.mobile-nav-item').forEach((item) => {
+                item.classList.toggle('active', matchHref(item.getAttribute('href')));
             });
-            
-            // 모바일 드롭다운 아이템 하이라이트
-            document.querySelectorAll('.mobile-nav-dropdown-item').forEach(item => {
-                const href = item.getAttribute('href');
-                item.classList.remove('active');
-                if (href && href.replace('#', '') === normalizedHash) {
-                    item.classList.add('active');
-                }
+            document.querySelectorAll('.mobile-nav-dropdown-item').forEach((item) => {
+                item.classList.toggle('active', matchHref(item.getAttribute('href')));
             });
+        }
+
+        function renderNavigation(canOperatePortal) {
+            const visibleNavLinks = getActiveNavLinks().filter(
+                (link) => !link.adminOnly || canOperatePortal,
+            );
+
+            if (desktopNav) {
+                desktopNav.innerHTML = visibleNavLinks
+                    .map((link) => {
+                        if (link.type === 'dropdown') {
+                            const dropdownId = `nav-dropdown-${link.label.replace(/\s+/g, '-').toLowerCase()}`;
+                            return `
+                                <div class="relative nav-dropdown-container">
+                                    <button 
+                                        id="${dropdownId}-btn"
+                                        class="nav-link text-slate-600 hover:text-slate-900 flex items-center gap-2 cursor-pointer"
+                                        onclick="toggleNavDropdown('${dropdownId}')"
+                                        tabindex="0"
+                                        aria-expanded="false"
+                                        aria-haspopup="true"
+                                        aria-label="${link.label} 메뉴">
+                                        <svg class="w-4 h-4 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            ${link.icon}
+                                        </svg>
+                                        ${link.label}
+                                        <svg class="w-3 h-3 nav-dropdown-arrow transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </button>
+                                    <div 
+                                        id="${dropdownId}"
+                                        class="nav-dropdown-menu hidden absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-[160px] z-50"
+                                        role="menu">
+                                        ${link.items
+                                            .map(
+                                                (item) => `
+                                            <a 
+                                                href="${item.href}" 
+                                                class="nav-dropdown-item block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2 transition-colors"
+                                                role="menuitem"
+                                                tabindex="0"
+                                                aria-label="${item.label}">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    ${item.icon}
+                                                </svg>
+                                                ${item.label}
+                                            </a>
+                                        `,
+                                            )
+                                            .join('')}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        return `
+                                <a 
+                                    href="${link.href}" 
+                                    class="nav-link text-slate-600 hover:text-slate-900 flex items-center gap-2"
+                                    tabindex="0"
+                                    aria-label="${link.label}">
+                                    <svg class="w-4 h-4 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        ${link.icon}
+                                    </svg>
+                                    ${link.label}
+                                </a>
+                            `;
+                    })
+                    .join('');
+            }
+
+            const mobileNav = document.getElementById('mobile-nav');
+            const mobileNavContent = mobileNav?.querySelector('div');
+            if (mobileNav && mobileNavContent) {
+                mobileNavContent.innerHTML = visibleNavLinks
+                    .map((link) => {
+                        if (link.type === 'dropdown') {
+                            const mobileDropdownId = `mobile-dropdown-${link.label.replace(/\s+/g, '-').toLowerCase()}`;
+                            return `
+                                <div>
+                                    <button 
+                                        class="mobile-nav-item w-full text-left justify-between"
+                                        onclick="toggleMobileNavDropdown('${mobileDropdownId}')"
+                                        tabindex="0"
+                                        aria-expanded="false"
+                                        aria-controls="${mobileDropdownId}"
+                                        aria-label="${link.label} 메뉴">
+                                        <div class="flex items-center gap-3">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                ${link.icon}
+                                            </svg>
+                                            <span>${link.label}</span>
+                                        </div>
+                                        <svg class="w-4 h-4 mobile-dropdown-arrow transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </button>
+                                    <div 
+                                        id="${mobileDropdownId}"
+                                        class="mobile-nav-dropdown">
+                                        ${link.items
+                                            .map(
+                                                (item) => `
+                                            <a 
+                                                href="${item.href}" 
+                                                class="mobile-nav-dropdown-item"
+                                                onclick="closeMobileNav()"
+                                                tabindex="0"
+                                                aria-label="${item.label}">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    ${item.icon}
+                                                </svg>
+                                                ${item.label}
+                                            </a>
+                                        `,
+                                            )
+                                            .join('')}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        return `
+                                <a 
+                                    href="${link.href}" 
+                                    class="mobile-nav-item"
+                                    onclick="closeMobileNav()"
+                                    tabindex="0"
+                                    aria-label="${link.label}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        ${link.icon}
+                                    </svg>
+                                    <span>${link.label}</span>
+                                </a>
+                            `;
+                    })
+                    .join('');
+            }
         }
 
         async function routerHandler() {
@@ -5963,32 +6128,62 @@ async function initBusinessCardUpload() {
                 return;
             }
 
+            const legacy = resolveLegacyHashRedirect();
+            if (legacy && window.location.hash !== legacy) {
+                window.location.replace(legacy);
+                return;
+            }
+
+            const parsed = parseRouteFromHash(window.location.hash);
             const routeFullRaw = window.location.hash.replace(/^#/, '') || '/home';
             logRouteViewDebounced(routeFullRaw);
 
-            let hash = window.location.hash.replace('#','') || '/home';
-            const qIdx = hash.indexOf('?');
-            if (qIdx !== -1) {
-                const qs = hash.slice(qIdx + 1);
-                hash = hash.slice(0, qIdx);
-                const params = new URLSearchParams(qs);
-                const model = params.get('model');
-                if (model) setMaintenanceModel(model);
-                window.__gswPendingDocId = params.get('doc') || null;
-            } else {
-                window.__gswPendingDocId = null;
+            if (parsed.query.model && parsed.line === LINE_VAN) {
+                setMaintenanceModel(parsed.query.model);
             }
-            
-            let path = hash;
-            let param = null;
-            if (hash.includes('/')) {
-                const parts = hash.split('/');
-                path = `/${parts[1]}`;
-                param = parts.slice(2).join('/');
+            window.__gswPendingDocId = parsed.query.doc || null;
+
+            let { path, param, line } = parsed;
+
+            if (path === '/portal') {
+                clearProductLineForPicker();
+                applyProductLineTheme(LINE_VAN);
+                const canOperatePortal = canAccessAdminPortal(await window.authService?.getUserInfo());
+                renderNavigation(canOperatePortal);
+                await router(path, param);
+                highlightNav('#/portal');
+                setTimeout(() => mountPortalPickerPage(), 50);
+                return;
             }
-            
+
+            if (line === LINE_QQ) {
+                setProductLine(LINE_QQ);
+                setMaintenanceModel('masada-qq');
+            }
+
+            const activeLine = getProductLine();
+            if (!activeLine) {
+                window.location.replace('#/portal');
+                return;
+            }
+
+            if (activeLine === LINE_QQ && line !== LINE_QQ) {
+                window.location.replace(toAppHash(path, LINE_QQ, parsed.query));
+                return;
+            }
+
+            if (isVanOnlyDocPath(path, activeLine)) {
+                showToast('QQ 포털에서는 해당 문서 메뉴를 사용할 수 없습니다.', 'info');
+                window.location.replace(getDefaultHomeHash(LINE_QQ));
+                return;
+            }
+
+            applyProductLineTheme(activeLine);
+            const canOperatePortal = canAccessAdminPortal(await window.authService?.getUserInfo());
+            renderNavigation(canOperatePortal);
+
             await router(path, param);
-            highlightNav(`#${path}`);
+            highlightNav(window.location.hash || getDefaultHomeHash(activeLine));
         }
 
         // ---- 8. 최근 공지사항 렌더링 ----
@@ -6027,7 +6222,7 @@ async function initBusinessCardUpload() {
         }
 
         function viewNotice(id) {
-            window.location.hash = `#/notices/${id}`;
+            window.location.hash = toAppHash(`/notices/${id}`, getCurrentProductLine());
         }
 
         /**
@@ -6189,7 +6384,7 @@ async function initBusinessCardUpload() {
                 showToast('공지사항이 삭제되었습니다.', 'success');
 
                 // 목록으로 이동
-                window.location.hash = '#/notices';
+                window.location.hash = toAppHash('/notices', getCurrentProductLine());
                 setTimeout(() => location.reload(), 500);
 
             } catch (error) {
@@ -6342,132 +6537,15 @@ async function initBusinessCardUpload() {
                 const wvWrap = document.getElementById('work-vehicle-bar-wrap');
                 if (wvWrap) mountWorkVehicleBar(wvWrap);
 
-                // 관리자 여부 확인하여 네비게이션 필터링
                 const currentUserInfo = await window.authService?.getUserInfo();
                 const canOperatePortal = canAccessAdminPortal(currentUserInfo);
-                const visibleNavLinks = NAV_LINKS.filter(link => !link.adminOnly || canOperatePortal);
+                renderNavigation(canOperatePortal);
 
-                if (desktopNav) {
-                    desktopNav.innerHTML = visibleNavLinks.map(link => {
-                        if (link.type === 'dropdown') {
-                            const dropdownId = `nav-dropdown-${link.label.replace(/\s+/g, '-').toLowerCase()}`;
-                            return `
-                                <div class="relative nav-dropdown-container">
-                                    <button 
-                                        id="${dropdownId}-btn"
-                                        class="nav-link text-slate-600 hover:text-slate-900 flex items-center gap-2 cursor-pointer"
-                                        onclick="toggleNavDropdown('${dropdownId}')"
-                                        tabindex="0"
-                                        aria-expanded="false"
-                                        aria-haspopup="true"
-                                        aria-label="${link.label} 메뉴">
-                                        <svg class="w-4 h-4 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            ${link.icon}
-                                        </svg>
-                                        ${link.label}
-                                        <svg class="w-3 h-3 nav-dropdown-arrow transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                        </svg>
-                                    </button>
-                                    <div 
-                                        id="${dropdownId}"
-                                        class="nav-dropdown-menu hidden absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-[160px] z-50"
-                                        role="menu">
-                                        ${link.items.map(item => `
-                                            <a 
-                                                href="${item.href}" 
-                                                class="nav-dropdown-item block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2 transition-colors"
-                                                role="menuitem"
-                                                tabindex="0"
-                                                aria-label="${item.label}">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    ${item.icon}
-                                                </svg>
-                                                ${item.label}
-                                            </a>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            `;
-                        } else {
-                            return `
-                                <a 
-                                    href="${link.href}" 
-                                    class="nav-link text-slate-600 hover:text-slate-900 flex items-center gap-2"
-                                    tabindex="0"
-                                    aria-label="${link.label}">
-                                    <svg class="w-4 h-4 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                        ${link.icon}
-                                    </svg>
-                                    ${link.label}
-                                </a>
-                            `;
-                        }
-                    }).join('');
-                }
-
-                // 모바일 네비게이션 렌더링
-                const mobileNav = document.getElementById('mobile-nav');
-                const mobileNavContent = mobileNav?.querySelector('div');
-                if (mobileNav && mobileNavContent) {
-                    mobileNavContent.innerHTML = visibleNavLinks.map(link => {
-                        if (link.type === 'dropdown') {
-                            const mobileDropdownId = `mobile-dropdown-${link.label.replace(/\s+/g, '-').toLowerCase()}`;
-                            return `
-                                <div>
-                                    <button 
-                                        class="mobile-nav-item w-full text-left justify-between"
-                                        onclick="toggleMobileNavDropdown('${mobileDropdownId}')"
-                                        tabindex="0"
-                                        aria-expanded="false"
-                                        aria-controls="${mobileDropdownId}"
-                                        aria-label="${link.label} 메뉴">
-                                        <div class="flex items-center gap-3">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                ${link.icon}
-                                            </svg>
-                                            <span>${link.label}</span>
-                                        </div>
-                                        <svg class="w-4 h-4 mobile-dropdown-arrow transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                        </svg>
-                                    </button>
-                                    <div 
-                                        id="${mobileDropdownId}"
-                                        class="mobile-nav-dropdown">
-                                        ${link.items.map(item => `
-                                            <a 
-                                                href="${item.href}" 
-                                                class="mobile-nav-dropdown-item"
-                                                onclick="closeMobileNav()"
-                                                tabindex="0"
-                                                aria-label="${item.label}">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    ${item.icon}
-                                                </svg>
-                                                ${item.label}
-                                            </a>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            `;
-                        } else {
-                            return `
-                                <a 
-                                    href="${link.href}" 
-                                    class="mobile-nav-item"
-                                    onclick="closeMobileNav()"
-                                    tabindex="0"
-                                    aria-label="${link.label}">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        ${link.icon}
-                                    </svg>
-                                    <span>${link.label}</span>
-                                </a>
-                            `;
-                        }
-                    }).join('');
-                }
+                document.getElementById('header-portal-switch')?.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    clearProductLineForPicker();
+                    window.location.hash = '#/portal';
+                });
 
                 await updateAuthUI();
 

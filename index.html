@@ -768,8 +768,8 @@
 </head>
 <body class="bg-gray-100 text-slate-800">
 
-  <!-- 스플래시 화면 -->
-  <div id="splash-screen" class="fixed inset-0 z-50 flex items-center justify-center" style="background-image: url('assets/splash.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+  <!-- 스플래시: VAN -->
+  <div id="splash-screen-van" class="fixed inset-0 z-50 flex items-center justify-center" style="background-image: url('assets/splash.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat;">
     <div class="absolute inset-0 bg-black bg-opacity-40"></div>
     <div class="text-center splash-content relative z-10 text-white">
         <img src="assets/evkmc-logo.png" alt="EVKMC A/S" class="w-24 h-24 object-contain mx-auto mb-6">
@@ -783,6 +783,21 @@
       <p class="text-sm text-gray-200 mt-4">로딩 중...</p>
     </div>
   </div>
+  <!-- 스플래시: QQ -->
+  <div id="splash-screen-qq" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background-image: url('assets/qq/splash.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+    <div class="absolute inset-0 bg-sky-950 bg-opacity-50"></div>
+    <div class="text-center splash-content relative z-10 text-white">
+        <img src="assets/evkmc-logo.png" alt="MASADA QQ" class="w-24 h-24 object-contain mx-auto mb-6">
+      <h1 class="text-3xl font-bold text-white mb-2">MASADA QQ</h1>
+      <p class="text-sky-100 mb-8">정비 기술 문서 포털</p>
+      <div class="flex items-center justify-center gap-2">
+        <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+        <div class="w-2 h-2 bg-white rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+        <div class="w-2 h-2 bg-white rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+      </div>
+      <p class="text-sm text-sky-100 mt-4">로딩 중...</p>
+    </div>
+  </div>
 
   <div id="toast-container"></div>
 
@@ -792,7 +807,10 @@
   <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
     <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <a href="#/home" class="text-xl md:text-2xl font-semibold tracking-tight">EVKMC A/S</a>
+        <a href="#/home" id="header-brand-link" class="text-xl md:text-2xl font-semibold tracking-tight">
+          <span id="header-brand-title">EVKMC A/S</span>
+        </a>
+        <a href="#/portal" id="header-portal-switch" class="hidden text-xs font-medium text-sky-700 hover:text-sky-900 border border-sky-200 rounded-lg px-2 py-1 whitespace-nowrap">다른 포털</a>
       </div>
       <nav id="desktop-nav" class="hidden md:flex items-center gap-7 text-[15px] flex-nowrap"></nav>
       <div class="flex items-center gap-3">

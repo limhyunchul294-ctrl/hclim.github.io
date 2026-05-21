@@ -5,6 +5,7 @@ import { maintenanceManualTreeData } from './maintenanceManualMapping.js';
 import { qqMaintenanceManualTreeData } from './maintenanceManualMappingQQ.js';
 import { etmTreeData } from './etmMapping.js';
 import { fetchTsbBulletins } from './tsbBulletins.js';
+import { LINE_VAN, LINE_QQ, toAppHash } from './productLine.js';
 
 function escapeHtml(str) {
     if (str == null) return '';
@@ -37,10 +38,22 @@ function flattenTree(nodes, prefix, kind, hrefBase) {
     return out;
 }
 
-let cachedIndex = null;
+let cachedIndexVan = null;
+let cachedIndexQq = null;
 
-export function buildUnifiedSearchIndex() {
-    if (cachedIndex) return cachedIndex;
+/** @param {'van'|'qq'} [line] */
+export function buildUnifiedSearchIndex(line = LINE_VAN) {
+    if (line === LINE_QQ) {
+        if (cachedIndexQq) return cachedIndexQq;
+        const items = [];
+        flattenTree(qqMaintenanceManualTreeData, 'QQ', 'sm', toAppHash('/shop', LINE_QQ)).forEach((x) => {
+            items.push({ ...x, searchText: `${x.label} ${x.path}`.toLowerCase() });
+        });
+        cachedIndexQq = items;
+        return items;
+    }
+
+    if (cachedIndexVan) return cachedIndexVan;
     const items = [];
 
     for (const entry of DTC_ENTRIES) {
@@ -48,35 +61,33 @@ export function buildUnifiedSearchIndex() {
             kind: 'dtc',
             label: `${entry.codeDisplay} ${entry.title}`,
             path: entry.category || 'DTC',
-            href: `#/dtc/${encodeURIComponent(entry.id)}`,
+            href: toAppHash(`/dtc/${encodeURIComponent(entry.id)}`, LINE_VAN),
             nodeId: entry.id,
             searchText: `${entry.codeDisplay} ${entry.title} ${entry.category || ''}`.toLowerCase(),
         });
     }
 
-    flattenTree(maintenanceManualTreeData, '', 'sm', '#/shop').forEach((x) => {
+    flattenTree(maintenanceManualTreeData, '', 'sm', toAppHash('/shop', LINE_VAN)).forEach((x) => {
         items.push({ ...x, searchText: `${x.label} ${x.path}`.toLowerCase() });
     });
-    flattenTree(qqMaintenanceManualTreeData, 'QQ', 'sm', '#/shop?model=masada-qq').forEach((x) => {
-        items.push({ ...x, searchText: `${x.label} ${x.path}`.toLowerCase() });
-    });
-    flattenTree(etmTreeData, '', 'etm', '#/etm').forEach((x) => {
+    flattenTree(etmTreeData, '', 'etm', toAppHash('/etm', LINE_VAN)).forEach((x) => {
         items.push({ ...x, searchText: `${x.label} ${x.path}`.toLowerCase() });
     });
 
-    cachedIndex = items;
+    cachedIndexVan = items;
     return items;
 }
 
 /**
  * @param {string} query
  * @param {number} [limit]
+ * @param {'van'|'qq'} [line]
  */
-export function searchUnifiedIndex(query, limit = 20) {
+export function searchUnifiedIndex(query, limit = 20, line = LINE_VAN) {
     const q = (query || '').trim().toLowerCase();
     if (!q) return [];
-    const dtcIds = new Set(searchDtc(q));
-    const index = buildUnifiedSearchIndex();
+    const dtcIds = line === LINE_VAN ? new Set(searchDtc(q)) : new Set();
+    const index = buildUnifiedSearchIndex(line);
     const scored = [];
 
     for (const item of index) {
@@ -110,15 +121,17 @@ export function renderUnifiedSearchResultsHtml(results) {
         .join('')}</ul>`;
 }
 
-async function searchTsbHits(q, limit = 5) {
-    if (!window.supabaseClient) return [];
+async function searchTsbHits(q, limit = 5, line = LINE_VAN) {
+    if (line === LINE_QQ || !window.supabaseClient) return [];
     try {
         const rows = await fetchTsbBulletins(window.supabaseClient, { q });
         return rows.slice(0, limit).map((b) => ({
             kind: 'tsb',
             label: `${b.bulletin_no} ${b.title}`,
             path: b.summary || '',
-            href: b.tree_node_id ? `#/tsb?doc=${encodeURIComponent(b.tree_node_id)}` : '#/tsb',
+            href: b.tree_node_id
+                ? toAppHash('/tsb', LINE_VAN, { doc: b.tree_node_id })
+                : toAppHash('/tsb', LINE_VAN),
             score: 45,
         }));
     } catch {
@@ -126,10 +139,16 @@ async function searchTsbHits(q, limit = 5) {
     }
 }
 
-export function mountUnifiedSearchHome(root) {
+/** @param {HTMLElement} [root] @param {'van'|'qq'} [line] */
+export function mountUnifiedSearchHome(root, line = LINE_VAN) {
     const input = root?.querySelector('#unified-search-input');
     const resultsEl = root?.querySelector('#unified-search-results');
     if (!input || !resultsEl) return;
+
+    input.placeholder =
+        line === LINE_QQ
+            ? 'QQ 정비지침 키워드 (2자 이상)'
+            : 'DTC 코드·증상·정비지침·ETM 키워드 (2자 이상)';
 
     let timer = null;
     const run = async () => {
@@ -139,8 +158,8 @@ export function mountUnifiedSearchHome(root) {
             resultsEl.innerHTML = '';
             return;
         }
-        const hits = searchUnifiedIndex(q, 12);
-        const tsbHits = await searchTsbHits(q, 5);
+        const hits = searchUnifiedIndex(q, 12, line);
+        const tsbHits = await searchTsbHits(q, 5, line);
         const merged = [...hits, ...tsbHits.filter((t) => !hits.some((h) => h.href === t.href))].slice(0, 18);
         resultsEl.innerHTML = renderUnifiedSearchResultsHtml(merged);
         resultsEl.classList.remove('hidden');

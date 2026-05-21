@@ -8,7 +8,7 @@ EVKMC A/S 정비 포털(GSW) 운영·배포·보안을 정기적으로 점검하
 |------|------|
 | Production 브랜치 | `master` → Vercel 자동 배포 |
 | 개발 브랜치 | `develop` |
-| 배포 후 스모크 | 로그인(이메일 OTP), 정비지침서 PDF, `#/dtc` 배선표·도면, 공지/커뮤니티, PWA 홈 화면 |
+| 배포 후 스모크 | 로그인 → `#/portal` VAN/QQ 선택, VAN 정비지침 3차종, QQ `#/qq/shop` SM, `#/dtc`·공지/커뮤니티, PWA 홈 화면 |
 | 정적 캐시 | `vercel.json` — `/js/` 장기 캐시, HTML은 `must-revalidate` |
 
 ## 2. 인증·보안
@@ -38,6 +38,7 @@ EVKMC A/S 정비 포털(GSW) 운영·배포·보안을 정기적으로 점검하
 | RLS·게시판 | 마이그레이션 `016`~`029` 및 Dashboard 정책 |
 | 보증 데이터 CSV | `warranty_data` — VIN 유니크(`036`). 관리자 탭 **최말단 10건 표** 기준으로 누락분만 부분 CSV upsert. **전체 마스터 CSV**는 수퍼바이저 비공개 절차(기준선 제목 연속 클릭 → 보안 안내·동의·이메일 OTP·30분 쿨다운, `warranty_master_export` 로그, `037`) |
 | 작업 차량·지식 확장 | `038` — `tsb_bulletins`, `dtc_cross_refs`, `manual_documents`, `field_tech_notes`, `etm_page_anchors`. 상단 **작업 차량** 바, 홈 **통합 검색**, 보증 조회 후 SM/DTC/TSB CTA, DTC HV 안전 게이트·수리 리포트, `#/field-notes` |
+| VAN / QQ 포털 분리 | `#/portal` 계통 선택 · VAN `#/home` `#/shop`(2VAN/4VAN/Cargo) · QQ `#/qq/home` `#/qq/shop`(SM 고정). QQ 스플래시 `assets/qq/splash.jpg`. 모듈 [`js/productLine.js`](../../js/productLine.js), [`js/portalPicker.js`](../../js/portalPicker.js) |
 | 활동 로그 | 마이그레이션 `030` (`portal_activity_log`) — 사용자는 본인 행만 INSERT, **수퍼바이저(EK0V029)만** SELECT/파기용 DELETE (`034`) |
 
 ### Supabase CLI로 마이그레이션 원격 적용 (`db push`)

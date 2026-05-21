@@ -21,7 +21,11 @@ window.__BRAND__ = {
   dark: "#111827",         // 회색-900
   light: "#F3F4F6",        // 회색-100
   logoUrl: "assets/evkmc-logo.png",
-  splashUrl: "assets/splash.jpg"
+  splashUrl: "assets/splash.jpg",
+  splashByLine: {
+    van: "assets/splash.jpg",
+    qq: "assets/qq/splash.jpg",
+  },
 };
 
 // ⚠️ 중요: 환경변수 확인

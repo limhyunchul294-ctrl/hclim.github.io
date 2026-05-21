@@ -2,6 +2,8 @@
  * 모바일 UX: 하단 탭, 문서 목차 드로어, 최근 문서, QQ 챕터 이동
  */
 
+import { getProductLine, LINE_QQ, LINE_VAN, toAppHash, parseRouteFromHash } from './productLine.js';
+
 const RECENT_DOC_KEY = 'evkmc-recent-doc';
 const QQ_DOC_IDS = [];
 
@@ -17,10 +19,14 @@ export function isMobileExperience() {
     return isMobileViewport() || isMobileUserAgent();
 }
 
-/** @param {{ path: string, docId?: string, title?: string, model?: string, docTitle?: string }} data */
+/** @param {{ path: string, docId?: string, title?: string, model?: string, docTitle?: string, productLine?: string }} data */
 export function saveRecentDoc(data) {
     try {
-        localStorage.setItem(RECENT_DOC_KEY, JSON.stringify({ ...data, savedAt: Date.now() }));
+        const line = data.productLine || getProductLine() || LINE_VAN;
+        localStorage.setItem(
+            RECENT_DOC_KEY,
+            JSON.stringify({ ...data, productLine: line, savedAt: Date.now() }),
+        );
     } catch (e) {
         console.warn('recent doc save failed', e);
     }
@@ -49,15 +55,21 @@ export function getAdjacentQQDocId(docId, direction) {
 }
 
 export function parseHashWithQuery() {
-    let hash = (window.location.hash || '').replace(/^#/, '') || '/home';
-    const query = {};
-    const qIdx = hash.indexOf('?');
-    if (qIdx !== -1) {
-        const qs = hash.slice(qIdx + 1);
-        hash = hash.slice(0, qIdx);
-        new URLSearchParams(qs).forEach((v, k) => { query[k] = v; });
-    }
-    return { path: hash.split('/').filter(Boolean).length ? `/${hash.split('/').filter(Boolean)[0]}` : hash, fullHash: hash, query };
+    const parsed = parseRouteFromHash(window.location.hash);
+    return { path: parsed.path, fullHash: parsed.fullPath, query: parsed.query, line: parsed.line };
+}
+
+function syncMobileTabHrefs(nav) {
+    const line = getProductLine() || LINE_VAN;
+    const home = toAppHash('/home', line);
+    const shop = toAppHash('/shop', line, line === LINE_VAN ? {} : {});
+    const warranty = toAppHash('/warranty', line);
+    const account = toAppHash('/account', line);
+    const map = { home, shop, warranty, account };
+    nav.querySelectorAll('[data-mobile-tab]').forEach((el) => {
+        const tab = el.getAttribute('data-mobile-tab');
+        if (map[tab]) el.setAttribute('href', map[tab]);
+    });
 }
 
 export function initMobileBottomNav() {
@@ -65,23 +77,26 @@ export function initMobileBottomNav() {
     if (!nav) return;
 
     const syncActive = () => {
-        let path = window.location.hash.replace('#', '') || '/home';
-        const q = path.indexOf('?');
-        if (q !== -1) path = path.slice(0, q);
-        if (!path.startsWith('/')) path = `/${path}`;
-        const base = path.split('/')[1] || 'home';
+        syncMobileTabHrefs(nav);
+        const parsed = parseRouteFromHash(window.location.hash);
+        const base = parsed.path.replace(/^\//, '') || 'home';
 
         nav.querySelectorAll('[data-mobile-tab]').forEach((el) => {
             const tab = el.getAttribute('data-mobile-tab');
-            const active = tab === base || (tab === 'home' && (base === 'home' || path === '/'));
+            const active =
+                tab === base ||
+                (tab === 'home' && (base === 'home' || parsed.path === '/portal'));
             el.classList.toggle('mobile-tab-active', active);
             el.setAttribute('aria-current', active ? 'page' : 'false');
         });
 
-        document.body.classList.toggle('mobile-doc-route', ['shop', 'etm', 'dtc', 'wiring', 'tsb'].includes(base));
+        const docBases =
+            parsed.line === LINE_QQ ? ['shop'] : ['shop', 'etm', 'dtc', 'wiring', 'tsb'];
+        document.body.classList.toggle('mobile-doc-route', docBases.includes(base));
     };
 
     window.addEventListener('hashchange', syncActive);
+    window.addEventListener('gsw-product-line-changed', syncActive);
     syncActive();
 }
 
@@ -123,12 +138,15 @@ export function renderResumeDocCardHtml() {
     const recent = loadRecentDoc();
     if (!recent || !recent.path) return '';
 
+    const line = recent.productLine || (recent.model === 'masada-qq' ? LINE_QQ : LINE_VAN);
     const label = recent.docTitle || recent.title || '문서';
-    const modelLabel = recent.model === 'masada-qq' ? ' · MASADA QQ' : '';
-    const basePath = recent.path.startsWith('/') ? recent.path : `/${recent.path}`;
-    const href = recent.docId
-        ? `#${basePath}?model=${encodeURIComponent(recent.model || '')}&doc=${encodeURIComponent(recent.docId)}`
-        : `#${basePath}`;
+    const modelLabel = line === LINE_QQ ? ' · MASADA QQ' : '';
+    const query = {};
+    if (recent.docId) query.doc = recent.docId;
+    if (recent.path === '/shop' && line === LINE_VAN && recent.model) {
+        query.model = recent.model;
+    }
+    const href = toAppHash(recent.path, line, query);
 
     return `
         <a href="${href}" class="block mb-6 p-4 bg-gradient-to-r from-sky-50 to-white rounded-xl border border-sky-200 shadow-sm active:bg-sky-100">
@@ -141,7 +159,7 @@ export function renderResumeDocCardHtml() {
 
 export function tryOpenDocFromHash() {
     const hash = window.location.hash || '';
-    const m = hash.match(/[#&]doc=([^&]+)/);
+    const m = hash.match(/[#&?]doc=([^&]+)/);
     if (!m) return;
     const docId = decodeURIComponent(m[1]);
     setTimeout(() => {
