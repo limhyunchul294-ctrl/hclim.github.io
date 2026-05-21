@@ -5,8 +5,18 @@
 import { DTC_META, parseActionSteps, DTC_STORAGE_BUCKET } from './dtcMapping.js';
 import { resolveImageSlices, indicesForPhase } from './dtcImageLayout.js';
 import { createWatermarkedDataUrl, renderWatermarkedImage } from './imageWatermark.js';
+import { fetchDtcCrossRefs, renderDtcCrossRefsHtml, bindDtcCrossRefLinks } from './dtcCrossRefs.js';
+import { printDtcRepairReport } from './dtcRepairReport.js';
+import { getWorkVehicle } from './workVehicleContext.js';
 
-const WORKFLOW_VERSION = 3;
+const HV_SAFETY_ITEMS = [
+    '고전압 차단(서비스 플러그·퓨즈) 상태 확인',
+    '잔류 전압·커패시터 방전 절차 완료',
+    '절연 장갑·절연 신발·보안경 등 PPE 착용',
+    '고전압 작업 경고 표지 부착',
+];
+
+const WORKFLOW_VERSION = 4;
 const PHASES = [
     { id: 'overview', label: '개요' },
     { id: 'parts', label: '부위' },
@@ -51,6 +61,8 @@ function createDefaultState(entry) {
         repairNotes: '',
         imageSlideIndex: 0,
         updatedAt: null,
+        hvSafetyChecks: HV_SAFETY_ITEMS.map(() => false),
+        hvSafetyAck: false,
     };
 }
 
@@ -81,6 +93,12 @@ function normalizeState(entry, parsed) {
     const slide =
         parsed.imageSlideIndex ?? parsed.diagramSlideIndex ?? 0;
 
+    const hvSafetyChecks = Array.isArray(parsed.hvSafetyChecks)
+        ? HV_SAFETY_ITEMS.map((_, i) => !!parsed.hvSafetyChecks[i])
+        : HV_SAFETY_ITEMS.map(() => false);
+    const hvSafetyAck =
+        parsed.hvSafetyAck === true || hvSafetyChecks.every(Boolean);
+
     return {
         version: WORKFLOW_VERSION,
         phase,
@@ -90,7 +108,35 @@ function normalizeState(entry, parsed) {
         repairNotes: parsed.repairNotes ?? '',
         imageSlideIndex: Math.max(0, slide),
         updatedAt: parsed.updatedAt ?? null,
+        hvSafetyChecks,
+        hvSafetyAck,
     };
+}
+
+function renderHvSafetyGate(state) {
+    if (state.hvSafetyAck) return '';
+    const items = HV_SAFETY_ITEMS.map(
+        (label, i) =>
+            `<label class="flex items-start gap-2 py-1.5 cursor-pointer">
+                <input type="checkbox" class="dtc-hv-check mt-0.5 rounded" data-hv-idx="${i}" ${state.hvSafetyChecks[i] ? 'checked' : ''}>
+                <span class="text-sm text-gray-800">${escapeHtml(label)}</span>
+            </label>`,
+    ).join('');
+    return `<div class="rounded-xl border-2 border-red-300 bg-red-50 p-4 mb-4" id="dtc-hv-gate">
+        <h3 class="text-sm font-bold text-red-900 mb-2">고전압 안전 확인 (필수)</h3>
+        <p class="text-xs text-red-800 mb-3">전기차 고전압 계통 점검·수리 전 반드시 확인하세요. 미확인 시 다음 단계로 진행할 수 없습니다.</p>
+        <div class="space-y-0">${items}</div>
+        <button type="button" id="dtc-hv-confirm" class="mt-3 w-full py-2.5 rounded-lg bg-red-800 text-white text-sm font-semibold disabled:opacity-40" disabled>전항목 확인 후 진단 시작</button>
+    </div>`;
+}
+
+function syncHvGateUi(root, state) {
+    const all = state.hvSafetyChecks.every(Boolean);
+    const btn = root.querySelector('#dtc-hv-confirm');
+    if (btn) {
+        btn.disabled = !all;
+        btn.classList.toggle('opacity-40', !all);
+    }
 }
 
 function currentPhaseImageIndices(entry, state) {
@@ -253,12 +299,13 @@ function renderOverviewPhase(entry, state) {
         : '';
 
     return `<section class="dtc-phase-panel space-y-4" data-phase="overview">
-        <div class="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
+        ${renderHvSafetyGate(state)}
+        <div class="rounded-xl border border-amber-200 bg-amber-50/80 p-4 ${state.hvSafetyAck ? '' : 'opacity-50 pointer-events-none'}">
             <h3 class="text-sm font-semibold text-gray-800 mb-2">고장 코드 설명</h3>
             <p class="text-sm text-gray-800 leading-relaxed">${escapeHtml(entry.explanation || '설명 없음')}</p>
         </div>
         ${renderPhaseImagesShell(entry, state, 'overview')}
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 ${state.hvSafetyAck ? '' : 'hidden'}">
             ${PHASES.filter((p) => p.id !== 'overview' && p.id !== 'complete')
                 .map(
                     (p) => `<button type="button" class="dtc-goto-phase px-3 py-3 rounded-lg border border-gray-200 bg-white text-sm font-medium hover:border-gray-900" data-phase="${p.id}">${escapeHtml(p.label)} 시작 →</button>`
@@ -266,7 +313,7 @@ function renderOverviewPhase(entry, state) {
                 .join('')}
         </div>
         ${causesHtml}
-        <div class="flex justify-end pt-2">
+        <div class="flex justify-end pt-2 ${state.hvSafetyAck ? '' : 'hidden'}">
             <button type="button" class="dtc-goto-phase px-4 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium" data-phase="parts">다음: 예상 부위 →</button>
         </div>
     </section>`;
@@ -432,7 +479,11 @@ function renderCompletePhase(entry, state) {
             <span class="text-sm font-medium text-gray-800">수리·조치 기록</span>
             <textarea id="dtc-repair-notes" rows="3" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="교환 부품, 조치 내용, DTC 클리어 여부 등">${escapeHtml(state.repairNotes)}</textarea>
         </label>
-        <button type="button" class="dtc-goto-phase w-full py-2 rounded-lg border text-sm" data-phase="wiring">배선 점검 다시</button>
+        <div id="dtc-cross-refs-slot"></div>
+        <div class="flex flex-wrap gap-2 pt-2">
+            <button type="button" id="dtc-print-report" class="flex-1 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium">수리 완료 리포트 인쇄</button>
+            <button type="button" class="dtc-goto-phase py-2.5 px-4 rounded-lg border text-sm" data-phase="wiring">배선 다시</button>
+        </div>
     </section>`;
 }
 
@@ -623,12 +674,26 @@ export function mountDtcWorkflow(root, entry) {
     };
 
     const setPhase = (phaseId) => {
+        if (phaseId !== 'overview' && !state.hvSafetyAck) {
+            alert('고전압 안전 확인을 완료한 후 진행할 수 있습니다.');
+            return;
+        }
         state.phase = phaseId;
         state.imageSlideIndex = 0;
         persist();
         refreshPanels(root, entry, state);
         bindPanelEvents();
         afterPanelRefresh();
+        if (phaseId === 'complete') loadCrossRefs();
+    };
+
+    const loadCrossRefs = async () => {
+        const slot = root.querySelector('#dtc-cross-refs-slot');
+        if (!slot || !window.supabaseClient) return;
+        const grade = (await window.authService?.getUserInfo())?.grade;
+        const refs = await fetchDtcCrossRefs(window.supabaseClient, entry.code);
+        slot.innerHTML = renderDtcCrossRefsHtml(refs, grade);
+        bindDtcCrossRefLinks(root);
     };
 
     const bindPanelEvents = () => {
@@ -749,6 +814,33 @@ export function mountDtcWorkflow(root, entry) {
             state.repairNotes = e.target.value;
             persist();
         });
+
+        root.querySelectorAll('.dtc-hv-check').forEach((cb) => {
+            cb.addEventListener('change', () => {
+                const i = parseInt(cb.getAttribute('data-hv-idx'), 10);
+                state.hvSafetyChecks[i] = cb.checked;
+                state.hvSafetyAck = state.hvSafetyChecks.every(Boolean);
+                persist();
+                syncHvGateUi(root, state);
+            });
+        });
+
+        root.querySelector('#dtc-hv-confirm')?.addEventListener('click', () => {
+            if (!state.hvSafetyChecks.every(Boolean)) return;
+            state.hvSafetyAck = true;
+            persist();
+            refreshPanels(root, entry, state);
+            bindPanelEvents();
+            afterPanelRefresh();
+        });
+
+        root.querySelector('#dtc-print-report')?.addEventListener('click', async () => {
+            const userInfo = await window.authService?.getUserInfo();
+            printDtcRepairReport(entry, state, {
+                userInfo,
+                workVin: getWorkVehicle()?.vin || '',
+            });
+        });
     };
 
     root.querySelectorAll('.dtc-phase-btn').forEach((btn) => {
@@ -767,7 +859,9 @@ export function mountDtcWorkflow(root, entry) {
     });
 
     bindPanelEvents();
+    syncHvGateUi(root, state);
     ensureDtcImageCache(entry).then(() => afterPanelRefresh());
+    if (state.phase === 'complete') loadCrossRefs();
 }
 
 

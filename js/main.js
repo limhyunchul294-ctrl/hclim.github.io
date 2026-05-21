@@ -7,7 +7,7 @@ import './securityAgreement.js';
 import { maintenanceManualTreeData, maintenanceManualMapping } from './maintenanceManualMapping.js';
 import { qqMaintenanceManualTreeData, qqMaintenanceManualMapping, QQ_CHAPTERS } from './maintenanceManualMappingQQ.js';
 import { etmTreeData, etmMapping } from './etmMapping.js';
-import { dtcTreeData, getDtcEntry, parseActionSteps, DTC_META } from './dtcMapping.js';
+import { dtcTreeData, getDtcEntry, parseActionSteps, DTC_META, searchDtc } from './dtcMapping.js';
 import { renderDtcWorkflowHtml, mountDtcWorkflow } from './dtcWorkflow.js';
 import {
     isMobileExperience,
@@ -42,6 +42,25 @@ import {
     WARRANTY_TAIL_DISPLAY_LIMIT,
     openWarrantyMasterExportGate,
 } from './warrantyMasterExport.js';
+import {
+    getWorkVehicle,
+    setWorkVehicle,
+    workVehicleFromWarrantyRow,
+} from './workVehicleContext.js';
+import { mountWorkVehicleBar, renderWarrantyVehicleCtaHtml, bindWarrantyVehicleCta } from './workVehicleBar.js';
+import { mountUnifiedSearchHome } from './unifiedSearch.js';
+import { renderTsbBulletinPanelHtml } from './tsbBulletins.js';
+import { enhanceDocPageAfterRender, injectEtmAnchorBar } from './portalDocEnhancements.js';
+import {
+    fetchManualDocumentMeta,
+    renderManualVersionBannerHtml,
+    resolveManualDocKey,
+} from './manualVersions.js';
+import {
+    renderFieldTechNotesPageHtml,
+    fetchFieldTechNotes,
+    renderFieldTechNotesList,
+} from './fieldTechNotes.js';
 
 // js/main.js (Final Version)
 // ✅ 수정사항: localStorage 완전 제거, authSession 사용으로 변경
@@ -261,6 +280,67 @@ if (window.__APP_INIT__) {
             if (window.location.hash !== next) {
                 history.replaceState(null, '', next);
             }
+        }
+
+        const DOC_VIEWER_PLACEHOLDER_HTML = `
+            <div class="text-center text-gray-500 w-full h-full flex flex-col items-center justify-center" style="min-height: calc(100vh - 200px);">
+                <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <p>문서를 선택하세요</p>
+            </div>`;
+
+        /** 정비지침서 차종 변경 시 목차·뷰어·URL 동기화 (doc 쿼리 포함 hash 대응) */
+        async function applyMaintenanceModelChange(model) {
+            const modelLabel = MODELS.find((m) => m.value === model)?.label || model;
+            setMaintenanceModel(model);
+
+            if (getDocRoutePath() !== '/shop') {
+                showToast(`차종: ${modelLabel} (정비지침서 메뉴에서 적용)`, 'info');
+                return;
+            }
+
+            const isQQ = model === 'masada-qq';
+            const treeContainer = document.getElementById('tree-container');
+            if (treeContainer) {
+                treeContainer.innerHTML = renderTree(getMaintenanceTreeData(model), 0, isQQ);
+            }
+
+            document.querySelectorAll('.tree-item.active').forEach((el) => el.classList.remove('active'));
+
+            const searchInput = document.querySelector('.doc-page .tree-search input');
+            if (searchInput) {
+                searchInput.value = '';
+                document.getElementById('search-history-dropdown')?.remove();
+            }
+
+            const viewer = document.getElementById('document-viewer');
+            if (viewer) {
+                viewer.innerHTML = DOC_VIEWER_PLACEHOLDER_HTML;
+                viewer.classList.add('items-center', 'justify-center', 'text-gray-500');
+            }
+
+            document.body.classList.remove('doc-mobile-viewer-mode');
+            document.body.classList.add('doc-mobile-toc-open');
+
+            history.replaceState(null, '', `#/shop?model=${encodeURIComponent(model)}`);
+            window.__gswPendingDocId = null;
+
+            const bannerSlot = document.getElementById('doc-version-banner-slot');
+            if (bannerSlot && window.supabaseClient) {
+                try {
+                    const userInfo = await window.authService?.getUserInfo();
+                    const meta = await fetchManualDocumentMeta(
+                        window.supabaseClient,
+                        resolveManualDocKey('정비지침서', model),
+                    );
+                    bannerSlot.innerHTML = renderManualVersionBannerHtml(meta, userInfo?.grade);
+                } catch {
+                    /* ignore */
+                }
+            }
+
+            showToast(`${modelLabel} 목차로 갱신했습니다. 문서를 다시 선택하세요.`, 'info');
         }
 
         window.navigateQQChapter = (docId) => {
@@ -1762,6 +1842,13 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
 
                 if (doc.type === 'pdf') {
                     viewer.innerHTML = pdfViewerHTML(fileBlobUrl, doc.pageRange, doc.title, doc.fileName, doc.bucket, id);
+                    if (id.startsWith('etm-')) {
+                        setTimeout(() => {
+                            void injectEtmAnchorBar(id, (page) => {
+                                showToast(`회로도 약 ${page}페이지 — PDF 뷰어에서 해당 페이지로 이동하세요.`, 'info');
+                            });
+                        }, 400);
+                    }
                 } else if (doc.type === 'image') {
                     viewer.innerHTML = imageViewerHTML(fileBlobUrl, doc.title, doc.fileName, doc.bucket);
                 }
@@ -1807,6 +1894,12 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                     </div>
 
                     ${renderResumeDocCardHtml()}
+
+                    <div id="unified-search-home" class="mb-6 bg-white rounded-xl shadow-soft p-4 border border-gray-100 relative">
+                        <label for="unified-search-input" class="block text-sm font-semibold text-gray-900 mb-2">통합 검색</label>
+                        <input type="search" id="unified-search-input" placeholder="DTC 코드·증상·정비지침·ETM 키워드 (2자 이상)" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:outline-none" autocomplete="off">
+                        <div id="unified-search-results" class="hidden absolute left-4 right-4 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg max-h-80 overflow-y-auto"></div>
+                    </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
                         ${homeLinks.map(link => `
@@ -1848,6 +1941,10 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                                 <a href="#/community" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700 hover:text-blue-600">
                                     <span class="font-medium">💬 커뮤니티</span>
                                     <span class="text-gray-500 text-xs ml-2">자유로운 소통</span>
+                                </a>
+                                <a href="#/field-notes" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700 hover:text-violet-600">
+                                    <span class="font-medium">📝 현장 기술 노트</span>
+                                    <span class="text-gray-500 text-xs ml-2">승인 후 공유</span>
                                 </a>
                             </div>
                         </div>
@@ -1899,8 +1996,15 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                 ? '왼쪽에서 DTC를 선택하면 단계별 진단·수리 가이드가 시작됩니다'
                 : '문서를 선택하세요';
             
+            const tsbPanel =
+                title === 'TSB'
+                    ? `<div id="tsb-bulletin-panel-wrap" class="lg:col-span-4 mb-2">${renderTsbBulletinPanelHtml({ modelKey: getWorkVehicle()?.maintenanceModel })}</div>`
+                    : '';
+
             return `
                 <section class="max-w-6xl mx-auto p-4 md:p-6 doc-page" data-doc-title="${title}"${isDtcManual ? ' data-doc-kind="dtc"' : ''}>
+                    <div id="doc-version-banner-slot" class="mb-3"></div>
+                    ${tsbPanel}
                     <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 doc-model-bar">
                         <h1 class="text-xl md:text-2xl font-bold text-gray-900">${title}</h1>
                         ${isMaintenanceManual ? `
@@ -2763,6 +2867,18 @@ async function renderWarrantyPage() {
                     detailEl.innerHTML += '<tr class="border-t border-gray-100"><td class="px-3 py-2">' + x.type + '</td><td class="px-3 py-2">' + x.expiryDate + '</td><td class="px-3 py-2">' + (x.expiryKm != null ? fmtNum(x.expiryKm) : '') + '</td><td class="px-3 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-bold ' + sc + '">' + x.status + '</span></td><td class="px-3 py-2">' + daysStr + '</td><td class="px-3 py-2">' + kmStr + '</td></tr>';
                 });
 
+                const wv = workVehicleFromWarrantyRow(rows, odo);
+                wv.warrantyOverall = overall;
+                setWorkVehicle(wv);
+
+                const resultEl = document.getElementById('w-result');
+                const oldCta = document.getElementById('w-vehicle-cta');
+                if (oldCta) oldCta.remove();
+                if (resultEl) {
+                    resultEl.insertAdjacentHTML('beforeend', renderWarrantyVehicleCtaHtml(wv));
+                    bindWarrantyVehicleCta(wv);
+                }
+
                 showToast('조회 완료', 'success');
             } catch (e) {
                 document.getElementById('w-loading').classList.add('hidden');
@@ -2914,6 +3030,78 @@ async function renderWarrantyPage() {
     }, 100);
 
     return warrantyHtml;
+}
+
+async function renderFieldTechNotesPage() {
+    const userInfo = await window.authService?.getUserInfo();
+    if (!userInfo) {
+        return `<div class="max-w-4xl mx-auto p-6 text-center text-red-600">로그인·등록 사용자만 이용할 수 있습니다.</div>`;
+    }
+    return renderFieldTechNotesPageHtml();
+}
+
+async function mountFieldTechNotesPage() {
+    const userInfo = await window.authService?.getUserInfo();
+    const isAdmin = canAccessAdminPortal(userInfo);
+    const listEl = document.getElementById('ftn-list');
+    if (!listEl || !window.supabaseClient) return;
+
+    const load = async () => {
+        const q = document.getElementById('ftn-search')?.value || '';
+        const notes = await fetchFieldTechNotes(window.supabaseClient, {
+            q,
+            includePending: isAdmin,
+        });
+        renderFieldTechNotesList(listEl, notes, {
+            isAdmin,
+            onApprove: async (id) => {
+                await window.supabaseClient
+                    .from('field_tech_notes')
+                    .update({ status: 'approved', reviewed_at: new Date().toISOString() })
+                    .eq('id', id);
+                showToast('노트를 승인했습니다.', 'success');
+                void load();
+            },
+        });
+    };
+
+    document.getElementById('ftn-submit')?.addEventListener('click', async () => {
+        const title = document.getElementById('ftn-title')?.value?.trim();
+        const body = document.getElementById('ftn-body')?.value?.trim();
+        if (!title || !body) {
+            showToast('제목과 본문을 입력하세요.', 'error');
+            return;
+        }
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        if (!user?.id) return;
+        const { error } = await window.supabaseClient.from('field_tech_notes').insert({
+            author_user_id: user.id,
+            title,
+            body,
+            dtc_code: document.getElementById('ftn-dtc')?.value?.trim() || null,
+            vin_masked: document.getElementById('ftn-vin-masked')?.value?.trim() || null,
+            model_key: getWorkVehicle()?.maintenanceModel || null,
+            status: 'pending',
+        });
+        if (error) {
+            showToast(error.message || '등록 실패', 'error');
+            return;
+        }
+        showToast('제출되었습니다. 승인 후 공개됩니다.', 'success');
+        document.getElementById('ftn-title').value = '';
+        document.getElementById('ftn-body').value = '';
+        void load();
+    });
+
+    document.getElementById('ftn-search')?.addEventListener('input', () => {
+        void load();
+    });
+
+    try {
+        await load();
+    } catch (e) {
+        listEl.innerHTML = `<p class="text-red-600">${escapeHtml(e.message || '')}</p>`;
+    }
 }
 
 function escapeHtml(str) {
@@ -5399,7 +5587,8 @@ async function initBusinessCardUpload() {
             '/community': (param) => param ? renderCommunityDetailPage(param) : renderCommunityListPage(),
             '/account': renderAccountPage,
             '/admin': renderAdminDashboardPage,
-            '/warranty': renderWarrantyPage
+            '/warranty': renderWarrantyPage,
+            '/field-notes': renderFieldTechNotesPage,
         };
 
         /**
@@ -5676,13 +5865,40 @@ async function initBusinessCardUpload() {
                                 if (path === '/home' || path === '') {
                                     setTimeout(() => {
                                         renderRecentNotices();
+                                        mountUnifiedSearchHome(document.getElementById('unified-search-home'));
                                     }, 100);
                                 }
 
+                                if (path === '/field-notes') {
+                                    setTimeout(() => void mountFieldTechNotesPage(), 100);
+                                }
+
                                 if (DOC_ROUTE_PATHS.includes(path)) {
+                                    const docTitle = {
+                                        '/shop': '정비지침서',
+                                        '/etm': '전장회로도',
+                                        '/dtc': 'DTC 매뉴얼',
+                                        '/wiring': '와이어링 커넥터',
+                                        '/tsb': 'TSB',
+                                    }[path];
                                     setTimeout(() => {
                                         initDocPageMobile();
                                         tryOpenDocFromHash();
+                                        const pendingDoc = window.__gswPendingDocId;
+                                        if (pendingDoc) {
+                                            setTimeout(() => {
+                                                const item = document.querySelector(
+                                                    `.tree-item[data-id="${pendingDoc}"]`,
+                                                );
+                                                if (item) item.click();
+                                                window.__gswPendingDocId = null;
+                                            }, 550);
+                                        }
+                                        void enhanceDocPageAfterRender(docTitle, path, param, {
+                                            getMaintenanceModel,
+                                            handleDocumentSelection,
+                                            handleDtcSelection,
+                                        });
                                     }, 300);
                                 }
                                 
@@ -5758,6 +5974,9 @@ async function initBusinessCardUpload() {
                 const params = new URLSearchParams(qs);
                 const model = params.get('model');
                 if (model) setMaintenanceModel(model);
+                window.__gswPendingDocId = params.get('doc') || null;
+            } else {
+                window.__gswPendingDocId = null;
             }
             
             let path = hash;
@@ -6037,48 +6256,35 @@ async function initBusinessCardUpload() {
             // 검색 (검색 히스토리 포함)
             document.addEventListener('input', (e) => {
                 if (e.target.matches('.tree-search input')) {
-                    const query = e.target.value.toLowerCase();
+                    const query = e.target.value.trim();
+                    const queryLower = query.toLowerCase();
                     saveSearchHistory(query);
                     showSearchHistory(e.target);
-                    
+
+                    const isDtcPage = !!document.querySelector('.doc-page[data-doc-kind="dtc"]');
                     const treeItems = document.querySelectorAll('.tree-item');
-                    
-                    treeItems.forEach(item => {
-                        const label = item.querySelector('.tree-label').textContent.toLowerCase();
-                        if (label.includes(query)) {
-                            item.style.display = '';
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
+
+                    if (isDtcPage && query) {
+                        const matchIds = new Set(searchDtc(query));
+                        treeItems.forEach((item) => {
+                            const id = item.getAttribute('data-id') || '';
+                            const label = item.querySelector('.tree-label')?.textContent?.toLowerCase() || '';
+                            const show = matchIds.has(id) || label.includes(queryLower);
+                            item.style.display = show ? '' : 'none';
+                        });
+                    } else {
+                        treeItems.forEach((item) => {
+                            const label = item.querySelector('.tree-label')?.textContent?.toLowerCase() || '';
+                            item.style.display = !queryLower || label.includes(queryLower) ? '' : 'none';
+                        });
+                    }
                 }
             });
 
             // 모델 선택 변경 (정비지침서)
             document.addEventListener('change', (e) => {
                 if (!e.target.matches('#model-select')) return;
-                const model = e.target.value;
-                setMaintenanceModel(model);
-                const modelLabel = MODELS.find((m) => m.value === model)?.label || model;
-                if (window.location.hash === '#/shop') {
-                    const treeContainer = document.getElementById('tree-container');
-                    if (treeContainer) {
-                        treeContainer.innerHTML = renderTree(getMaintenanceTreeData(model), 0, model === 'masada-qq');
-                    }
-                    const viewer = document.getElementById('document-viewer');
-                    if (viewer) {
-                        viewer.innerHTML = `
-                            <div class="text-center text-gray-500">
-                                <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                <p>문서를 선택하세요</p>
-                            </div>`;
-                    }
-                    showToast(`정비지침서: ${modelLabel}`, 'info');
-                } else {
-                    showToast(`차종: ${modelLabel} (정비지침서 메뉴에서 적용)`, 'info');
-                }
+                void applyMaintenanceModelChange(e.target.value);
             });
         }
 
@@ -6132,6 +6338,9 @@ async function initBusinessCardUpload() {
 
                 console.log('✅ 인증됨');
                 logSessionStartOnce();
+
+                const wvWrap = document.getElementById('work-vehicle-bar-wrap');
+                if (wvWrap) mountWorkVehicleBar(wvWrap);
 
                 // 관리자 여부 확인하여 네비게이션 필터링
                 const currentUserInfo = await window.authService?.getUserInfo();
