@@ -1209,6 +1209,8 @@ window.securityAgreement = {
                     if (window.authService?.refreshUserInfo) {
                         await window.authService.refreshUserInfo();
                     }
+
+                    window.scheduleOnboardingAfterSecurity?.();
                     
                     // 토스트 메시지 표시
                     if (window.showToast) {

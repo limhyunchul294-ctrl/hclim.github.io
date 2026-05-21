@@ -82,7 +82,7 @@ import {
     mountPortalPickerPage,
     handlePortalPickerClick,
 } from './portalPicker.js';
-import { hideAllEntrySplashes, isEntrySplashVisible } from './lineSplash.js';
+import { hideAllEntrySplashes, isEntrySplashVisible, isEntrySplashBlocking } from './lineSplash.js';
 
 // js/main.js (Final Version)
 // ✅ 수정사항: localStorage 완전 제거, authSession 사용으로 변경
@@ -6129,6 +6129,34 @@ async function initBusinessCardUpload() {
             }
         }
 
+        let securityAgreementDeferTimer = null;
+
+        function maybeShowSecurityAgreement() {
+            if (isEntrySplashBlocking()) {
+                clearTimeout(securityAgreementDeferTimer);
+                securityAgreementDeferTimer = setTimeout(maybeShowSecurityAgreement, 500);
+                return;
+            }
+            const parsed = parseRouteFromHash(window.location.hash);
+            if (parsed.path === '/portal') return;
+            if (!getProductLine()) return;
+            if (document.getElementById('security-agreement-popup')) return;
+            void window.securityAgreement?.checkAndShow();
+        }
+
+        function scheduleOnboardingAfterSecurity() {
+            const tryOnboarding = () => {
+                if (document.getElementById('security-agreement-popup')) {
+                    setTimeout(tryOnboarding, 800);
+                    return;
+                }
+                checkAndShowOnboarding();
+            };
+            setTimeout(tryOnboarding, 500);
+        }
+
+        window.scheduleOnboardingAfterSecurity = scheduleOnboardingAfterSecurity;
+
         async function routerHandler() {
             const isAuthenticated = await window.authSession.isAuthenticated();
             
@@ -6196,6 +6224,7 @@ async function initBusinessCardUpload() {
 
             await router(path, param);
             highlightNav(window.location.hash || getDefaultHomeHash(activeLine));
+            maybeShowSecurityAgreement();
         }
 
         // ---- 8. 최근 공지사항 렌더링 ----
@@ -6596,10 +6625,8 @@ async function initBusinessCardUpload() {
                 if (getProductLine() && initPath !== '/portal') {
                     showToast('환영합니다!', 'success');
                 }
-                window.securityAgreement?.checkAndShow();
-                setTimeout(() => {
-                    checkAndShowOnboarding();
-                }, 500);
+                maybeShowSecurityAgreement();
+                scheduleOnboardingAfterSecurity();
 
                 console.log('✅ 앱 초기화 완료');
                 
@@ -7910,6 +7937,8 @@ async function initBusinessCardUpload() {
          * 첫 방문 여부 확인 및 온보딩 가이드 표시
          */
         function checkAndShowOnboarding() {
+            if (document.getElementById('security-agreement-popup')) return;
+
             const onboardingCompletedKey = 'evkmc_onboarding_completed';
             const onboardingCountKey = 'evkmc_onboarding_count';
             const maxOnboardingCount = 3;

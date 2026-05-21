@@ -70,3 +70,19 @@ export function showEntrySplashForLine(line, onDone) {
 export function isEntrySplashVisible() {
     return !!entrySplashTimer;
 }
+
+function isSplashElementBlocking(el) {
+    if (!el) return false;
+    if (el.classList.contains('hidden')) return false;
+    if (el.style.display === 'none') return false;
+    const opacity = parseFloat(el.style.opacity);
+    if (!Number.isNaN(opacity) && opacity <= 0) return false;
+    return el.style.display === 'flex' || getComputedStyle(el).display !== 'none';
+}
+
+/** 입장 스플래시(5초·페이드아웃) 동안 보안서약서 등 모달 지연 */
+export function isEntrySplashBlocking() {
+    if (entrySplashTimer) return true;
+    const { van, qq } = getSplashEls();
+    return isSplashElementBlocking(van) || isSplashElementBlocking(qq);
+}
