@@ -29,6 +29,7 @@ EVKMC A/S 정비 포털(GSW) 운영·배포·보안을 정기적으로 점검하
 | 항목 | 관리 |
 |------|------|
 | 마이그레이션 | `supabase/migrations/` — 원격 반영 이력 유지 |
+| CLI로 원격 반영 | `supabase link --project-ref sesedcotooihnpjklqzs`(최초 1회). 적용: **`.\scripts\supabase-db-push.ps1`** — `$env:SUPABASE_DB_PASSWORD`(Pooler) 또는 Pooler에서 `28P01`이면 Dashboard **Database → Connection string → Direct(URI)** 전체를 `$env:SUPABASE_DB_PUSH_URL`로 설정. 비밀번호는 채팅·로그에 남기지 말 것 |
 | QQ 정비지침 PDF | `QQ_SM/*.pdf` 수정 후 `.\scripts\upload-qq-sm-pdfs.ps1 -Chapter NN` |
 | DTC 매뉴얼 데이터 | `DTC/dtc_data.json`(XLSX 시트 구조) 수정 후 `npm run build:dtc` → `js/dtcData.js` 커밋. 웹 UI는 [`js/dtcWorkflow.js`](../../js/dtcWorkflow.js) 단계별 진단(개요→부위→배선→도면→완료), `localStorage` 세션 저장 |
 | DTC 도면 매핑 | `DTC/images/dtc/mappings.json` (원본 PNG/JPG는 Git 제외, `DTC/images/dtc/**`) |
@@ -36,6 +37,54 @@ EVKMC A/S 정비 포털(GSW) 운영·배포·보안을 정기적으로 점검하
 | Storage 경로 | `manual/MASADA-QQ/qq-NN.pdf` ([`js/maintenanceManualMappingQQ.js`](../../js/maintenanceManualMappingQQ.js)) |
 | RLS·게시판 | 마이그레이션 `016`~`029` 및 Dashboard 정책 |
 | 활동 로그 | 마이그레이션 `030` (`portal_activity_log`) — 사용자는 본인 행만 INSERT, 관리자만 SELECT/파기용 DELETE |
+
+### Supabase CLI로 마이그레이션 원격 적용 (`db push`)
+
+1. **CLI 설치 확인**: `supabase --version` (미설치 시 [Supabase CLI 설치 가이드](https://supabase.com/docs/guides/cli/getting-started))
+2. **프로젝트 루트로 이동**: 저장소 최상단 (예: `D:\GSW`)
+3. **프로젝트 연결(최초 1회)**:  
+   `supabase link --project-ref sesedcotooihnpjklqzs`  
+   프롬프트가 나오면 Dashboard 계정 로그인·프로젝트 선택 등 안내 따름
+4. **DB 접속 정보 설정** — 둘 중 **하나만** 선택:
+   - **방법 A (일반)**  
+     Dashboard → **Database** → **Database password**(또는 방금 리셋한 비밀번호)  
+     PowerShell:  
+     `$env:SUPABASE_DB_PASSWORD = '비밀번호'`  
+     같은 창에서 `.\scripts\supabase-db-push.ps1` (또는 `npm run supabase:db:push`)
+   - **방법 B (Pooler 오류 `28P01` 등)**  
+     Dashboard → **Database** → **Connection string** → **Direct** 또는 **URI** → 전체 문자열 복사  
+     PowerShell:  
+     `$env:SUPABASE_DB_PUSH_URL = 'postgresql://postgres:...@db.<ref>.supabase.co:5432/postgres'`  
+     같은 창에서 `.\scripts\supabase-db-push.ps1` (Pooler/`28P01` 회피에 유리)
+5. **성공 확인**: 터미널에 마이그레이션 적용 완료 메시지. Dashboard **SQL Editor**에서 `select to_regclass('public.portal_activity_log');` 결과가 비어 있지 않으면 테이블 생성됨  
+6. **보안**: DB 비밀번호·연결 문자열은 **Git·채팅에 넣지 말 것**. 적용 후 `Remove-Item Env:SUPABASE_DB_PASSWORD, Env:SUPABASE_DB_PUSH_URL -ErrorAction SilentlyContinue`
+
+내부적으로는 [`scripts/supabase-db-push.ps1`](../../scripts/supabase-db-push.ps1) 가 `supabase db push ... --yes` 를 호출합니다 (`SUPABASE_DB_PUSH_URL`이 있으면 `--db-url` 우선).
+
+### PowerShell에서 반복되는 오류·점검
+
+- **환경 변수는 같은 창에서** 설정한 직후 **같은 창에서** 실행하세요(`$env:`는 세션별). Cursor/터미널 탭마다 초기화됩니다.
+- `28P01`이면 방법 B(Direct URI) 우선.**Pooler 문자열**(호스트가 `*.pooler.supabase.com`, 사용자명이 `postgres.xxx`)은 쓰지 말고, Dashboard의 **직접(Direct)** 문자열만 사용합니다.
+- **비밀번호에 `@ # % ?` 등**이 들어 있으면 URI 안의 비밀번호 부분만 [URL 인코딩](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding)(예: `@`→`%40`)해야 합니다. 그렇지 않으면 파싱이 깨져 `28P01`처럼 보일 수 있습니다.
+- `SUPABASE_DB_PUSH_URL`과 `SUPABASE_DB_PASSWORD`를 **동시에** 두지 않거나, 우선 PUSH URL만 두고 테스트해 보세요(스크립트는 PUSH URL 우선).
+
+**실행 순서 예시**(Direct URI 방식):
+
+```powershell
+cd D:\GSW
+$env:SUPABASE_DB_PUSH_URL = '<Dashboard에서 복사한 postgres Direct URI 한 줄>'
+# npm을 거치지 않고 같은 세션에서 직접 호출(VS Code 작업 등에서 환경이 비는 경우 줄어듭니다)
+.\scripts\supabase-db-push.ps1
+```
+
+여전히 실패하면 터미널 **`supabase`** 오류 줄만 붙여서 내부에 비밀번호·호스트 포함 여부 확인 후 검토하면 됩니다(비밀값은 채팅에 넣지 말 것).
+
+### CLI 없이 적용(SQL Editor 대안)
+
+Pooler/CLI 비밀이 계속 막히면 **Supabase Dashboard → SQL Editor**에서 [`supabase/migrations/030_portal_activity_log.sql`](../../supabase/migrations/030_portal_activity_log.sql) 전체를 붙여넣고 **한 번에 실행**해도 동일한 DDL·RLS가 적용됩니다(브라우저 로그인 세션만 있으면 됨).
+
+적용 확인: `select to_regclass('public.portal_activity_log');`  
+수동 적용 후에도 원격 마이그레이션 이력이 CLI와 안 맞을 수 있습니다. 나중에 `db push`를 다시 쓸 때 같은 파일이 “미적용”으로 보이면 [migration repair](https://supabase.com/docs/reference/cli/supabase-migration-repair)로 해당 버전을 `applied`로 맞추거나, 일정 기간 동안 DDL은 SQL Editor만 쓰는 방식으로 통일하면 됩니다.
 
 ## 4. 사용자·콘텐츠
 

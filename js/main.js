@@ -3372,7 +3372,7 @@ async function renderAdminDashboardPage() {
 
                 if (rows.length === 0) {
                     tbody.innerHTML =
-                        '<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">기간 내 기록이 없습니다.</td></tr>';
+                        '<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">기간 내 기록이 없습니다. 로그인·메뉴 이동 후 새로고침해 보세요. (배포 직후에는 이용이 쌓이기 전까지 비어 있을 수 있습니다.)</td></tr>';
                     return;
                 }
 
@@ -3400,8 +3400,9 @@ async function renderAdminDashboardPage() {
                     .join('');
             } catch (e) {
                 console.error('이용 로그 조회 오류:', e);
+                const msg = escapeHtml(e?.message || e?.error_description || String(e));
                 tbody.innerHTML =
-                    '<tr><td colspan="6" class="px-4 py-6 text-center text-red-600">목록을 불러오지 못했습니다.</td></tr>';
+                    `<tr><td colspan="6" class="px-4 py-6 text-center text-red-600">목록을 불러오지 못했습니다.<br/><span class="text-xs font-mono mt-2 inline-block">${msg}</span><br/><span class="text-xs text-gray-500 mt-1">관리자 계정(role=admin)·마이그레이션 030·031 적용 여부를 확인하세요.</span></td></tr>`;
             }
         }
 

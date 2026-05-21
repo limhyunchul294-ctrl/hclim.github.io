@@ -12,7 +12,8 @@
     "lint": "eslint src --ext .js,.jsx",
     "upload:qq-sm": "node scripts/upload-qq-sm-pdfs.mjs",
     "build:dtc": "node scripts/build-dtc-data.mjs",
-    "upload:dtc": "node scripts/upload-dtc-images.mjs"
+    "upload:dtc": "node scripts/upload-dtc-images.mjs",
+    "supabase:db:push": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/supabase-db-push.ps1"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",

@@ -59,7 +59,7 @@ CREATE POLICY portal_activity_log_insert_own
 ON public.portal_activity_log
 FOR INSERT
 TO authenticated
-WITH CHECK (actor_user_id = auth.uid());
+WITH CHECK (auth.uid() IS NOT NULL);
 
 DROP POLICY IF EXISTS portal_activity_log_select_admin ON public.portal_activity_log;
 CREATE POLICY portal_activity_log_select_admin

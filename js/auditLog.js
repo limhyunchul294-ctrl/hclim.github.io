@@ -15,10 +15,10 @@ function safePayload(payload) {
 /** @param {PortalActivityOpts} opts */
 export async function logPortalActivity({ eventType, resourceCategory = null, resourceKey = null, payload = {} }) {
     try {
-        if (!window.supabaseClient?.from || !eventType) return;
+        if (!window.supabaseClient?.from || !eventType) return false;
 
-        const session = await window.authSession?.getSession?.().catch(() => null);
-        if (!session?.user?.id) return;
+        const { data: { user }, error: userError } = await window.supabaseClient.auth.getUser();
+        if (userError || !user?.id) return false;
 
         const row = {
             event_type: eventType,
@@ -30,9 +30,12 @@ export async function logPortalActivity({ eventType, resourceCategory = null, re
         const { error } = await window.supabaseClient.from('portal_activity_log').insert(row);
         if (error) {
             console.warn('[portal_activity_log]', error.message || error);
+            return false;
         }
+        return true;
     } catch (e) {
         console.warn('[portal_activity_log]', e);
+        return false;
     }
 }
 
@@ -54,21 +57,27 @@ export function logRouteViewDebounced(routeFull) {
     });
 }
 
-/** 브라우저 세션(storage)당 1회 session_start */
+/** 브라우저 세션(storage)당 1회 session_start — INSERT 성공 시에만 플래그 저장 */
 export function logSessionStartOnce() {
     try {
         if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SESSION_START_FLAG)) {
             return;
         }
-        if (typeof sessionStorage !== 'undefined') {
-            sessionStorage.setItem(SESSION_START_FLAG, '1');
-        }
     } catch {
-        // sessionStorage 차단 등 — 한 번이라도 로그 시도
+        // sessionStorage 차단 시에도 1회 시도
     }
     void logPortalActivity({
         eventType: 'session_start',
         resourceCategory: 'auth',
         payload: {},
+    }).then((ok) => {
+        if (!ok) return;
+        try {
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.setItem(SESSION_START_FLAG, '1');
+            }
+        } catch {
+            /* ignore */
+        }
     });
 }
