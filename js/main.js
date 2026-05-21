@@ -36,9 +36,12 @@ import { requireSupervisorEmailStepUp } from './supervisorStepUp.js';
 import {
     parseWarrantyCsvText,
     countExistingWarrantyVins,
-    warrantyRowsToCsvText,
     WARRANTY_CSV_HEADER_MAP,
 } from './warrantyCsvImport.js';
+import {
+    WARRANTY_TAIL_DISPLAY_LIMIT,
+    openWarrantyMasterExportGate,
+} from './warrantyMasterExport.js';
 
 // js/main.js (Final Version)
 // ✅ 수정사항: localStorage 완전 제거, authSession 사용으로 변경
@@ -3401,10 +3404,7 @@ async function renderAdminDashboardPage() {
                     반영 기준선을 불러오는 중…
                 </div>
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-4">
-                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-                        <h3 class="font-semibold text-gray-900">업로드 반영 기준 — DB 최말단 데이터</h3>
-                        <button type="button" id="warranty-tail-csv-download" class="text-xs px-3 py-1.5 border border-sky-300 text-sky-800 rounded-lg hover:bg-sky-50">최말단 200건 CSV 받기</button>
-                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-3">업로드 반영 기준 — DB 최말단 데이터</h3>
                     <p class="text-sm text-gray-600 mb-3">마스터 전체 파일이 아니어도 됩니다. 아래 표가 <strong>지금 DB에 올라간 끝 기준</strong>입니다. 이 목록·출고일자 이후에 필요한 차량만 CSV에 넣어 추가 업로드하세요.</p>
                     <div id="warranty-latest-tail-wrap" class="overflow-x-auto max-h-[min(420px,50vh)] overflow-y-auto border border-gray-200 rounded-lg">
                         <p class="p-4 text-gray-400 text-sm">불러오는 중…</p>
@@ -3903,9 +3903,41 @@ async function renderAdminDashboardPage() {
         // 보증 DB 현황 · CSV 업로드
         let warrantyCsvPendingRows = null;
 
-        const WARRANTY_TAIL_TABLE_LIMIT = 50;
-        const WARRANTY_TAIL_EXPORT_LIMIT = 200;
         let warrantyLatestTailRows = [];
+        let warrantyExportUnlockClicks = 0;
+        let warrantyExportUnlockTimer = null;
+        const WARRANTY_EXPORT_UNLOCK_CLICKS = 5;
+        const WARRANTY_EXPORT_UNLOCK_MS = 2000;
+
+        function resetWarrantyExportUnlock() {
+            warrantyExportUnlockClicks = 0;
+            if (warrantyExportUnlockTimer) {
+                clearTimeout(warrantyExportUnlockTimer);
+                warrantyExportUnlockTimer = null;
+            }
+        }
+
+        function bindWarrantyBaselineExportUnlock() {
+            const baselineEl = document.getElementById('warranty-db-baseline');
+            if (!baselineEl || baselineEl.dataset.exportUnlockBound === '1') return;
+            baselineEl.dataset.exportUnlockBound = '1';
+            baselineEl.addEventListener('click', (e) => {
+                if (!canManageIdentity) return;
+                if (!e.target.closest('#warranty-baseline-title')) return;
+                warrantyExportUnlockClicks += 1;
+                if (warrantyExportUnlockTimer) clearTimeout(warrantyExportUnlockTimer);
+                warrantyExportUnlockTimer = setTimeout(resetWarrantyExportUnlock, WARRANTY_EXPORT_UNLOCK_MS);
+                if (warrantyExportUnlockClicks >= WARRANTY_EXPORT_UNLOCK_CLICKS) {
+                    resetWarrantyExportUnlock();
+                    openWarrantyMasterExportGate({
+                        username: userInfo?.username || '',
+                        email: userInfo?.email || '',
+                        logActivity: (opts) => logPortalActivity(opts),
+                    });
+                }
+            });
+        }
+        bindWarrantyBaselineExportUnlock();
 
         async function loadWarrantyDbBaseline() {
             const baselineEl = document.getElementById('warranty-db-baseline');
@@ -3941,7 +3973,7 @@ async function renderAdminDashboardPage() {
                         'vin, model, year, release_date, updated_at, general_warranty_expiry, general_warranty_km',
                     )
                     .order('updated_at', { ascending: false })
-                    .limit(WARRANTY_TAIL_TABLE_LIMIT);
+                    .limit(WARRANTY_TAIL_DISPLAY_LIMIT);
                 if (tailErr) throw tailErr;
 
                 warrantyLatestTailRows = tailRows || [];
@@ -3952,7 +3984,7 @@ async function renderAdminDashboardPage() {
                 const maxRelease = newestByRelease?.[0]?.release_date || '—';
 
                 baselineEl.innerHTML = `
-                    <p class="font-semibold text-gray-900 mb-2">지금 DB 반영 기준선 (업로드 최말단)</p>
+                    <p id="warranty-baseline-title" class="font-semibold text-gray-900 mb-2 select-none">지금 DB 반영 기준선 (업로드 최말단)</p>
                     <ul class="space-y-1 text-gray-700">
                         <li><span class="text-gray-500">DB 등록 VIN:</span> <strong>${(count ?? 0).toLocaleString('ko-KR')}건</strong></li>
                         <li><span class="text-gray-500">가장 최근 반영 시각:</span> <strong>${escapeHtml(lastReflect)}</strong>
@@ -4019,33 +4051,6 @@ async function renderAdminDashboardPage() {
         }
 
         document.getElementById('warranty-db-refresh-btn')?.addEventListener('click', () => loadWarrantyDbBaseline());
-
-        document.getElementById('warranty-tail-csv-download')?.addEventListener('click', async () => {
-            try {
-                const { data, error } = await window.supabaseClient
-                    .from('warranty_data')
-                    .select(
-                        'vin, model, year, release_date, general_warranty_expiry, general_warranty_km, drivetrain_warranty_expiry, drivetrain_warranty_km, battery_warranty_expiry, battery_warranty_km, updated_at',
-                    )
-                    .order('updated_at', { ascending: false })
-                    .limit(WARRANTY_TAIL_EXPORT_LIMIT);
-                if (error) throw error;
-                if (!data?.length) {
-                    showToast('보낼 데이터가 없습니다.', 'error');
-                    return;
-                }
-                const csv = warrantyRowsToCsvText(data);
-                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `warranty-db-tail-${new Date().toISOString().slice(0, 10)}.csv`;
-                a.click();
-                URL.revokeObjectURL(a.href);
-                showToast(`최근 반영 ${data.length}건 CSV를 받았습니다. 이 뒤 행만 이어서 업로드하세요.`, 'success');
-            } catch (e) {
-                showToast(e.message || '다운로드 실패', 'error');
-            }
-        });
 
         const csvUpload = document.getElementById('warranty-csv-upload');
         const csvImportBtn = document.getElementById('warranty-csv-import-btn');
