@@ -3299,7 +3299,7 @@ async function renderAdminDashboardPage() {
                     </div>
                     <p class="text-xs text-gray-500 mt-2">${
                         canManageIdentity
-                            ? '수퍼바이저: 「수정하기」로 ID·이메일·이름·소속·역할·등급 변경. <strong>계정 생성·삭제</strong>는 본인 이메일 인증 후 가능합니다.'
+                            ? '수퍼바이저: 「수정하기」로 ID·이메일·이름·소속·역할·등급 변경. <strong>계정 삭제</strong>는 상세 화면 맨 아래에서만 가능(동의·ID 확인·이메일 인증).'
                             : isGradeOnlyOperator
                               ? '관리자: 「수정하기」를 누르면 <strong>등급</strong>만 변경할 수 있습니다. ID·이메일·역할은 이름·소속과 같이 표시만 됩니다.'
                               : '조회만 가능합니다.'
@@ -3342,7 +3342,6 @@ async function renderAdminDashboardPage() {
                                             <button type="button" class="admin-cancel-user-btn hidden text-xs px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors" data-user-id="${u.profile_id}">취소</button>
                                             <button type="button" disabled class="admin-save-user-btn text-xs px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors opacity-50 cursor-not-allowed" data-user-id="${u.profile_id}">저장</button>
                                             <button type="button" class="admin-detail-user-btn text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" data-user-idx="${allUsers.indexOf(u)}">상세</button>
-                                            ${canManageIdentity && String(u.username || '').toUpperCase().trim() !== SUPERVISOR_USERNAME ? `<button type="button" class="admin-delete-user-btn text-xs px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors" data-user-id="${u.profile_id}" data-username="${escapeHtml(u.username || '')}">삭제</button>` : ''}
                                         </td>
                                     </tr>
                                 `).join('')}
@@ -3683,38 +3682,6 @@ async function renderAdminDashboardPage() {
             });
         });
 
-        document.querySelectorAll('.admin-delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const userId = btn.dataset.userId;
-                const uname = btn.dataset.username || '';
-                if (!confirm(`「${uname}」 계정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
-
-                const ok = await requireSupervisorEmailStepUp({
-                    ...supervisorStepUpOpts(),
-                    purposeLabel: '계정 삭제',
-                });
-                if (!ok) return;
-
-                btn.disabled = true;
-                btn.textContent = '삭제 중…';
-                try {
-                    await supervisorDeletePortalUser(userId);
-                    void logPortalActivity({
-                        eventType: 'admin_user_delete',
-                        resourceCategory: 'admin',
-                        resourceKey: String(userId),
-                        payload: { profile_id: Number(userId), username: uname, source: 'supervisor' },
-                    });
-                    showToast('계정이 삭제되었습니다.', 'success');
-                    btn.closest('tr')?.remove();
-                } catch (err) {
-                    showToast(err.message || '삭제에 실패했습니다.', 'error');
-                    btn.disabled = false;
-                    btn.textContent = '삭제';
-                }
-            });
-        });
-
         document.querySelectorAll('.admin-save-user-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const userId = btn.dataset.userId;
@@ -4040,6 +4007,124 @@ async function renderAdminDashboardPage() {
                         ['명함 등록', hasCard],
                     ]) +
                     cardImageHtml;
+
+                const canDeleteThisUser =
+                    canManageIdentity &&
+                    String(u.username || '').toUpperCase().trim() !== SUPERVISOR_USERNAME;
+                if (canDeleteThisUser) {
+                    const deleteZone = document.createElement('div');
+                    deleteZone.className = 'mt-6 pt-5 border-t border-gray-200';
+                    deleteZone.innerHTML = `
+                        <p class="text-xs text-gray-400 mb-2">위험 구역</p>
+                        <button type="button" class="detail-delete-entry text-sm text-gray-500 hover:text-red-800 transition-colors">
+                            계정 삭제하기
+                        </button>
+                        <div class="detail-delete-panel hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg space-y-3 text-sm">
+                            <p class="text-red-800 font-medium">이 작업은 되돌릴 수 없습니다.</p>
+                            <p class="text-red-700 text-xs leading-relaxed">
+                                삭제 시 포털 계정·로그인 연동 정보가 제거됩니다. 실수 방지를 위해 아래 확인을 모두 완료한 뒤,
+                                본인 이메일 인증과 최종 확인을 거쳐야 합니다.
+                            </p>
+                            <label class="flex items-start gap-2 cursor-pointer">
+                                <input type="checkbox" class="detail-delete-agree mt-0.5 rounded border-red-300 text-red-700 focus:ring-red-500">
+                                <span class="text-gray-800">위 내용을 이해했으며, 이 계정을 영구 삭제하는 것에 동의합니다.</span>
+                            </label>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">삭제할 계정 ID(사번)를 정확히 입력하세요</label>
+                                <input type="text" class="detail-delete-confirm-id w-full px-3 py-2 border border-red-200 rounded-lg font-mono text-sm bg-white" placeholder="${escapeHtml(u.username || '')}" autocomplete="off">
+                            </div>
+                            <p class="detail-delete-hint text-xs text-red-600 hidden"></p>
+                            <button type="button" disabled class="detail-delete-proceed w-full px-4 py-2.5 bg-red-700 text-white rounded-lg opacity-40 cursor-not-allowed text-sm font-medium">
+                                다음: 본인 이메일 인증
+                            </button>
+                        </div>
+                    `;
+                    bodyEl.appendChild(deleteZone);
+
+                    const entryBtn = deleteZone.querySelector('.detail-delete-entry');
+                    const panel = deleteZone.querySelector('.detail-delete-panel');
+                    const agreeCb = deleteZone.querySelector('.detail-delete-agree');
+                    const confirmInput = deleteZone.querySelector('.detail-delete-confirm-id');
+                    const proceedBtn = deleteZone.querySelector('.detail-delete-proceed');
+                    const hintEl = deleteZone.querySelector('.detail-delete-hint');
+                    const expectedId = String(u.username || '').trim();
+
+                    const updateProceedState = () => {
+                        const agreed = agreeCb?.checked;
+                        const typed = (confirmInput?.value || '').trim();
+                        const idOk = typed.toUpperCase() === expectedId.toUpperCase();
+                        const ready = agreed && idOk;
+                        if (proceedBtn) {
+                            proceedBtn.disabled = !ready;
+                            proceedBtn.classList.toggle('opacity-40', !ready);
+                            proceedBtn.classList.toggle('cursor-not-allowed', !ready);
+                            proceedBtn.classList.toggle('hover:bg-red-800', ready);
+                        }
+                        if (hintEl) {
+                            if (typed && !idOk) {
+                                hintEl.textContent = '입력한 ID가 일치하지 않습니다.';
+                                hintEl.classList.remove('hidden');
+                            } else {
+                                hintEl.classList.add('hidden');
+                            }
+                        }
+                    };
+
+                    entryBtn?.addEventListener('click', () => {
+                        panel?.classList.toggle('hidden');
+                        if (panel && !panel.classList.contains('hidden')) {
+                            confirmInput?.focus();
+                        }
+                    });
+
+                    agreeCb?.addEventListener('change', updateProceedState);
+                    confirmInput?.addEventListener('input', updateProceedState);
+
+                    proceedBtn?.addEventListener('click', async () => {
+                        if (proceedBtn.disabled) return;
+
+                        const ok = await requireSupervisorEmailStepUp({
+                            ...supervisorStepUpOpts(),
+                            purposeLabel: '계정 삭제',
+                        });
+                        if (!ok) return;
+
+                        const finalMsg =
+                            `최종 확인\n\n` +
+                            `ID: ${expectedId}\n` +
+                            `이메일: ${u.email || '-'}\n\n` +
+                            `위 계정을 영구 삭제합니다. 계속하시겠습니까?`;
+                        if (!window.confirm(finalMsg)) return;
+
+                        proceedBtn.disabled = true;
+                        proceedBtn.textContent = '삭제 처리 중…';
+                        try {
+                            await supervisorDeletePortalUser(u.profile_id);
+                            void logPortalActivity({
+                                eventType: 'admin_user_delete',
+                                resourceCategory: 'admin',
+                                resourceKey: String(u.profile_id),
+                                payload: {
+                                    profile_id: Number(u.profile_id),
+                                    username: expectedId,
+                                    source: 'supervisor',
+                                },
+                            });
+                            showToast('계정이 삭제되었습니다.', 'success');
+                            overlay.remove();
+                            document
+                                .querySelector(
+                                    `.admin-user-row[data-profile-id="${u.profile_id}"]`,
+                                )
+                                ?.remove();
+                        } catch (err) {
+                            showToast(err.message || '삭제에 실패했습니다.', 'error');
+                            proceedBtn.disabled = false;
+                            proceedBtn.textContent = '다음: 본인 이메일 인증';
+                            updateProceedState();
+                        }
+                    });
+                }
 
                 const footerEl = document.createElement('div');
                 footerEl.className = 'p-4 border-t flex justify-center flex-wrap gap-2';
