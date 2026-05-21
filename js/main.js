@@ -33,6 +33,11 @@ import {
     SUPERVISOR_USERNAME,
 } from './portalAccess.js';
 import { requireSupervisorEmailStepUp } from './supervisorStepUp.js';
+import {
+    parseWarrantyCsvText,
+    countExistingWarrantyVins,
+    WARRANTY_CSV_HEADER_MAP,
+} from './warrantyCsvImport.js';
 
 // js/main.js (Final Version)
 // ✅ 수정사항: localStorage 완전 제거, authSession 사용으로 변경
@@ -3391,14 +3396,27 @@ async function renderAdminDashboardPage() {
 
             <!-- 보증 데이터 관리 탭 -->
             <div id="admin-tab-warranty" class="admin-tab-content hidden">
+                <div id="warranty-db-summary" class="mb-4 p-4 bg-sky-50 border border-sky-100 rounded-xl text-sm text-gray-700">
+                    보증 DB 현황을 불러오는 중…
+                </div>
                 <div class="bg-white rounded-xl shadow-soft p-6">
-                    <h3 class="font-semibold text-gray-900 mb-4">보증 데이터 CSV 업로드</h3>
-                    <p class="text-sm text-gray-600 mb-4">CSV 파일을 업로드하면 기존 데이터에 추가/갱신됩니다. (VIN이 동일하면 업데이트, 새 VIN은 추가)<br>
-                    <span class="text-xs text-gray-400">필수 헤더: 차대번호,차종,연식,출고일자,일반보증만료,일반보증거리,구동보증만료,구동보증거리,배터리보증만료,배터리보증거리</span></p>
-                    <div class="flex items-center gap-4 mb-4">
-                        <input type="file" id="warranty-csv-upload" accept=".csv" class="text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
-                        <button id="warranty-csv-import-btn" class="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-semibold" disabled>업로드</button>
+                    <h3 class="font-semibold text-gray-900 mb-3">보증 데이터 CSV 업로드</h3>
+                    <div class="mb-4 p-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 space-y-2">
+                        <p class="font-medium text-gray-900">업로드 안내</p>
+                        <ul class="list-disc pl-5 space-y-1 text-gray-600">
+                            <li>제조사·본사에서 받은 <strong>최신 전체 CSV</strong>를 그대로 올리면 됩니다. 일부만 올릴 필요는 없습니다.</li>
+                            <li><strong>차대번호(VIN)</strong>가 같으면 기존 행을 <strong>갱신</strong>하고, 없는 VIN만 <strong>신규 추가</strong>합니다. 동일 VIN이 DB에 두 번 쌓이지 않습니다.</li>
+                            <li>CSV 안에 같은 VIN이 여러 줄 있으면 <strong>마지막 줄만</strong> 반영합니다(파일 내 중복 자동 병합).</li>
+                            <li>업로드 후 위 「DB 현황」의 건수·최종 반영 시각이 갱신되었는지 확인하세요.</li>
+                        </ul>
+                        <p class="text-xs text-gray-500 pt-1">필수 헤더(한글): ${Object.keys(WARRANTY_CSV_HEADER_MAP).join(', ')}</p>
                     </div>
+                    <div class="flex flex-wrap items-center gap-4 mb-4">
+                        <input type="file" id="warranty-csv-upload" accept=".csv,text/csv" class="text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
+                        <button type="button" id="warranty-csv-import-btn" class="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed" disabled>업로드 실행</button>
+                        <button type="button" id="warranty-db-refresh-btn" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">현황 새로고침</button>
+                    </div>
+                    <div id="warranty-csv-preview" class="hidden mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-gray-800"></div>
                     <div id="warranty-csv-status" class="text-sm text-gray-500"></div>
                     <div id="warranty-csv-progress" class="hidden mt-3">
                         <div class="w-full bg-gray-200 rounded-full h-2"><div id="warranty-csv-bar" class="bg-sky-600 h-2 rounded-full transition-all" style="width:0%"></div></div>
@@ -3544,6 +3562,9 @@ async function renderAdminDashboardPage() {
                 document.getElementById(`admin-tab-${tab.dataset.tab}`)?.classList.remove('hidden');
                 if (tab.dataset.tab === 'activity' && canViewActivityLog) {
                     loadAdminPortalActivityLogs();
+                }
+                if (tab.dataset.tab === 'warranty') {
+                    loadWarrantyDbSummary();
                 }
             });
         });
@@ -3868,68 +3889,181 @@ async function renderAdminDashboardPage() {
             });
         });
 
-        // 보증 CSV 업로드
+        // 보증 DB 현황 · CSV 업로드
+        let warrantyCsvPendingRows = null;
+
+        async function loadWarrantyDbSummary() {
+            const el = document.getElementById('warranty-db-summary');
+            if (!el) return;
+            el.textContent = '보증 DB 현황을 불러오는 중…';
+            try {
+                const { count, error: countErr } = await window.supabaseClient
+                    .from('warranty_data')
+                    .select('*', { count: 'exact', head: true });
+                if (countErr) throw countErr;
+
+                const { data: latestRows, error: latestErr } = await window.supabaseClient
+                    .from('warranty_data')
+                    .select('updated_at, release_date')
+                    .order('updated_at', { ascending: false })
+                    .limit(1);
+                if (latestErr) throw latestErr;
+
+                const lastUpdated = latestRows?.[0]?.updated_at
+                    ? new Date(latestRows[0].updated_at).toLocaleString('ko-KR')
+                    : '—';
+
+                const { data: oldestRelease } = await window.supabaseClient
+                    .from('warranty_data')
+                    .select('release_date')
+                    .not('release_date', 'is', null)
+                    .order('release_date', { ascending: true })
+                    .limit(1);
+                const { data: newestRelease } = await window.supabaseClient
+                    .from('warranty_data')
+                    .select('release_date')
+                    .not('release_date', 'is', null)
+                    .order('release_date', { ascending: false })
+                    .limit(1);
+
+                const releaseRange =
+                    oldestRelease?.[0]?.release_date && newestRelease?.[0]?.release_date
+                        ? `${oldestRelease[0].release_date} ~ ${newestRelease[0].release_date}`
+                        : '출고일자 정보 없음';
+
+                el.innerHTML = `
+                    <p class="font-semibold text-gray-900 mb-2">현재 DB에 반영된 보증 데이터</p>
+                    <ul class="space-y-1 text-gray-700">
+                        <li><span class="text-gray-500">등록 차량(VIN) 수:</span> <strong>${(count ?? 0).toLocaleString('ko-KR')}건</strong></li>
+                        <li><span class="text-gray-500">마지막 반영 시각:</span> <strong>${escapeHtml(lastUpdated)}</strong></li>
+                        <li><span class="text-gray-500">출고일자 범위:</span> ${escapeHtml(releaseRange)}</li>
+                    </ul>
+                    <p class="text-xs text-gray-500 mt-3">최신 마스터 CSV를 올리면 동일 VIN은 갱신되고 신규 VIN만 추가됩니다. 업로드 후 이 수치가 기대한 규모인지 확인하세요.</p>
+                `;
+            } catch (e) {
+                el.innerHTML = `<p class="text-red-600">현황 조회 실패: ${escapeHtml(e.message || String(e))}</p>`;
+            }
+        }
+
+        document.getElementById('warranty-db-refresh-btn')?.addEventListener('click', () => loadWarrantyDbSummary());
+
         const csvUpload = document.getElementById('warranty-csv-upload');
         const csvImportBtn = document.getElementById('warranty-csv-import-btn');
-        csvUpload?.addEventListener('change', () => { csvImportBtn.disabled = !csvUpload.files?.length; });
+        const csvPreview = document.getElementById('warranty-csv-preview');
+
+        csvUpload?.addEventListener('change', async () => {
+            warrantyCsvPendingRows = null;
+            if (csvPreview) {
+                csvPreview.classList.add('hidden');
+                csvPreview.innerHTML = '';
+            }
+            if (!csvUpload.files?.length) {
+                if (csvImportBtn) csvImportBtn.disabled = true;
+                return;
+            }
+            const file = csvUpload.files[0];
+            try {
+                const text = await file.text();
+                const { rows, meta } = parseWarrantyCsvText(text);
+                warrantyCsvPendingRows = rows;
+                if (csvPreview) {
+                    csvPreview.classList.remove('hidden');
+                    let existingCount = 0;
+                    try {
+                        existingCount = await countExistingWarrantyVins(window.supabaseClient, rows.map((r) => r.vin));
+                    } catch (e) {
+                        console.warn('기존 VIN 조회:', e);
+                    }
+                    const newCount = Math.max(0, rows.length - existingCount);
+                    csvPreview.innerHTML = `
+                        <p class="font-medium text-gray-900 mb-2">파일 검토: ${escapeHtml(file.name)}</p>
+                        <ul class="space-y-1 text-gray-700">
+                            <li>데이터 행: ${meta.rawLineCount.toLocaleString('ko-KR')}줄 → 유효 VIN <strong>${meta.uniqueVinCount.toLocaleString('ko-KR')}건</strong> 업로드 예정</li>
+                            ${meta.duplicateLines > 0 ? `<li class="text-amber-800">파일 내 동일 VIN 중복 ${meta.duplicateLines.toLocaleString('ko-KR')}줄 → 마지막 줄만 반영(추가 행 생성 없음)</li>` : ''}
+                            ${meta.skippedInvalid > 0 ? `<li class="text-amber-800">VIN 없음/짧음으로 제외: ${meta.skippedInvalid.toLocaleString('ko-KR')}줄</li>` : ''}
+                            <li>DB 기존 VIN과 겹침(갱신 예상): <strong>${existingCount.toLocaleString('ko-KR')}건</strong></li>
+                            <li>신규 추가 예상: <strong>${newCount.toLocaleString('ko-KR')}건</strong></li>
+                        </ul>
+                        <p class="text-xs text-gray-600 mt-2">「업로드 실행」 시 VIN 기준으로 upsert 합니다. 중복 VIN 레코드는 생성되지 않습니다.</p>
+                    `;
+                }
+                if (csvImportBtn) csvImportBtn.disabled = rows.length === 0;
+            } catch (e) {
+                if (csvPreview) {
+                    csvPreview.classList.remove('hidden');
+                    csvPreview.innerHTML = `<p class="text-red-700">${escapeHtml(e.message || '파일을 읽을 수 없습니다.')}</p>`;
+                }
+                if (csvImportBtn) csvImportBtn.disabled = true;
+            }
+        });
+
         csvImportBtn?.addEventListener('click', async () => {
-            const file = csvUpload.files?.[0]; if (!file) return;
-            csvImportBtn.disabled = true; csvImportBtn.textContent = '처리 중...';
+            const file = csvUpload?.files?.[0];
+            if (!file || !warrantyCsvPendingRows?.length) {
+                showToast('먼저 CSV 파일을 선택하고 검토 결과를 확인해 주세요.', 'error');
+                return;
+            }
+
+            const rows = warrantyCsvPendingRows;
+            if (
+                !window.confirm(
+                    `보증 데이터 ${rows.length.toLocaleString('ko-KR')}건(VIN 기준)을 업로드합니다.\n\n` +
+                        `· 동일 VIN은 기존 데이터를 덮어씁니다\n` +
+                        `· 신규 VIN만 추가됩니다\n\n` +
+                        `계속하시겠습니까?`,
+                )
+            ) {
+                return;
+            }
+
+            csvImportBtn.disabled = true;
+            csvImportBtn.textContent = '처리 중...';
             const statusEl = document.getElementById('warranty-csv-status');
             const progressEl = document.getElementById('warranty-csv-progress');
             const barEl = document.getElementById('warranty-csv-bar');
             const progressText = document.getElementById('warranty-csv-progress-text');
-            progressEl.classList.remove('hidden');
+            progressEl?.classList.remove('hidden');
+            if (barEl) barEl.style.width = '0%';
+
             try {
-                const text = await file.text();
-                const lines = text.trim().split('\n');
-                if (lines.length < 2) { statusEl.textContent = '데이터가 없습니다.'; return; }
-                // 한글 헤더 → 영문 컬럼 매핑
-                const headerMap = {'차대번호':'vin','차종':'model','연식':'year','출고일자':'release_date',
-                    '일반보증만료':'general_warranty_expiry','일반보증거리':'general_warranty_km',
-                    '구동보증만료':'drivetrain_warranty_expiry','구동보증거리':'drivetrain_warranty_km',
-                    '배터리보증만료':'battery_warranty_expiry','배터리보증거리':'battery_warranty_km'};
-                const headers = lines[0].split(',').map(h => h.trim().replace(/\r/g,''));
-                const colIdx = {};
-                headers.forEach((h, i) => { if (headerMap[h]) colIdx[headerMap[h]] = i; });
-                const hasMapping = Object.keys(colIdx).length >= 1 && colIdx.vin !== undefined;
-                const rows = lines.slice(1).map(line => {
-                    const c = line.split(',');
-                    if (hasMapping) {
-                        const g = (key) => (c[colIdx[key]] || '').trim().replace(/\r/g,'');
-                        const n = (key) => { const v = parseInt(g(key)); return isNaN(v) ? null : v; };
-                        return { vin: g('vin'), model: g('model'), year: g('year'),
-                            release_date: g('release_date') || null,
-                            general_warranty_expiry: g('general_warranty_expiry') || null, general_warranty_km: n('general_warranty_km'),
-                            drivetrain_warranty_expiry: g('drivetrain_warranty_expiry') || null, drivetrain_warranty_km: n('drivetrain_warranty_km'),
-                            battery_warranty_expiry: g('battery_warranty_expiry') || null, battery_warranty_km: n('battery_warranty_km') };
-                    } else {
-                        return { vin: (c[0]||'').trim(), model: (c[1]||'').trim(), year: (c[2]||'').trim(),
-                            release_date: (c[3]||'').trim() || null,
-                            general_warranty_expiry: (c[4]||'').trim() || null, general_warranty_km: parseInt(c[5]) || null,
-                            drivetrain_warranty_expiry: (c[6]||'').trim() || null, drivetrain_warranty_km: parseInt(c[7]) || null,
-                            battery_warranty_expiry: (c[8]||'').trim() || null, battery_warranty_km: parseInt((c[9]||'').trim()) || null };
-                    }
-                }).filter(r => r.vin && r.vin.length >= 6);
-                statusEl.textContent = rows.length + '건 파싱 완료. 업로드 중...';
-                const batchSize = 200; let done = 0;
+                statusEl.textContent = `${rows.length}건(VIN 유일) 업로드 중…`;
+                const batchSize = 200;
+                let done = 0;
                 for (let i = 0; i < rows.length; i += batchSize) {
                     const batch = rows.slice(i, i + batchSize);
-                    const { error } = await window.supabaseClient.from('warranty_data').upsert(batch, { onConflict: 'vin' });
-                    if (error) { statusEl.textContent = '오류: ' + error.message; throw error; }
+                    const { error } = await window.supabaseClient
+                        .from('warranty_data')
+                        .upsert(batch, { onConflict: 'vin', ignoreDuplicates: false });
+                    if (error) {
+                        statusEl.textContent = '오류: ' + error.message;
+                        throw error;
+                    }
                     done += batch.length;
-                    const pct = Math.round(done / rows.length * 100);
-                    barEl.style.width = pct + '%';
-                    progressText.textContent = done + ' / ' + rows.length + '건 (' + pct + '%)';
+                    const pct = Math.round((done / rows.length) * 100);
+                    if (barEl) barEl.style.width = pct + '%';
+                    if (progressText) {
+                        progressText.textContent = `${done} / ${rows.length}건 (${pct}%)`;
+                    }
                 }
-                statusEl.textContent = '✅ ' + rows.length + '건 업로드 완료!';
-                showToast('보증 데이터 ' + rows.length + '건 업로드 완료', 'success');
+                statusEl.textContent = `✅ ${rows.length}건 반영 완료 (VIN 중복 없음, 기존 VIN은 갱신)`;
+                showToast(`보증 데이터 ${rows.length}건 반영 완료`, 'success');
+                warrantyCsvPendingRows = null;
+                if (csvPreview) {
+                    csvPreview.classList.add('hidden');
+                    csvPreview.innerHTML = '';
+                }
+                await loadWarrantyDbSummary();
             } catch (e) {
                 statusEl.textContent = '오류: ' + (e.message || e);
+                showToast(e.message || '업로드 실패', 'error');
             } finally {
-                csvImportBtn.disabled = false; csvImportBtn.textContent = '업로드'; csvUpload.value = '';
+                csvImportBtn.disabled = false;
+                csvImportBtn.textContent = '업로드 실행';
+                if (csvUpload) csvUpload.value = '';
             }
         });
+
+        loadWarrantyDbSummary();
 
         // 사용자 상세 보기
         document.querySelectorAll('.admin-detail-user-btn').forEach(btn => {

@@ -36,6 +36,7 @@ EVKMC A/S 정비 포털(GSW) 운영·배포·보안을 정기적으로 점검하
 | DTC Storage 업로드 | 마이그레이션 `029` 적용 후 `SUPABASE_SERVICE_ROLE_KEY` 설정 → `npm run upload:dtc` (버킷 `dtc`, 경로 `dtc/E-0420/...`) |
 | Storage 경로 | `manual/MASADA-QQ/qq-NN.pdf` ([`js/maintenanceManualMappingQQ.js`](../../js/maintenanceManualMappingQQ.js)) |
 | RLS·게시판 | 마이그레이션 `016`~`029` 및 Dashboard 정책 |
+| 보증 데이터 CSV | `warranty_data` — VIN 유니크(`036`), 관리자 탭에서 **전체 최신 CSV** upsert(동일 VIN 갱신·파일 내 중복은 마지막 줄만) |
 | 활동 로그 | 마이그레이션 `030` (`portal_activity_log`) — 사용자는 본인 행만 INSERT, **수퍼바이저(EK0V029)만** SELECT/파기용 DELETE (`034`) |
 
 ### Supabase CLI로 마이그레이션 원격 적용 (`db push`)
