@@ -25,8 +25,11 @@ import { logPortalActivity, logRouteViewDebounced, logSessionStartOnce } from '.
 import {
     canAccessAdminPortal,
     canManageUserGradesOnWeb,
+    canManageUserIdentityOnWeb,
+    isSupervisorAccount,
     formatUserGradeLabel,
     ADMIN_EDITABLE_GRADES,
+    SUPERVISOR_USERNAME,
 } from './portalAccess.js';
 
 // js/main.js (Final Version)
@@ -2958,21 +2961,47 @@ function isValidAdminEmail(email) {
 const ADMIN_USER_FIELD_DISABLED_CLASS = 'disabled:bg-gray-100 disabled:text-gray-700 disabled:cursor-not-allowed disabled:border-gray-200';
 
 function snapshotAdminUserRow(row) {
+    row.dataset.snapshotUsername = row.querySelector('.admin-username-input')?.value || '';
+    row.dataset.snapshotEmail = row.querySelector('.admin-email-input')?.value || '';
+    row.dataset.snapshotRole = row.querySelector('.admin-role-select')?.value || 'user';
     row.dataset.snapshotGrade = row.querySelector('.admin-grade-select')?.value || 'blue';
 }
 
 function restoreAdminUserRowSnapshot(row) {
+    const usernameInput = row.querySelector('.admin-username-input');
+    const emailInput = row.querySelector('.admin-email-input');
+    const roleSelect = row.querySelector('.admin-role-select');
     const gradeSelect = row.querySelector('.admin-grade-select');
+    if (usernameInput) usernameInput.value = row.dataset.snapshotUsername || '';
+    if (emailInput) emailInput.value = row.dataset.snapshotEmail || '';
+    if (roleSelect) roleSelect.value = row.dataset.snapshotRole || 'user';
     if (gradeSelect) gradeSelect.value = row.dataset.snapshotGrade || 'blue';
 }
 
-function setAdminUserRowEditMode(row, editing, canManageGrades = true) {
-    row.querySelectorAll('.admin-username-input, .admin-email-input').forEach(el => {
-        el.disabled = true;
-    });
-    const gradeSelect = row.querySelector('.admin-grade-select');
-    if (gradeSelect) {
-        gradeSelect.disabled = !editing || !canManageGrades;
+/** @param {'full' | 'grade_only' | false} editMode */
+function setAdminUserRowEditMode(row, editing, editMode = false) {
+    const allInputs = row.querySelectorAll(
+        '.admin-username-input, .admin-email-input, .admin-role-select, .admin-grade-select',
+    );
+    if (editMode === 'full') {
+        allInputs.forEach((el) => {
+            el.disabled = !editing;
+        });
+        const uname = row.querySelector('.admin-username-input')?.value?.toUpperCase().trim();
+        if (uname === SUPERVISOR_USERNAME) {
+            const usernameInput = row.querySelector('.admin-username-input');
+            if (usernameInput) usernameInput.disabled = true;
+        }
+    } else if (editMode === 'grade_only') {
+        row.querySelectorAll('.admin-username-input, .admin-email-input, .admin-role-select').forEach((el) => {
+            el.disabled = true;
+        });
+        const gradeSelect = row.querySelector('.admin-grade-select');
+        if (gradeSelect) gradeSelect.disabled = !editing;
+    } else {
+        allInputs.forEach((el) => {
+            el.disabled = true;
+        });
     }
     const editBtn = row.querySelector('.admin-edit-user-btn');
     const cancelBtn = row.querySelector('.admin-cancel-user-btn');
@@ -3045,6 +3074,7 @@ async function adminUpdateUserIdentity({ profileId, username, email, role, grade
 async function renderAdminDashboardPage() {
     const userInfo = await window.authService?.getUserInfo();
     const canManageGrades = canManageUserGradesOnWeb(userInfo);
+    const canManageIdentity = canManageUserIdentityOnWeb(userInfo);
     if (!userInfo || !canAccessAdminPortal(userInfo)) {
         return `<div class="max-w-4xl mx-auto p-6">
             <div class="bg-white rounded-xl shadow-soft p-6 text-center">
@@ -3091,15 +3121,19 @@ async function renderAdminDashboardPage() {
 
     const gradeLabel = (g) => formatUserGradeLabel(g);
     const gradeSelectHtml = (u) => {
-        if (String(u.grade || '').toLowerCase() === 'supervisor') {
-            return `<span class="text-xs font-medium text-amber-800">${formatUserGradeLabel('supervisor')}</span>`;
-        }
+        const displayGrade =
+            String(u.grade || '').toLowerCase() === 'supervisor' ? 'black' : u.grade || 'blue';
         const opts = ADMIN_EDITABLE_GRADES.map(
             (g) =>
-                `<option value="${g}" ${u.grade === g ? 'selected' : ''}>${formatUserGradeLabel(g)}</option>`,
+                `<option value="${g}" ${displayGrade === g ? 'selected' : ''}>${formatUserGradeLabel(g)}</option>`,
         ).join('');
         return `<select disabled class="admin-grade-select text-xs border border-gray-300 rounded px-2 py-1 ${ADMIN_USER_FIELD_DISABLED_CLASS}" data-user-id="${u.profile_id}">${opts}</select>`;
     };
+    const roleSelectHtml = (u) =>
+        `<select disabled class="admin-role-select text-xs border border-gray-300 rounded px-2 py-1 ${ADMIN_USER_FIELD_DISABLED_CLASS}" data-user-id="${u.profile_id}">
+            <option value="user" ${u.role !== 'admin' ? 'selected' : ''}>사용자</option>
+            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>관리자</option>
+        </select>`;
     const statusLabel = (s) => s === 'pending' ? '⏳ 대기' : s === 'approved' ? '✅ 승인' : s === 'rejected' ? '❌ 거부' : s === 'cancelled' ? '🚫 취소' : s;
     const statusBadge = (s) => s === 'pending' ? 'bg-yellow-100 text-yellow-800' : s === 'approved' ? 'bg-green-100 text-green-800' : s === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800';
 
@@ -3179,7 +3213,13 @@ async function renderAdminDashboardPage() {
             <div id="admin-tab-users" class="admin-tab-content hidden">
                 <div class="mb-4">
                     <input type="text" id="admin-user-search" placeholder="ID, 이름, 이메일, 소속으로 검색..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:outline-none">
-                    <p class="text-xs text-gray-500 mt-2">${canManageGrades ? '「수정하기」 후 <strong>등급(블루·실버·블랙)</strong>만 변경할 수 있습니다. ID·이메일·역할·계정 추가는 별도 절차입니다.' : '사용자 등급 변경은 관리자(role) 계정만 가능합니다. 조회만 할 수 있습니다.'}</p>
+                    <p class="text-xs text-gray-500 mt-2">${
+                        canManageIdentity
+                            ? '수퍼바이저: 「수정하기」 후 <strong>ID·이메일·역할·등급</strong>을 변경할 수 있습니다. (수퍼바이저 계정 ID는 고정)'
+                            : canManageGrades
+                              ? '관리자: 「등급 수정」으로 <strong>블루·실버·블랙</strong>만 변경할 수 있습니다.'
+                              : '조회만 가능합니다.'
+                    }</p>
                 </div>
                 <div class="bg-white rounded-xl shadow-soft overflow-hidden">
                     <div class="overflow-x-auto">
@@ -3206,10 +3246,11 @@ async function renderAdminDashboardPage() {
                                             <input type="email" disabled class="admin-email-input w-full min-w-[10rem] px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.email || '')}" placeholder="email@example.com" autocomplete="off">
                                         </td>
                                         <td class="px-4 py-3 text-gray-600">${u.affiliation || '-'}</td>
-                                        <td class="px-4 py-3 text-gray-700 text-xs">${u.role === 'admin' ? '관리자' : '사용자'}</td>
+                                        <td class="px-4 py-3">${canManageIdentity ? roleSelectHtml(u) : `<span class="text-gray-700 text-xs">${u.role === 'admin' ? '관리자' : '사용자'}</span>`}</td>
                                         <td class="px-4 py-3">${gradeSelectHtml(u)}</td>
                                         <td class="px-4 py-3 flex flex-wrap gap-1">
-                                            ${canManageGrades && String(u.grade || '').toLowerCase() !== 'supervisor' ? `<button type="button" class="admin-edit-user-btn text-xs px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors" data-user-id="${u.profile_id}">등급 수정</button>` : ''}
+                                            ${canManageIdentity ? `<button type="button" class="admin-edit-user-btn text-xs px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors" data-user-id="${u.profile_id}">수정하기</button>` : ''}
+                                            ${!canManageIdentity && canManageGrades ? `<button type="button" class="admin-edit-user-btn text-xs px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors" data-user-id="${u.profile_id}">등급 수정</button>` : ''}
                                             <button type="button" class="admin-cancel-user-btn hidden text-xs px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors" data-user-id="${u.profile_id}">취소</button>
                                             <button type="button" disabled class="admin-save-user-btn text-xs px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors opacity-50 cursor-not-allowed" data-user-id="${u.profile_id}">저장</button>
                                             <button type="button" class="admin-detail-user-btn text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" data-user-idx="${allUsers.indexOf(u)}">상세</button>
@@ -3426,11 +3467,13 @@ async function renderAdminDashboardPage() {
         // 사용자 행: 수정 / 취소 / 저장
         document.querySelectorAll('.admin-user-row').forEach(row => snapshotAdminUserRow(row));
 
+        const rowEditMode = canManageIdentity ? 'full' : canManageGrades ? 'grade_only' : false;
+
         document.querySelectorAll('.admin-edit-user-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const row = btn.closest('tr');
                 snapshotAdminUserRow(row);
-                setAdminUserRowEditMode(row, true, canManageGrades);
+                setAdminUserRowEditMode(row, true, rowEditMode);
             });
         });
 
@@ -3438,7 +3481,7 @@ async function renderAdminDashboardPage() {
             btn.addEventListener('click', () => {
                 const row = btn.closest('tr');
                 restoreAdminUserRowSnapshot(row);
-                setAdminUserRowEditMode(row, false, canManageGrades);
+                setAdminUserRowEditMode(row, false, false);
             });
         });
 
@@ -3448,47 +3491,110 @@ async function renderAdminDashboardPage() {
                 const row = btn.closest('tr');
                 if (row.dataset.editing !== '1') return;
 
-                const newGrade = row.querySelector('.admin-grade-select')?.value;
-                if (!newGrade || !ADMIN_EDITABLE_GRADES.includes(newGrade)) {
-                    showToast('등급을 선택해주세요.', 'error');
-                    return;
-                }
-
                 btn.textContent = '저장 중...';
                 btn.disabled = true;
                 try {
-                    const result = await adminUpdateUserIdentity({
-                        profileId: userId,
-                        username: null,
-                        email: null,
-                        role: null,
-                        grade: newGrade,
-                    });
-                    void logPortalActivity({
-                        eventType: 'admin_user_update',
-                        resourceCategory: 'admin',
-                        resourceKey: String(userId),
-                        payload: {
-                            profile_id: Number(userId),
+                    let result;
+                    if (canManageIdentity) {
+                        const newUsername = row.querySelector('.admin-username-input')?.value?.trim() || '';
+                        const newEmail = row.querySelector('.admin-email-input')?.value?.trim() || '';
+                        const newRole = row.querySelector('.admin-role-select')?.value;
+                        const newGrade = row.querySelector('.admin-grade-select')?.value;
+                        if (!newUsername) {
+                            showToast('ID(사번)를 입력해주세요.', 'error');
+                            btn.textContent = '저장';
+                            btn.disabled = false;
+                            return;
+                        }
+                        if (!newEmail || !isValidAdminEmail(newEmail)) {
+                            showToast('올바른 이메일 주소를 입력해주세요.', 'error');
+                            btn.textContent = '저장';
+                            btn.disabled = false;
+                            return;
+                        }
+                        if (!newGrade || !ADMIN_EDITABLE_GRADES.includes(newGrade)) {
+                            showToast('등급을 선택해주세요.', 'error');
+                            btn.textContent = '저장';
+                            btn.disabled = false;
+                            return;
+                        }
+                        result = await adminUpdateUserIdentity({
+                            profileId: userId,
+                            username: newUsername,
+                            email: newEmail,
+                            role: newRole,
                             grade: newGrade,
-                            fields: ['grade'],
-                            warning_only: !!result.warning,
-                        },
-                    });
-                    const idx = allUsers.findIndex(u => String(u.profile_id) === String(userId));
-                    if (idx >= 0) {
-                        allUsers[idx].grade = newGrade;
+                        });
+                        void logPortalActivity({
+                            eventType: 'admin_user_update',
+                            resourceCategory: 'admin',
+                            resourceKey: String(userId),
+                            payload: {
+                                profile_id: Number(userId),
+                                username: newUsername,
+                                email: newEmail.toLowerCase(),
+                                role: newRole,
+                                grade: newGrade,
+                                fields: ['username', 'email', 'role', 'grade'],
+                                source: 'supervisor',
+                                warning_only: !!result.warning,
+                            },
+                        });
+                        const idx = allUsers.findIndex(u => String(u.profile_id) === String(userId));
+                        if (idx >= 0) {
+                            allUsers[idx].username = newUsername;
+                            allUsers[idx].email = newEmail.toLowerCase();
+                            allUsers[idx].role = newRole;
+                            allUsers[idx].grade = newGrade;
+                        }
+                        row.dataset.search = `${newUsername.toLowerCase()} ${(allUsers[idx]?.name || '').toLowerCase()} ${newEmail.toLowerCase()} ${(allUsers[idx]?.affiliation || '').toLowerCase()}`;
+                        if (result.warning) {
+                            showToast(result.warning, 'error');
+                        } else {
+                            showToast('사용자 정보가 저장되었습니다.', 'success');
+                        }
+                    } else {
+                        const newGrade = row.querySelector('.admin-grade-select')?.value;
+                        if (!newGrade || !ADMIN_EDITABLE_GRADES.includes(newGrade)) {
+                            showToast('등급을 선택해주세요.', 'error');
+                            btn.textContent = '저장';
+                            btn.disabled = false;
+                            return;
+                        }
+                        result = await adminUpdateUserIdentity({
+                            profileId: userId,
+                            username: null,
+                            email: null,
+                            role: null,
+                            grade: newGrade,
+                        });
+                        void logPortalActivity({
+                            eventType: 'admin_user_update',
+                            resourceCategory: 'admin',
+                            resourceKey: String(userId),
+                            payload: {
+                                profile_id: Number(userId),
+                                grade: newGrade,
+                                fields: ['grade'],
+                                source: 'admin',
+                                warning_only: !!result.warning,
+                            },
+                        });
+                        const idx = allUsers.findIndex(u => String(u.profile_id) === String(userId));
+                        if (idx >= 0) {
+                            allUsers[idx].grade = newGrade;
+                        }
+                        if (result.warning) {
+                            showToast(result.warning, 'error');
+                        } else {
+                            showToast('등급이 저장되었습니다.', 'success');
+                        }
                     }
                     snapshotAdminUserRow(row);
-                    setAdminUserRowEditMode(row, false, canManageGrades);
+                    setAdminUserRowEditMode(row, false, false);
                     btn.textContent = '완료!';
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btn.classList.replace('bg-gray-800', 'bg-green-600');
-                    if (result.warning) {
-                        showToast(result.warning, 'error');
-                    } else {
-                        showToast('등급이 저장되었습니다.', 'success');
-                    }
                     setTimeout(() => {
                         btn.textContent = '저장';
                         btn.classList.replace('bg-green-600', 'bg-gray-800');
@@ -3792,7 +3898,7 @@ async function renderAccountPage() {
                                 <label class="block text-sm font-medium text-gray-700 mb-2">등급 (Grade)</label>
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 font-semibold ${userInfo?.grade === 'black' ? 'text-gray-900' : userInfo?.grade === 'silver' ? 'text-gray-600' : 'text-blue-600'}">
-                                        ${userInfo?.grade === 'black' ? '⚫ 블랙 라벨' : userInfo?.grade === 'silver' ? '⚪ 실버 라벨' : userInfo?.grade === 'blue' ? '🔵 블루 라벨' : '등급 없음'}
+                                        ${formatUserGradeLabel(userInfo?.grade)}${isSupervisorAccount(userInfo) ? ' (수퍼바이저)' : ''}
                                     </span>
                                 </div>
                                 ${userInfo?.role === 'admin' ? `
@@ -4748,7 +4854,7 @@ async function initBusinessCardUpload() {
 
             const userGrade = userInfo.grade?.toLowerCase() || null;
 
-            if (userInfo.role === 'admin' || userGrade === 'supervisor') {
+            if (userInfo.role === 'admin' || isSupervisorAccount(userInfo)) {
                 return { allowed: true, requiredGrade: null, userGrade, reason: 'portal_operator' };
             }
             
