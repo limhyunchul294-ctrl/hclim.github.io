@@ -23,9 +23,9 @@ export function canManageUserGradesOnWeb(userInfo) {
     return isPortalAdminRole(userInfo) && !isSupervisorAccount(userInfo);
 }
 
-/** EK0V029 수퍼바이저: ID·이메일·역할·등급 */
+/** EK0V029 수퍼바이저만: ID·이메일·역할·등급 (등급값 supervisor는 권한 판별에 사용하지 않음) */
 export function canManageUserIdentityOnWeb(userInfo) {
-    return isSupervisorAccount(userInfo);
+    return String(userInfo?.username || '').toUpperCase().trim() === SUPERVISOR_USERNAME;
 }
 
 /** @param {string | null | undefined} grade */
