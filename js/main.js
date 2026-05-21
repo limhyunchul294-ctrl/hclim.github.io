@@ -22,6 +22,12 @@ import {
 import { initPwaInstall } from './pwaInstall.js';
 import { redirectAuthHashToLoginIfNeeded } from './authRedirect.js';
 import { logPortalActivity, logRouteViewDebounced, logSessionStartOnce } from './auditLog.js';
+import {
+    canAccessAdminPortal,
+    canManageUserGradesOnWeb,
+    formatUserGradeLabel,
+    ADMIN_EDITABLE_GRADES,
+} from './portalAccess.js';
 
 // js/main.js (Final Version)
 // ✅ 수정사항: localStorage 완전 제거, authSession 사용으로 변경
@@ -1776,8 +1782,8 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
 
         async function renderHomePage() {
             const homeUserInfo = await window.authService?.getUserInfo();
-            const homeIsAdmin = homeUserInfo?.role === 'admin';
-            const homeLinks = NAV_LINKS.filter(link => link.type !== 'dropdown' && link.href && (!link.adminOnly || homeIsAdmin));
+            const homeCanOperate = canAccessAdminPortal(homeUserInfo);
+            const homeLinks = NAV_LINKS.filter(link => link.type !== 'dropdown' && link.href && (!link.adminOnly || homeCanOperate));
             
             return `
                 <div class="max-w-4xl mx-auto p-4 md:p-6">
@@ -2368,12 +2374,12 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                 const userInfo = await window.authService?.getUserInfo();
                 const session = await window.authSession?.getSession();
                 const isAuthor = post.author_id === session?.user?.id;
-                const isAdmin = userInfo?.role === 'admin';
+                const isPortalOperator = canAccessAdminPortal(userInfo);
                 
                 // 댓글 작성 권한 확인
                 const canCreateComment = await window.dataService?.canCreateComment() || false;
 
-                const manageButtons = (isAuthor || isAdmin) ? `
+                const manageButtons = (isAuthor || isPortalOperator) ? `
                     <div class="flex gap-2 mt-4">
                         <button onclick="openCommunityEditor(${post.id})" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
                             수정
@@ -2471,7 +2477,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                             <div id="comments-list" class="space-y-4 mb-6">
                                 ${comments.map(comment => {
                                     const isCommentAuthor = comment.author_id === session?.user?.id;
-                                    const canDeleteComment = isCommentAuthor || isAdmin;
+                                    const canDeleteComment = isCommentAuthor || isPortalOperator;
                                     return `
                                         <div class="border-b border-gray-200 pb-4 last:border-0">
                                             <div class="flex items-start justify-between">
@@ -2952,27 +2958,22 @@ function isValidAdminEmail(email) {
 const ADMIN_USER_FIELD_DISABLED_CLASS = 'disabled:bg-gray-100 disabled:text-gray-700 disabled:cursor-not-allowed disabled:border-gray-200';
 
 function snapshotAdminUserRow(row) {
-    row.dataset.snapshotUsername = row.querySelector('.admin-username-input')?.value || '';
-    row.dataset.snapshotEmail = row.querySelector('.admin-email-input')?.value || '';
-    row.dataset.snapshotRole = row.querySelector('.admin-role-select')?.value || 'user';
     row.dataset.snapshotGrade = row.querySelector('.admin-grade-select')?.value || 'blue';
 }
 
 function restoreAdminUserRowSnapshot(row) {
-    const usernameInput = row.querySelector('.admin-username-input');
-    const emailInput = row.querySelector('.admin-email-input');
-    const roleSelect = row.querySelector('.admin-role-select');
     const gradeSelect = row.querySelector('.admin-grade-select');
-    if (usernameInput) usernameInput.value = row.dataset.snapshotUsername || '';
-    if (emailInput) emailInput.value = row.dataset.snapshotEmail || '';
-    if (roleSelect) roleSelect.value = row.dataset.snapshotRole || 'user';
     if (gradeSelect) gradeSelect.value = row.dataset.snapshotGrade || 'blue';
 }
 
-function setAdminUserRowEditMode(row, editing) {
-    row.querySelectorAll('.admin-username-input, .admin-email-input, .admin-role-select, .admin-grade-select').forEach(el => {
-        el.disabled = !editing;
+function setAdminUserRowEditMode(row, editing, canManageGrades = true) {
+    row.querySelectorAll('.admin-username-input, .admin-email-input').forEach(el => {
+        el.disabled = true;
     });
+    const gradeSelect = row.querySelector('.admin-grade-select');
+    if (gradeSelect) {
+        gradeSelect.disabled = !editing || !canManageGrades;
+    }
     const editBtn = row.querySelector('.admin-edit-user-btn');
     const cancelBtn = row.querySelector('.admin-cancel-user-btn');
     const saveBtn = row.querySelector('.admin-save-user-btn');
@@ -3043,12 +3044,13 @@ async function adminUpdateUserIdentity({ profileId, username, email, role, grade
 
 async function renderAdminDashboardPage() {
     const userInfo = await window.authService?.getUserInfo();
-    if (!userInfo || userInfo.role !== 'admin') {
+    const canManageGrades = canManageUserGradesOnWeb(userInfo);
+    if (!userInfo || !canAccessAdminPortal(userInfo)) {
         return `<div class="max-w-4xl mx-auto p-6">
             <div class="bg-white rounded-xl shadow-soft p-6 text-center">
                 <div class="text-5xl mb-4">🚫</div>
                 <h2 class="text-xl font-bold text-red-600 mb-2">접근 권한 없음</h2>
-                <p class="text-gray-600">관리자만 접근할 수 있는 페이지입니다.</p>
+                <p class="text-gray-600">관리자 또는 수퍼바이저만 접근할 수 있는 페이지입니다.</p>
             </div>
         </div>`;
     }
@@ -3087,7 +3089,17 @@ async function renderAdminDashboardPage() {
         }
     } catch (e) { console.error('등급 요청 조회 오류:', e); }
 
-    const gradeLabel = (g) => g === 'black' ? '⚫ 블랙' : g === 'silver' ? '⚪ 실버' : g === 'blue' ? '🔵 블루' : '-';
+    const gradeLabel = (g) => formatUserGradeLabel(g);
+    const gradeSelectHtml = (u) => {
+        if (String(u.grade || '').toLowerCase() === 'supervisor') {
+            return `<span class="text-xs font-medium text-amber-800">${formatUserGradeLabel('supervisor')}</span>`;
+        }
+        const opts = ADMIN_EDITABLE_GRADES.map(
+            (g) =>
+                `<option value="${g}" ${u.grade === g ? 'selected' : ''}>${formatUserGradeLabel(g)}</option>`,
+        ).join('');
+        return `<select disabled class="admin-grade-select text-xs border border-gray-300 rounded px-2 py-1 ${ADMIN_USER_FIELD_DISABLED_CLASS}" data-user-id="${u.profile_id}">${opts}</select>`;
+    };
     const statusLabel = (s) => s === 'pending' ? '⏳ 대기' : s === 'approved' ? '✅ 승인' : s === 'rejected' ? '❌ 거부' : s === 'cancelled' ? '🚫 취소' : s;
     const statusBadge = (s) => s === 'pending' ? 'bg-yellow-100 text-yellow-800' : s === 'approved' ? 'bg-green-100 text-green-800' : s === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800';
 
@@ -3167,7 +3179,7 @@ async function renderAdminDashboardPage() {
             <div id="admin-tab-users" class="admin-tab-content hidden">
                 <div class="mb-4">
                     <input type="text" id="admin-user-search" placeholder="ID, 이름, 이메일, 소속으로 검색..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-800 focus:outline-none">
-                    <p class="text-xs text-gray-500 mt-2">「수정하기」를 누른 뒤 ID·이메일·역할·등급을 변경하고 「저장」하세요. 이메일 변경 시 로그인(매직링크) 주소도 함께 갱신됩니다.</p>
+                    <p class="text-xs text-gray-500 mt-2">${canManageGrades ? '「수정하기」 후 <strong>등급(블루·실버·블랙)</strong>만 변경할 수 있습니다. ID·이메일·역할·계정 추가는 별도 절차입니다.' : '사용자 등급 변경은 관리자(role) 계정만 가능합니다. 조회만 할 수 있습니다.'}</p>
                 </div>
                 <div class="bg-white rounded-xl shadow-soft overflow-hidden">
                     <div class="overflow-x-auto">
@@ -3194,21 +3206,10 @@ async function renderAdminDashboardPage() {
                                             <input type="email" disabled class="admin-email-input w-full min-w-[10rem] px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.email || '')}" placeholder="email@example.com" autocomplete="off">
                                         </td>
                                         <td class="px-4 py-3 text-gray-600">${u.affiliation || '-'}</td>
-                                        <td class="px-4 py-3">
-                                            <select disabled class="admin-role-select text-xs border border-gray-300 rounded px-2 py-1 ${ADMIN_USER_FIELD_DISABLED_CLASS}" data-user-id="${u.profile_id}">
-                                                <option value="user" ${u.role !== 'admin' ? 'selected' : ''}>사용자</option>
-                                                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>관리자</option>
-                                            </select>
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <select disabled class="admin-grade-select text-xs border border-gray-300 rounded px-2 py-1 ${ADMIN_USER_FIELD_DISABLED_CLASS}" data-user-id="${u.profile_id}">
-                                                <option value="blue" ${u.grade === 'blue' ? 'selected' : ''}>🔵 블루</option>
-                                                <option value="silver" ${u.grade === 'silver' ? 'selected' : ''}>⚪ 실버</option>
-                                                <option value="black" ${u.grade === 'black' ? 'selected' : ''}>⚫ 블랙</option>
-                                            </select>
-                                        </td>
+                                        <td class="px-4 py-3 text-gray-700 text-xs">${u.role === 'admin' ? '관리자' : '사용자'}</td>
+                                        <td class="px-4 py-3">${gradeSelectHtml(u)}</td>
                                         <td class="px-4 py-3 flex flex-wrap gap-1">
-                                            <button type="button" class="admin-edit-user-btn text-xs px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors" data-user-id="${u.profile_id}">수정하기</button>
+                                            ${canManageGrades && String(u.grade || '').toLowerCase() !== 'supervisor' ? `<button type="button" class="admin-edit-user-btn text-xs px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors" data-user-id="${u.profile_id}">등급 수정</button>` : ''}
                                             <button type="button" class="admin-cancel-user-btn hidden text-xs px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors" data-user-id="${u.profile_id}">취소</button>
                                             <button type="button" disabled class="admin-save-user-btn text-xs px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors opacity-50 cursor-not-allowed" data-user-id="${u.profile_id}">저장</button>
                                             <button type="button" class="admin-detail-user-btn text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" data-user-idx="${allUsers.indexOf(u)}">상세</button>
@@ -3279,7 +3280,7 @@ async function renderAdminDashboardPage() {
 
             <!-- 이용 로그 탭 -->
             <div id="admin-tab-activity" class="admin-tab-content hidden">
-                <p id="admin-activity-hint" class="text-sm text-gray-500 mb-3">기본 최근 7일, 최대 200건입니다.</p>
+                <p id="admin-activity-hint" class="text-sm text-gray-500 mb-3">기본 최근 7일, 최대 500건입니다.</p>
                 <div class="flex flex-wrap gap-3 items-center mb-4">
                     <label class="text-sm text-gray-600 flex items-center gap-2">
                         조회 기간
@@ -3304,12 +3305,11 @@ async function renderAdminDashboardPage() {
                                     <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">이벤트</th>
                                     <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">카테고리</th>
                                     <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[8rem]">리소스</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[10rem]">payload</th>
                                 </tr>
                             </thead>
                             <tbody id="admin-activity-tbody" class="divide-y divide-gray-100">
                                 <tr>
-                                    <td colspan="6" class="px-4 py-6 text-center text-gray-400">탭을 열면 목록을 불러옵니다.</td>
+                                    <td colspan="5" class="px-4 py-6 text-center text-gray-400">탭을 열면 목록을 불러옵니다.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -3320,16 +3320,6 @@ async function renderAdminDashboardPage() {
     `;
 
     setTimeout(() => {
-        const formatPortalPayloadSnippet = (p) => {
-            try {
-                const s = JSON.stringify(p ?? {});
-                if (s.length <= 140) return escapeHtml(s);
-                return `${escapeHtml(s.slice(0, 140))}…`;
-            } catch {
-                return '—';
-            }
-        };
-
         async function loadAdminPortalActivityLogs() {
             const tbody = document.getElementById('admin-activity-tbody');
             const hint = document.getElementById('admin-activity-hint');
@@ -3338,16 +3328,16 @@ async function renderAdminDashboardPage() {
 
             const days = Math.max(1, parseInt(daysSel?.value || '7', 10) || 7);
             tbody.innerHTML =
-                '<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">불러오는 중…</td></tr>';
+                '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">불러오는 중…</td></tr>';
 
             try {
                 const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
                 const { data: logs, error } = await window.supabaseClient
                     .from('portal_activity_log')
-                    .select('id, created_at, actor_user_id, event_type, resource_category, resource_key, payload')
+                    .select('id, created_at, actor_user_id, event_type, resource_category, resource_key')
                     .gte('created_at', cutoff)
                     .order('created_at', { ascending: false })
-                    .limit(200);
+                    .limit(500);
 
                 if (error) throw error;
 
@@ -3367,12 +3357,12 @@ async function renderAdminDashboardPage() {
 
                 if (hint) {
                     hint.textContent =
-                        `최근 ${days}일 · 최대 200건. 권장 보관 12~24개월, 분기별 삭제 배치는 GSW-ONGOING-MAINTENANCE.md를 참고합니다. 처리방침·보안서약에 로그 목적·항목·보관 기간 반영은 법무 검토가 필요합니다.`;
+                        `최근 ${days}일 · 최대 500건. 권장 보관 12~24개월, 분기별 삭제 배치는 GSW-ONGOING-MAINTENANCE.md를 참고합니다.`;
                 }
 
                 if (rows.length === 0) {
                     tbody.innerHTML =
-                        '<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">기간 내 기록이 없습니다. 로그인·메뉴 이동 후 새로고침해 보세요. (배포 직후에는 이용이 쌓이기 전까지 비어 있을 수 있습니다.)</td></tr>';
+                        '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">기간 내 기록이 없습니다. 로그인·메뉴 이동 후 새로고침해 보세요.</td></tr>';
                     return;
                 }
 
@@ -3393,7 +3383,6 @@ async function renderAdminDashboardPage() {
                                 <td class="px-3 py-2 font-mono text-xs">${escapeHtml(r.event_type)}</td>
                                 <td class="px-3 py-2 text-gray-600">${escapeHtml(r.resource_category || '—')}</td>
                                 <td class="px-3 py-2 text-xs text-gray-800 break-all">${escapeHtml(r.resource_key || '—')}</td>
-                                <td class="px-3 py-2 font-mono text-xs text-gray-600 break-all">${formatPortalPayloadSnippet(r.payload)}</td>
                             </tr>
                         `;
                     })
@@ -3402,7 +3391,7 @@ async function renderAdminDashboardPage() {
                 console.error('이용 로그 조회 오류:', e);
                 const msg = escapeHtml(e?.message || e?.error_description || String(e));
                 tbody.innerHTML =
-                    `<tr><td colspan="6" class="px-4 py-6 text-center text-red-600">목록을 불러오지 못했습니다.<br/><span class="text-xs font-mono mt-2 inline-block">${msg}</span><br/><span class="text-xs text-gray-500 mt-1">관리자 계정(role=admin)·마이그레이션 030·031 적용 여부를 확인하세요.</span></td></tr>`;
+                    `<tr><td colspan="5" class="px-4 py-6 text-center text-red-600">목록을 불러오지 못했습니다.<br/><span class="text-xs font-mono mt-2 inline-block">${msg}</span><br/><span class="text-xs text-gray-500 mt-1">관리자·수퍼바이저 권한 및 마이그레이션 030~032 적용 여부를 확인하세요.</span></td></tr>`;
             }
         }
 
@@ -3441,7 +3430,7 @@ async function renderAdminDashboardPage() {
             btn.addEventListener('click', () => {
                 const row = btn.closest('tr');
                 snapshotAdminUserRow(row);
-                setAdminUserRowEditMode(row, true);
+                setAdminUserRowEditMode(row, true, canManageGrades);
             });
         });
 
@@ -3449,7 +3438,7 @@ async function renderAdminDashboardPage() {
             btn.addEventListener('click', () => {
                 const row = btn.closest('tr');
                 restoreAdminUserRowSnapshot(row);
-                setAdminUserRowEditMode(row, false);
+                setAdminUserRowEditMode(row, false, canManageGrades);
             });
         });
 
@@ -3459,17 +3448,9 @@ async function renderAdminDashboardPage() {
                 const row = btn.closest('tr');
                 if (row.dataset.editing !== '1') return;
 
-                const newUsername = row.querySelector('.admin-username-input')?.value?.trim() || '';
-                const newEmail = row.querySelector('.admin-email-input')?.value?.trim() || '';
-                const newRole = row.querySelector('.admin-role-select').value;
-                const newGrade = row.querySelector('.admin-grade-select').value;
-
-                if (!newUsername) {
-                    showToast('ID(사번)를 입력해주세요.', 'error');
-                    return;
-                }
-                if (!newEmail || !isValidAdminEmail(newEmail)) {
-                    showToast('올바른 이메일 주소를 입력해주세요.', 'error');
+                const newGrade = row.querySelector('.admin-grade-select')?.value;
+                if (!newGrade || !ADMIN_EDITABLE_GRADES.includes(newGrade)) {
+                    showToast('등급을 선택해주세요.', 'error');
                     return;
                 }
 
@@ -3478,10 +3459,10 @@ async function renderAdminDashboardPage() {
                 try {
                     const result = await adminUpdateUserIdentity({
                         profileId: userId,
-                        username: newUsername,
-                        email: newEmail,
-                        role: newRole,
-                        grade: newGrade
+                        username: null,
+                        email: null,
+                        role: null,
+                        grade: newGrade,
                     });
                     void logPortalActivity({
                         eventType: 'admin_user_update',
@@ -3489,30 +3470,24 @@ async function renderAdminDashboardPage() {
                         resourceKey: String(userId),
                         payload: {
                             profile_id: Number(userId),
-                            username: newUsername,
-                            email: newEmail.toLowerCase(),
-                            role: newRole,
                             grade: newGrade,
+                            fields: ['grade'],
                             warning_only: !!result.warning,
                         },
                     });
                     const idx = allUsers.findIndex(u => String(u.profile_id) === String(userId));
                     if (idx >= 0) {
-                        allUsers[idx].username = newUsername;
-                        allUsers[idx].email = newEmail.toLowerCase();
-                        allUsers[idx].role = newRole;
                         allUsers[idx].grade = newGrade;
                     }
-                    row.dataset.search = `${newUsername.toLowerCase()} ${(allUsers[idx]?.name || '').toLowerCase()} ${newEmail.toLowerCase()} ${(allUsers[idx]?.affiliation || '').toLowerCase()}`;
                     snapshotAdminUserRow(row);
-                    setAdminUserRowEditMode(row, false);
+                    setAdminUserRowEditMode(row, false, canManageGrades);
                     btn.textContent = '완료!';
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btn.classList.replace('bg-gray-800', 'bg-green-600');
                     if (result.warning) {
                         showToast(result.warning, 'error');
                     } else {
-                        showToast('사용자 정보가 저장되었습니다.', 'success');
+                        showToast('등급이 저장되었습니다.', 'success');
                     }
                     setTimeout(() => {
                         btn.textContent = '저장';
@@ -3701,30 +3676,15 @@ async function renderAdminDashboardPage() {
                     cardImageHtml = '<div class="border rounded-lg overflow-hidden mt-4"><div class="bg-gray-50 px-4 py-2 font-semibold text-sm text-gray-700">명함 이미지</div><div class="p-4 flex justify-center bg-white"><img src="' + cardImageUrl + '" alt="명함" class="max-w-full max-h-64 rounded-lg shadow-sm object-contain" onerror="this.parentElement.innerHTML=\'<p class=\\\'text-sm text-gray-400 text-center py-4\\\'>이미지를 불러올 수 없습니다</p>\'"></div></div>';
                 }
 
-                const editAccountHtml = `
-                    <div class="border rounded-lg overflow-hidden mb-4">
-                        <div class="bg-sky-50 px-4 py-2 font-semibold text-sm text-sky-900">로그인 정보</div>
-                        <div class="p-4 space-y-3">
-                            <label class="block text-sm">
-                                <span class="text-gray-600 mb-1 block">ID (사번)</span>
-                                <input type="text" id="admin-detail-username" disabled class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.username || '')}" autocomplete="off">
-                            </label>
-                            <label class="block text-sm">
-                                <span class="text-gray-600 mb-1 block">이메일 (매직링크)</span>
-                                <input type="email" id="admin-detail-email" disabled class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.email || '')}" autocomplete="off">
-                            </label>
-                            <p class="text-xs text-gray-500">「수정하기」 후 변경하고 「저장」하면 public.users와 auth.users 이메일이 동기화됩니다.</p>
-                        </div>
-                    </div>
-                `;
-
-                bodyEl.innerHTML = editAccountHtml +
-                    section('기타 계정 정보', [
+                bodyEl.innerHTML =
+                    section('계정 정보', [
+                        ['ID (사번)', escapeHtml(u.username || '-')],
+                        ['이메일', escapeHtml(u.email || '-')],
                         ['이름', escapeHtml(u.name || '-')],
                         ['연락처', escapeHtml(u.phone || '-')],
                         ['소속', escapeHtml(u.affiliation || '-')],
                         ['역할', u.role === 'admin' ? '관리자' : '사용자'],
-                        ['등급', u.grade === 'black' ? '⚫ 블랙' : u.grade === 'silver' ? '⚪ 실버' : '🔵 블루'],
+                        ['등급', formatUserGradeLabel(u.grade)],
                     ]) +
                     section('보안서약서', [
                         ['동의 여부', agreeStatus],
@@ -3740,26 +3700,10 @@ async function renderAdminDashboardPage() {
 
                 const footerEl = document.createElement('div');
                 footerEl.className = 'p-4 border-t flex justify-center flex-wrap gap-2';
-                const editDetailBtn = document.createElement('button');
-                editDetailBtn.type = 'button';
-                editDetailBtn.className = 'admin-detail-edit-btn px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium';
-                editDetailBtn.textContent = '수정하기';
-                const cancelDetailBtn = document.createElement('button');
-                cancelDetailBtn.type = 'button';
-                cancelDetailBtn.className = 'admin-detail-cancel-btn hidden px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium';
-                cancelDetailBtn.textContent = '취소';
-                const saveDetailBtn = document.createElement('button');
-                saveDetailBtn.type = 'button';
-                saveDetailBtn.disabled = true;
-                saveDetailBtn.className = 'admin-detail-save-btn px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-medium opacity-50 cursor-not-allowed';
-                saveDetailBtn.textContent = '저장';
                 const closeBtn = document.createElement('button');
                 closeBtn.type = 'button';
                 closeBtn.className = 'px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium';
                 closeBtn.textContent = '닫기';
-                footerEl.appendChild(editDetailBtn);
-                footerEl.appendChild(cancelDetailBtn);
-                footerEl.appendChild(saveDetailBtn);
                 footerEl.appendChild(closeBtn);
 
                 modal.appendChild(headerEl);
@@ -3767,91 +3711,6 @@ async function renderAdminDashboardPage() {
                 modal.appendChild(footerEl);
                 overlay.appendChild(modal);
                 document.body.appendChild(overlay);
-
-                const detailSnapshot = {
-                    username: u.username || '',
-                    email: u.email || ''
-                };
-
-                const syncTableRow = (username, email) => {
-                    const tableRow = document.querySelector(`tr[data-profile-id="${u.profile_id}"]`);
-                    if (tableRow) {
-                        const userInput = tableRow.querySelector('.admin-username-input');
-                        const emailInput = tableRow.querySelector('.admin-email-input');
-                        if (userInput) userInput.value = username;
-                        if (emailInput) emailInput.value = email;
-                        tableRow.dataset.search = `${username.toLowerCase()} ${(u.name || '').toLowerCase()} ${email.toLowerCase()} ${(u.affiliation || '').toLowerCase()}`;
-                        snapshotAdminUserRow(tableRow);
-                        setAdminUserRowEditMode(tableRow, false);
-                    }
-                    u.username = username;
-                    u.email = email;
-                    detailSnapshot.username = username;
-                    detailSnapshot.email = email;
-                };
-
-                editDetailBtn.addEventListener('click', () => {
-                    detailSnapshot.username = modal.querySelector('#admin-detail-username')?.value || '';
-                    detailSnapshot.email = modal.querySelector('#admin-detail-email')?.value || '';
-                    setAdminDetailEditMode(modal, true);
-                });
-
-                cancelDetailBtn.addEventListener('click', () => {
-                    setAdminDetailEditMode(modal, false, detailSnapshot);
-                });
-
-                saveDetailBtn.addEventListener('click', async () => {
-                    if (saveDetailBtn.disabled) return;
-                    const newUsername = modal.querySelector('#admin-detail-username')?.value?.trim() || '';
-                    const newEmail = modal.querySelector('#admin-detail-email')?.value?.trim() || '';
-                    if (!newUsername) {
-                        showToast('ID(사번)를 입력해주세요.', 'error');
-                        return;
-                    }
-                    if (!isValidAdminEmail(newEmail)) {
-                        showToast('올바른 이메일 주소를 입력해주세요.', 'error');
-                        return;
-                    }
-                    saveDetailBtn.disabled = true;
-                    saveDetailBtn.textContent = '저장 중...';
-                    try {
-                        const result = await adminUpdateUserIdentity({
-                            profileId: u.profile_id,
-                            username: newUsername,
-                            email: newEmail,
-                            role: u.role,
-                            grade: u.grade
-                        });
-                        void logPortalActivity({
-                            eventType: 'admin_user_update',
-                            resourceCategory: 'admin',
-                            resourceKey: String(u.profile_id),
-                            payload: {
-                                profile_id: Number(u.profile_id),
-                                username: newUsername,
-                                email: newEmail.toLowerCase(),
-                                role: u.role,
-                                grade: u.grade,
-                                source: 'admin_detail_modal',
-                                warning_only: !!result.warning,
-                            },
-                        });
-                        syncTableRow(newUsername, newEmail.toLowerCase());
-                        if (result.warning) {
-                            showToast(result.warning, 'error');
-                        } else {
-                            showToast('로그인 정보가 저장되었습니다.', 'success');
-                        }
-                        setAdminDetailEditMode(modal, false);
-                        saveDetailBtn.textContent = '저장';
-                    } catch (e) {
-                        console.error('상세 저장 오류:', e);
-                        showToast(e.message || '저장에 실패했습니다.', 'error');
-                        saveDetailBtn.disabled = false;
-                        saveDetailBtn.textContent = '저장';
-                        saveDetailBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    }
-                });
 
                 closeBtn.addEventListener('click', () => overlay.remove());
                 overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
@@ -4888,6 +4747,10 @@ async function initBusinessCardUpload() {
             }
 
             const userGrade = userInfo.grade?.toLowerCase() || null;
+
+            if (userInfo.role === 'admin' || userGrade === 'supervisor') {
+                return { allowed: true, requiredGrade: null, userGrade, reason: 'portal_operator' };
+            }
             
             // 문서별 필요한 최소 grade
             const documentGradeMap = {
@@ -5605,8 +5468,8 @@ async function initBusinessCardUpload() {
 
                 // 관리자 여부 확인하여 네비게이션 필터링
                 const currentUserInfo = await window.authService?.getUserInfo();
-                const isAdmin = currentUserInfo?.role === 'admin';
-                const visibleNavLinks = NAV_LINKS.filter(link => !link.adminOnly || isAdmin);
+                const canOperatePortal = canAccessAdminPortal(currentUserInfo);
+                const visibleNavLinks = NAV_LINKS.filter(link => !link.adminOnly || canOperatePortal);
 
                 if (desktopNav) {
                     desktopNav.innerHTML = visibleNavLinks.map(link => {
