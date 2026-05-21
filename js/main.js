@@ -2960,10 +2960,21 @@ function isValidAdminEmail(email) {
 
 const ADMIN_USER_FIELD_DISABLED_CLASS = 'disabled:bg-gray-100 disabled:text-gray-700 disabled:cursor-not-allowed disabled:border-gray-200';
 
+function getAdminRowTextValue(row, inputSelector, displaySelector) {
+    const input = row.querySelector(inputSelector);
+    if (input) return input.value || '';
+    const display = row.querySelector(displaySelector);
+    if (display) return (display.textContent || '').trim();
+    return '';
+}
+
 function snapshotAdminUserRow(row) {
-    row.dataset.snapshotUsername = row.querySelector('.admin-username-input')?.value || '';
-    row.dataset.snapshotEmail = row.querySelector('.admin-email-input')?.value || '';
-    row.dataset.snapshotRole = row.querySelector('.admin-role-select')?.value || 'user';
+    row.dataset.snapshotUsername = getAdminRowTextValue(row, '.admin-username-input', '.admin-username-display');
+    row.dataset.snapshotEmail = getAdminRowTextValue(row, '.admin-email-input', '.admin-email-display');
+    const roleSelect = row.querySelector('.admin-role-select');
+    row.dataset.snapshotRole = roleSelect
+        ? roleSelect.value
+        : row.querySelector('.admin-role-display')?.dataset.role || 'user';
     row.dataset.snapshotGrade = row.querySelector('.admin-grade-select')?.value || 'blue';
 }
 
@@ -2995,6 +3006,10 @@ function setAdminUserRowEditMode(row, editing, editMode = false) {
     } else if (editMode === 'grade_only') {
         row.querySelectorAll('.admin-username-input, .admin-email-input, .admin-role-select').forEach((el) => {
             el.disabled = true;
+            el.readOnly = true;
+        });
+        row.querySelectorAll('.admin-username-display, .admin-email-display, .admin-role-display').forEach((el) => {
+            el.classList.add('select-none');
         });
         const gradeSelect = row.querySelector('.admin-grade-select');
         if (gradeSelect) gradeSelect.disabled = !editing;
@@ -3217,7 +3232,7 @@ async function renderAdminDashboardPage() {
                         canManageIdentity
                             ? '수퍼바이저: 「수정하기」 후 <strong>ID·이메일·역할·등급</strong>을 변경할 수 있습니다. (수퍼바이저 계정 ID는 고정)'
                             : canManageGrades
-                              ? '관리자: 「등급 수정」으로 <strong>블루·실버·블랙</strong>만 변경할 수 있습니다.'
+                              ? '관리자: 「수정하기」 후 <strong>등급(블루·실버·블랙)</strong>만 변경할 수 있습니다. ID·이메일·역할은 수정할 수 없습니다.'
                               : '조회만 가능합니다.'
                     }</p>
                 </div>
@@ -3237,20 +3252,24 @@ async function renderAdminDashboardPage() {
                             </thead>
                             <tbody id="admin-users-tbody" class="divide-y divide-gray-100">
                                 ${allUsers.map(u => `
-                                    <tr class="admin-user-row hover:bg-gray-50" data-search="${(u.username||'').toLowerCase()} ${(u.name||'').toLowerCase()} ${(u.email||'').toLowerCase()} ${(u.affiliation||'').toLowerCase()}" data-profile-id="${u.profile_id}">
+                                    <tr class="admin-user-row hover:bg-gray-50" data-search="${(u.username||'').toLowerCase()} ${(u.name||'').toLowerCase()} ${(u.email||'').toLowerCase()} ${(u.affiliation||'').toLowerCase()}" data-profile-id="${u.profile_id}"${!canManageIdentity && canManageGrades ? ' data-edit-scope="grade_only"' : ''}>
                                         <td class="px-4 py-3">
-                                            <input type="text" disabled class="admin-username-input w-full min-w-[7rem] px-2 py-1 text-xs font-mono border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.username || '')}" placeholder="사번/ID" autocomplete="off">
+                                            ${canManageIdentity
+                                                ? `<input type="text" disabled class="admin-username-input w-full min-w-[7rem] px-2 py-1 text-xs font-mono border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.username || '')}" placeholder="사번/ID" autocomplete="off">`
+                                                : `<span class="admin-username-display font-mono text-xs text-gray-900">${escapeHtml(u.username || '-')}</span>`}
                                         </td>
                                         <td class="px-4 py-3 font-medium text-gray-900">${escapeHtml(u.name || '-')}</td>
                                         <td class="px-4 py-3">
-                                            <input type="email" disabled class="admin-email-input w-full min-w-[10rem] px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.email || '')}" placeholder="email@example.com" autocomplete="off">
+                                            ${canManageIdentity
+                                                ? `<input type="email" disabled class="admin-email-input w-full min-w-[10rem] px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-gray-800 focus:outline-none ${ADMIN_USER_FIELD_DISABLED_CLASS}" value="${escapeHtml(u.email || '')}" placeholder="email@example.com" autocomplete="off">`
+                                                : `<span class="admin-email-display text-xs text-gray-700">${escapeHtml(u.email || '-')}</span>`}
                                         </td>
                                         <td class="px-4 py-3 text-gray-600">${u.affiliation || '-'}</td>
-                                        <td class="px-4 py-3">${canManageIdentity ? roleSelectHtml(u) : `<span class="text-gray-700 text-xs">${u.role === 'admin' ? '관리자' : '사용자'}</span>`}</td>
+                                        <td class="px-4 py-3">${canManageIdentity ? roleSelectHtml(u) : `<span class="admin-role-display text-gray-700 text-xs" data-role="${escapeHtml(u.role || 'user')}">${u.role === 'admin' ? '관리자' : '사용자'}</span>`}</td>
                                         <td class="px-4 py-3">${gradeSelectHtml(u)}</td>
                                         <td class="px-4 py-3 flex flex-wrap gap-1">
                                             ${canManageIdentity ? `<button type="button" class="admin-edit-user-btn text-xs px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors" data-user-id="${u.profile_id}">수정하기</button>` : ''}
-                                            ${!canManageIdentity && canManageGrades ? `<button type="button" class="admin-edit-user-btn text-xs px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors" data-user-id="${u.profile_id}">등급 수정</button>` : ''}
+                                            ${!canManageIdentity && canManageGrades ? `<button type="button" class="admin-edit-user-btn text-xs px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors" data-user-id="${u.profile_id}" title="등급만 변경 가능">수정하기</button>` : ''}
                                             <button type="button" class="admin-cancel-user-btn hidden text-xs px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors" data-user-id="${u.profile_id}">취소</button>
                                             <button type="button" disabled class="admin-save-user-btn text-xs px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors opacity-50 cursor-not-allowed" data-user-id="${u.profile_id}">저장</button>
                                             <button type="button" class="admin-detail-user-btn text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" data-user-idx="${allUsers.indexOf(u)}">상세</button>
@@ -3495,7 +3514,8 @@ async function renderAdminDashboardPage() {
                 btn.disabled = true;
                 try {
                     let result;
-                    if (canManageIdentity) {
+                    const gradeOnlyRow = row.dataset.editScope === 'grade_only';
+                    if (canManageIdentity && !gradeOnlyRow) {
                         const newUsername = row.querySelector('.admin-username-input')?.value?.trim() || '';
                         const newEmail = row.querySelector('.admin-email-input')?.value?.trim() || '';
                         const newRole = row.querySelector('.admin-role-select')?.value;
@@ -3553,7 +3573,7 @@ async function renderAdminDashboardPage() {
                         } else {
                             showToast('사용자 정보가 저장되었습니다.', 'success');
                         }
-                    } else {
+                    } else if (canManageGrades || gradeOnlyRow) {
                         const newGrade = row.querySelector('.admin-grade-select')?.value;
                         if (!newGrade || !ADMIN_EDITABLE_GRADES.includes(newGrade)) {
                             showToast('등급을 선택해주세요.', 'error');
@@ -3589,6 +3609,11 @@ async function renderAdminDashboardPage() {
                         } else {
                             showToast('등급이 저장되었습니다.', 'success');
                         }
+                    } else {
+                        showToast('수정 권한이 없습니다.', 'error');
+                        btn.textContent = '저장';
+                        btn.disabled = false;
+                        return;
                     }
                     snapshotAdminUserRow(row);
                     setAdminUserRowEditMode(row, false, false);
