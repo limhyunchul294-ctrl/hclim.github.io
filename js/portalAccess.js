@@ -28,6 +28,11 @@ export function canManageUserIdentityOnWeb(userInfo) {
     return String(userInfo?.username || '').toUpperCase().trim() === SUPERVISOR_USERNAME;
 }
 
+/** 이용 로그 탭·조회: 수퍼바이저(EK0V029)만 */
+export function canViewPortalActivityLogOnWeb(userInfo) {
+    return canManageUserIdentityOnWeb(userInfo);
+}
+
 /** @param {string | null | undefined} grade */
 export function formatUserGradeLabel(grade) {
     const g = String(grade || '').toLowerCase();

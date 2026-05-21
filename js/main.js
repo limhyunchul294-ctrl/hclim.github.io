@@ -26,6 +26,7 @@ import {
     canAccessAdminPortal,
     canManageUserGradesOnWeb,
     canManageUserIdentityOnWeb,
+    canViewPortalActivityLogOnWeb,
     isSupervisorAccount,
     formatUserGradeLabel,
     ADMIN_EDITABLE_GRADES,
@@ -3124,6 +3125,7 @@ async function renderAdminDashboardPage() {
     const canManageGrades = canManageUserGradesOnWeb(userInfo);
     const canManageIdentity = canManageUserIdentityOnWeb(userInfo);
     const isGradeOnlyOperator = canManageGrades && !canManageIdentity;
+    const canViewActivityLog = canViewPortalActivityLogOnWeb(userInfo);
     if (!userInfo || !canAccessAdminPortal(userInfo)) {
         return `<div class="max-w-4xl mx-auto p-6">
             <div class="bg-white rounded-xl shadow-soft p-6 text-center">
@@ -3212,7 +3214,7 @@ async function renderAdminDashboardPage() {
                     ${stats.pendingRequests > 0 ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${stats.pendingRequests}</span>` : ''}
                 </button>
                 <button class="admin-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="warranty">보증 데이터</button>
-                <button class="admin-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="activity">이용 로그</button>
+                ${canViewActivityLog ? '<button class="admin-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="activity">이용 로그</button>' : ''}
             </div>
 
             <!-- 개요 탭 -->
@@ -3379,7 +3381,7 @@ async function renderAdminDashboardPage() {
                 </div>
             </div>
 
-            <!-- 이용 로그 탭 -->
+            ${canViewActivityLog ? `<!-- 이용 로그 탭 (수퍼바이저 전용) -->
             <div id="admin-tab-activity" class="admin-tab-content hidden">
                 <p id="admin-activity-hint" class="text-sm text-gray-500 mb-3">기본 최근 7일, 최대 500건입니다.</p>
                 <div class="flex flex-wrap gap-3 items-center mb-4">
@@ -3416,12 +3418,13 @@ async function renderAdminDashboardPage() {
                         </table>
                     </div>
                 </div>
-            </div>
+            </div>` : ''}
         </div>
     `;
 
     setTimeout(() => {
         async function loadAdminPortalActivityLogs() {
+            if (!canViewActivityLog) return;
             const tbody = document.getElementById('admin-activity-tbody');
             const hint = document.getElementById('admin-activity-hint');
             const daysSel = document.getElementById('admin-activity-days');
@@ -3496,12 +3499,15 @@ async function renderAdminDashboardPage() {
             }
         }
 
-        document.getElementById('admin-activity-refresh')?.addEventListener('click', () => loadAdminPortalActivityLogs());
-        document.getElementById('admin-activity-days')?.addEventListener('change', () => loadAdminPortalActivityLogs());
+        if (canViewActivityLog) {
+            document.getElementById('admin-activity-refresh')?.addEventListener('click', () => loadAdminPortalActivityLogs());
+            document.getElementById('admin-activity-days')?.addEventListener('change', () => loadAdminPortalActivityLogs());
+        }
 
         // 탭 전환
         document.querySelectorAll('.admin-tab').forEach(tab => {
             tab.addEventListener('click', () => {
+                if (tab.dataset.tab === 'activity' && !canViewActivityLog) return;
                 document.querySelectorAll('.admin-tab').forEach(t => {
                     t.classList.remove('active', 'border-b-2', 'border-gray-800', 'text-gray-900');
                     t.classList.add('text-gray-500');
@@ -3510,7 +3516,7 @@ async function renderAdminDashboardPage() {
                 tab.classList.remove('text-gray-500');
                 document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
                 document.getElementById(`admin-tab-${tab.dataset.tab}`)?.classList.remove('hidden');
-                if (tab.dataset.tab === 'activity') {
+                if (tab.dataset.tab === 'activity' && canViewActivityLog) {
                     loadAdminPortalActivityLogs();
                 }
             });
