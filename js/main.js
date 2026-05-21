@@ -6090,9 +6090,9 @@ async function initBusinessCardUpload() {
                     const session = await window.authSession?.getSession();
                     const userInfo = await window.authService?.getUserInfo();
                     const isAuthor = post.author_id === session?.user?.id;
-                    const isAdmin = userInfo?.role === 'admin';
+                    const isPortalOperator = canAccessAdminPortal(userInfo);
                     
-                    if (!isAuthor && !isAdmin) {
+                    if (!isAuthor && !isPortalOperator) {
                         showToast('수정 권한이 없습니다.', 'error');
                         return;
                     }
