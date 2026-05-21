@@ -77,7 +77,12 @@ import {
     getDefaultHomeHash,
     getLineConfig,
 } from './productLine.js';
-import { renderPortalPickerPageHtml, mountPortalPickerPage } from './portalPicker.js';
+import {
+    renderPortalPickerPageHtml,
+    mountPortalPickerPage,
+    handlePortalPickerClick,
+} from './portalPicker.js';
+import { hideAllEntrySplashes, isEntrySplashVisible } from './lineSplash.js';
 
 // js/main.js (Final Version)
 // ✅ 수정사항: localStorage 완전 제거, authSession 사용으로 변경
@@ -5885,6 +5890,10 @@ async function initBusinessCardUpload() {
                                 mainContent.classList.add('page-transition');
                                 
                                 // 홈 페이지인 경우 공지사항 로드
+                                if (path === '/portal') {
+                                    mountPortalPickerPage();
+                                }
+
                                 if (path === '/home' || path === '') {
                                     setTimeout(() => {
                                         renderRecentNotices();
@@ -6147,12 +6156,11 @@ async function initBusinessCardUpload() {
 
             if (path === '/portal') {
                 clearProductLineForPicker();
-                applyProductLineTheme(LINE_VAN);
+                hideAllEntrySplashes();
                 const canOperatePortal = canAccessAdminPortal(await window.authService?.getUserInfo());
                 renderNavigation(canOperatePortal);
                 await router(path, param);
                 highlightNav('#/portal');
-                setTimeout(() => mountPortalPickerPage(), 50);
                 return;
             }
 
@@ -6164,6 +6172,10 @@ async function initBusinessCardUpload() {
             const activeLine = getProductLine();
             if (!activeLine) {
                 window.location.replace('#/portal');
+                return;
+            }
+
+            if (isEntrySplashVisible()) {
                 return;
             }
 
@@ -6405,13 +6417,17 @@ async function initBusinessCardUpload() {
             // 키보드 접근성 초기화
             setupKeyboardAccessibility();
             
-            // 링크 클릭
+            // 링크 클릭 · 포털 선택(위임)
             document.addEventListener('click', (e) => {
+                if (handlePortalPickerClick(e)) return;
+
                 const link = e.target.closest('a[href^="#"]');
                 if (link) {
                     e.preventDefault();
-                    const href = link.getAttribute('href');
-                    window.location.hash = href.replace('#', '');
+                    const href = link.getAttribute('href') || '';
+                    if (href.startsWith('#')) {
+                        window.location.hash = href;
+                    }
                 }
             });
 
@@ -6544,6 +6560,7 @@ async function initBusinessCardUpload() {
                 document.getElementById('header-portal-switch')?.addEventListener('click', (e) => {
                     e.preventDefault();
                     clearProductLineForPicker();
+                    hideAllEntrySplashes();
                     window.location.hash = '#/portal';
                 });
 
@@ -6570,8 +6587,15 @@ async function initBusinessCardUpload() {
                 ]);
 
                 clearTimeout(splashFailsafeId);
-                hideSplashScreen();
-                showToast('환영합니다!', 'success');
+                const initPath = parseRouteFromHash(window.location.hash).path;
+                if (initPath === '/portal') {
+                    hideAllEntrySplashes();
+                } else if (!isEntrySplashVisible()) {
+                    hideSplashScreen();
+                }
+                if (getProductLine() && initPath !== '/portal') {
+                    showToast('환영합니다!', 'success');
+                }
                 window.securityAgreement?.checkAndShow();
                 setTimeout(() => {
                     checkAndShowOnboarding();

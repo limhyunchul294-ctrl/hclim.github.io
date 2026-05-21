@@ -25,7 +25,15 @@ export function getLoginRedirectUrl() {
 }
 
 export function goToAppHome() {
-    window.location.replace(`${window.location.origin}/index.html#/home`);
+    let hash = '#/portal';
+    try {
+        const line = sessionStorage.getItem('gsw-product-line-v1');
+        if (line === 'qq') hash = '#/qq/home';
+        else if (line === 'van') hash = '#/home';
+    } catch {
+        /* ignore */
+    }
+    window.location.replace(`${window.location.origin}/index.html${hash}`);
 }
 
 /** 이미 로그인된 경우 앱 홈으로 (매직링크 콜백 hash 있을 때는 제외) */

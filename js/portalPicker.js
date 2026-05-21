@@ -7,6 +7,7 @@ import {
     setProductLine,
     getDefaultHomeHash,
 } from './productLine.js';
+import { showEntrySplashForLine } from './lineSplash.js';
 
 function escapeHtml(str) {
     if (str == null) return '';
@@ -18,7 +19,7 @@ function escapeHtml(str) {
 
 export function renderPortalPickerPageHtml() {
     return `
-        <div class="max-w-3xl mx-auto p-4 md:p-8">
+        <div class="max-w-3xl mx-auto p-4 md:p-8" id="portal-picker-root">
             <div class="text-center mb-8">
                 <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">포털 선택</h1>
                 <p class="text-gray-600">작업 중인 차량 계통에 맞는 포털을 선택하세요.</p>
@@ -42,13 +43,37 @@ export function renderPortalPickerPageHtml() {
     `;
 }
 
+/** @param {'van'|'qq'} line */
+export function enterPortalLine(line) {
+    if (line !== LINE_VAN && line !== LINE_QQ) return;
+
+    const vanBtn = document.getElementById('portal-pick-van');
+    const qqBtn = document.getElementById('portal-pick-qq');
+    vanBtn?.setAttribute('disabled', 'true');
+    qqBtn?.setAttribute('disabled', 'true');
+
+    setProductLine(line);
+    showEntrySplashForLine(line, () => {
+        window.location.hash = getDefaultHomeHash(line);
+    });
+}
+
 export function mountPortalPickerPage() {
-    document.getElementById('portal-pick-van')?.addEventListener('click', () => {
-        setProductLine(LINE_VAN);
-        window.location.hash = getDefaultHomeHash(LINE_VAN);
-    });
-    document.getElementById('portal-pick-qq')?.addEventListener('click', () => {
-        setProductLine(LINE_QQ);
-        window.location.hash = getDefaultHomeHash(LINE_QQ);
-    });
+    document.getElementById('portal-pick-van')?.addEventListener('click', () => enterPortalLine(LINE_VAN));
+    document.getElementById('portal-pick-qq')?.addEventListener('click', () => enterPortalLine(LINE_QQ));
+}
+
+/** main-content 위임 클릭 (라우터 렌더 지연 대비) */
+export function handlePortalPickerClick(event) {
+    if (event.target.closest('#portal-pick-van')) {
+        event.preventDefault();
+        enterPortalLine(LINE_VAN);
+        return true;
+    }
+    if (event.target.closest('#portal-pick-qq')) {
+        event.preventDefault();
+        enterPortalLine(LINE_QQ);
+        return true;
+    }
+    return false;
 }
