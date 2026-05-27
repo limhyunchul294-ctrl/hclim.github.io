@@ -1,6 +1,7 @@
 import './config.js';
 import { initPwaInstall } from './pwaInstall.js';
 import { goToAppHome, redirectToAppHomeIfLoggedIn } from './authRedirect.js';
+import { mountGswBridgeLoginUi } from './gswBridge.js';
 
 // js/login.js
 // ✅ 수정사항: OTP 검증 단계에서 버튼 비활성화 문제 해결
@@ -783,6 +784,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     initPwaInstall({ autoAndroidBanner: false, autoIosGuide: false });
+
+    mountGswBridgeLoginUi(document.getElementById('login-container'));
 
     console.log('✅ Login 스크립트 로드 완료');
 });

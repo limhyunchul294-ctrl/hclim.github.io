@@ -15,6 +15,7 @@ EVKMC A/S 정비 포털(GSW) 운영·배포·보안을 정기적으로 점검하
 
 | 항목 | 관리 |
 |------|------|
+| GSW ↔ LMS 브릿지 | [`GSW-LMS-BRIDGE.md`](GSW-LMS-BRIDGE.md) — `GSW_BRIDGE_SECRET` 포털·LMS 동일, 「교육 센터」→ `/auth/gsw` HMAC 토큰 redirect |
 | 이메일 OTP | [`EMAIL-MAGIC-LINK-SETUP.md`](EMAIL-MAGIC-LINK-SETUP.md) — 템플릿 `{{ .Token }}`, Redirect URL |
 | 미등록 계정 차단 | `shouldCreateUser: false` + `check_user_email` + `public.users` 검증 ([`js/login.js`](../../js/login.js)). **`auth.email.enable_signup`은 true 유지** (false면 OTP 전체 차단) |
 | Supabase Auth 설정 | [`supabase/config.toml`](../../supabase/config.toml) — **push 전 `site_url` 확인** |

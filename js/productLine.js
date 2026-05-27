@@ -52,6 +52,15 @@ const NAV_ICON_ACCOUNT =
     '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>';
 const NAV_ICON_ADMIN =
     '<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+const NAV_ICON_EDU =
+    '<path d="M22 10v6M2 10l10-5 10 5-10 5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 12v5c0 1.1 2.7 2 6 2s6-.9 6-2v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+
+/** VAN/QQ 공통 — LMS 교육 센터 (외부 브릿지) */
+export const NAV_LMS_EDUCATION = {
+    action: 'lms-bridge',
+    label: '교육 센터',
+    icon: NAV_ICON_EDU,
+};
 
 function boardDropdown(hashPrefix) {
     const p = hashPrefix || '#';
@@ -85,6 +94,7 @@ export function getNavLinksForLine(line) {
         );
     }
     links.push(boardDropdown(line === LINE_QQ ? '#/qq' : '#'));
+    links.push(NAV_LMS_EDUCATION);
     links.push(
         { href: `${p}/account`, label: '내 정보', icon: NAV_ICON_ACCOUNT },
         { href: `${p}/admin`, label: '관리자', icon: NAV_ICON_ADMIN, adminOnly: true },

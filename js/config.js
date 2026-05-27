@@ -9,8 +9,17 @@ window.APP_CONFIG = {
   
   // Supabase URL과 API 키를 환경변수에서 가져옵니다
   // .env.local 파일에서 읽음
-  SUPABASE_URL: 'https://sesedcotooihnpjklqzs.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlc2VkY290b29paG5wamtscXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjA5ODAsImV4cCI6MjA3NDgzNjk4MH0.AcbNoC19S_shBKXXs6-2LOo0KSnZ_Mk1ZejZtUX1EmI'
+  SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || 'https://sesedcotooihnpjklqzs.supabase.co',
+  SUPABASE_ANON_KEY:
+    import.meta.env.VITE_SUPABASE_ANON_KEY ||
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlc2VkY290b29paG5wamtscXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjA5ODAsImV4cCI6MjA3NDgzNjk4MH0.AcbNoC19S_shBKXXs6-2LOo0KSnZ_Mk1ZejZtUX1EmI',
+
+  /** LMS GSW 브릿지 수신 URL (쿼리 token=JWT) */
+  GSW_LMS_BRIDGE_URL:
+    import.meta.env.VITE_GSW_LMS_BRIDGE_URL ||
+    'https://lms-youtube-testbed.vercel.app/auth/gsw',
+  GSW_BRIDGE_ALLOW_DEV: import.meta.env.VITE_GSW_BRIDGE_ALLOW_DEV === 'true',
+  GSW_BRIDGE_ONLY: import.meta.env.VITE_GSW_BRIDGE_ONLY === 'true',
 };
 
 // 브랜드 정보

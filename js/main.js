@@ -83,6 +83,7 @@ import {
     handlePortalPickerClick,
 } from './portalPicker.js';
 import { hideAllEntrySplashes, isEntrySplashVisible, isEntrySplashBlocking } from './lineSplash.js';
+import { redirectToLmsEducationCenter } from './gswBridge.js';
 
 // js/main.js (Final Version)
 // ✅ 수정사항: localStorage 완전 제거, authSession 사용으로 변경
@@ -6000,6 +6001,21 @@ async function initBusinessCardUpload() {
             if (desktopNav) {
                 desktopNav.innerHTML = visibleNavLinks
                     .map((link) => {
+                        if (link.action === 'lms-bridge') {
+                            return `
+                                <button
+                                    type="button"
+                                    class="nav-link text-slate-600 hover:text-slate-900 flex items-center gap-2"
+                                    data-gsw-action="lms-bridge"
+                                    tabindex="0"
+                                    aria-label="${link.label}">
+                                    <svg class="w-4 h-4 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        ${link.icon}
+                                    </svg>
+                                    ${link.label}
+                                </button>
+                            `;
+                        }
                         if (link.type === 'dropdown') {
                             const dropdownId = `nav-dropdown-${link.label.replace(/\s+/g, '-').toLowerCase()}`;
                             return `
@@ -6066,6 +6082,22 @@ async function initBusinessCardUpload() {
             if (mobileNav && mobileNavContent) {
                 mobileNavContent.innerHTML = visibleNavLinks
                     .map((link) => {
+                        if (link.action === 'lms-bridge') {
+                            return `
+                                <button
+                                    type="button"
+                                    class="mobile-nav-item w-full text-left"
+                                    data-gsw-action="lms-bridge"
+                                    onclick="closeMobileNav()"
+                                    tabindex="0"
+                                    aria-label="${link.label}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        ${link.icon}
+                                    </svg>
+                                    <span>${link.label}</span>
+                                </button>
+                            `;
+                        }
                         if (link.type === 'dropdown') {
                             const mobileDropdownId = `mobile-dropdown-${link.label.replace(/\s+/g, '-').toLowerCase()}`;
                             return `
@@ -6449,6 +6481,12 @@ async function initBusinessCardUpload() {
             // 링크 클릭 · 포털 선택(위임)
             document.addEventListener('click', (e) => {
                 if (handlePortalPickerClick(e)) return;
+
+                if (e.target.closest('[data-gsw-action="lms-bridge"]')) {
+                    e.preventDefault();
+                    void redirectToLmsEducationCenter();
+                    return;
+                }
 
                 const link = e.target.closest('a[href^="#"]');
                 if (link) {
