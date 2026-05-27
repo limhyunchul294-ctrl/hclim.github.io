@@ -49,9 +49,20 @@ export async function redirectToLmsEducationCenter() {
         return;
     }
 
-    const body = await res.json().catch(() => ({}));
+    const contentType = res.headers.get('content-type') || '';
+    const body = contentType.includes('application/json')
+        ? await res.json().catch(() => ({}))
+        : {};
     if (!res.ok) {
-        const msg = body?.error || `브릿지 토큰 발급 실패 (${res.status})`;
+        let msg = body?.error || `브릿지 토큰 발급 실패 (${res.status})`;
+        if (res.status === 500 && msg.includes('GSW_BRIDGE_SECRET')) {
+            msg = '교육 센터 연동 미설정(GSW_BRIDGE_SECRET). Vercel 환경 변수를 확인해 주세요.';
+        } else if (res.status === 403) {
+            msg = '포털 계정에 이메일이 없어 LMS로 연결할 수 없습니다. 관리자에게 문의하세요.';
+        } else if (!contentType.includes('application/json')) {
+            msg = '교육 센터 API에 연결할 수 없습니다. (로컬 개발 시 npm run dev:vercel 사용)';
+        }
+        console.error('LMS bridge token error:', res.status, body);
         window.showToast?.(msg, 'error');
         return;
     }

@@ -46,9 +46,6 @@ export default async function handler(req, res) {
     }
 
     const { url, anonKey } = getSupabaseConfig();
-    if (!anonKey) {
-        return json(res, 500, { error: 'Supabase is not configured on the server' });
-    }
 
     try {
         const supabase = createClient(url, anonKey);

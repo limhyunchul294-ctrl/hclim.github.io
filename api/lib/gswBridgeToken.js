@@ -2,6 +2,11 @@ import { createHmac } from 'crypto';
 
 const DEFAULT_TTL_SEC = 300;
 
+/** 클라이언트 config.js 와 동일 — 서버리스에서 env 미설정 시 fallback (anon 키는 공개값) */
+const PUBLIC_SUPABASE_URL = 'https://sesedcotooihnpjklqzs.supabase.co';
+const PUBLIC_SUPABASE_ANON_KEY =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlc2VkY290b29paG5wamtscXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjA5ODAsImV4cCI6MjA3NDgzNjk4MH0.AcbNoC19S_shBKXXs6-2LOo0KSnZ_Mk1ZejZtUX1EmI';
+
 function getSecret() {
     const secret = process.env.GSW_BRIDGE_SECRET;
     if (!secret || secret.length < 16) {
@@ -57,11 +62,14 @@ export function signGswBridgeToken(payload) {
 
 export function getSupabaseConfig() {
     return {
-        url: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://sesedcotooihnpjklqzs.supabase.co',
+        url:
+            process.env.SUPABASE_URL ||
+            process.env.VITE_SUPABASE_URL ||
+            PUBLIC_SUPABASE_URL,
         anonKey:
             process.env.SUPABASE_ANON_KEY ||
             process.env.VITE_SUPABASE_ANON_KEY ||
-            '',
+            PUBLIC_SUPABASE_ANON_KEY,
     };
 }
 

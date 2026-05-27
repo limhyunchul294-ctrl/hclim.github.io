@@ -36,7 +36,15 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    open: true
+    open: true,
+    // 로컬 Vite만 켠 경우 /api 는 Vercel 프로덕션 API로 프록시 (세션은 동일 Supabase)
+    proxy: {
+      '/api': {
+        target: 'https://evkmc-as-app.vercel.app',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
   // 명시적으로 resolve 설정 추가
   resolve: {

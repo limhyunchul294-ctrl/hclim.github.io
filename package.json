@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:vercel": "vercel dev --listen 3000",
     "prebuild": "node --input-type=commonjs -e \"const fs=require('fs');const files=['js/main.js','js/login.js','js/config.js','index.html','login.html'];let allExist=true;files.forEach(f=>{if(!fs.existsSync(f)){console.error('❌ 파일 없음:',f);allExist=false;}else{console.log('✅ 파일 존재:',f);}});if(!allExist){process.exit(1);}console.log('✅ 모든 필수 파일이 존재합니다.');\"",
     "build": "vite build",
     "postbuild": "node --input-type=commonjs -e \"const fs=require('fs');const dist='dist';const assets='dist/assets';if(!fs.existsSync(dist)){console.error('❌ dist 폴더 없음');process.exit(1);}if(!fs.existsSync(assets)){console.error('❌ assets 폴더 없음');process.exit(1);}const files=fs.readdirSync(assets);const jsFiles=files.filter(f=>f.endsWith('.js'));console.log('✅ 생성된 JS 파일:',jsFiles.length);jsFiles.forEach(f=>console.log('  -',f));if(jsFiles.length===0){console.error('❌ JS 번들 파일이 생성되지 않았습니다!');process.exit(1);}const hasMain=jsFiles.some(f=>f.includes('main'));const hasLogin=jsFiles.some(f=>f.includes('login'));if(!hasMain||!hasLogin){console.error('❌ main 또는 login 번들 파일이 없습니다!');process.exit(1);}console.log('✅ 빌드 결과 확인 완료!');\"",
