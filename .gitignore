@@ -1,6 +1,7 @@
 node_modules/
 .env
 .env.local
+scripts/.gsw-bridge-secret
 .env.*.local
 .env.bak
 *.env.bak

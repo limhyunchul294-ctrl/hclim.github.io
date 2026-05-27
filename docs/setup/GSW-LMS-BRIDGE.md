@@ -51,7 +51,7 @@ LMS 로컬 프로젝트: `D:\LMS\lms-project` — [`docs/ROADMAP_GSW_UI.md`](../
 | `VITE_GSW_LMS_BRIDGE_URL` | 클라이언트 | 포털 redirect 대상 (기본: `…/auth/gsw`) |
 | `SUPABASE_URL` | 서버 | (선택) 미설정 시 포털과 동일 기본 URL 사용 |
 | `SUPABASE_ANON_KEY` | 서버 | (선택) 미설정 시 공개 anon 키 fallback — **권장: Vercel에 명시 등록** |
-| `GSW_BRIDGE_SECRET` | 서버 | **필수** — LMS와 동일. 없으면 「교육 센터」 클릭 시 500 오류 |
+| `GSW_BRIDGE_SECRET` | 서버 | **권장** — LMS와 동일. 미설정 시 코드 내 공통 fallback 사용(양쪽 동일 문자열) |
 | `GSW_BRIDGE_TOKEN_TTL_SEC` | 서버 | (선택) 기본 `300` |
 | `GSW_BRIDGE_ALLOW_DEV` | 서버 | `true` 시 `/api/gsw-bridge-demo` 활성 |
 | `VITE_GSW_BRIDGE_ALLOW_DEV` | 클라이언트 | 로그인 화면 「GSW 브릿지 데모」 버튼 |

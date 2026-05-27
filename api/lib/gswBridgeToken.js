@@ -2,15 +2,22 @@ import { createHmac } from 'crypto';
 
 const DEFAULT_TTL_SEC = 300;
 
+/** LMS src/lib/gsw-bridge.ts 와 동일 — Vercel GSW_BRIDGE_SECRET 미설정 시 */
+const GSW_BRIDGE_SECRET_FALLBACK =
+    'evkmc_gsw_lms_bridge_v1_K8mN2pQ7xR4wL9jH3fT6bY1cN5dA0eZ';
+
 /** 클라이언트 config.js 와 동일 — 서버리스에서 env 미설정 시 fallback (anon 키는 공개값) */
 const PUBLIC_SUPABASE_URL = 'https://sesedcotooihnpjklqzs.supabase.co';
 const PUBLIC_SUPABASE_ANON_KEY =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlc2VkY290b29paG5wamtscXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjA5ODAsImV4cCI6MjA3NDgzNjk4MH0.AcbNoC19S_shBKXXs6-2LOo0KSnZ_Mk1ZejZtUX1EmI';
 
 function getSecret() {
-    const secret = process.env.GSW_BRIDGE_SECRET;
+    const secret = process.env.GSW_BRIDGE_SECRET || GSW_BRIDGE_SECRET_FALLBACK;
     if (!secret || secret.length < 16) {
         throw new Error('GSW_BRIDGE_SECRET is not configured');
+    }
+    if (!process.env.GSW_BRIDGE_SECRET) {
+        console.warn('GSW_BRIDGE_SECRET env missing — using shared fallback (set Vercel env for production)');
     }
     return secret;
 }
