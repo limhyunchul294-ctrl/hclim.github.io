@@ -48,7 +48,8 @@ LMS 로컬 프로젝트: `D:\LMS\lms-project` — [`docs/ROADMAP_GSW_UI.md`](../
 |------|------|------|
 | `GSW_BRIDGE_SECRET` | 서버만 | LMS와 동일한 서명 키 (32자 이상 권장) |
 | `GSW_LMS_BRIDGE_URL` | 서버 | LMS 수신 URL (데모 API redirect용) |
-| `VITE_GSW_LMS_BRIDGE_URL` | 클라이언트 | 포털 redirect 대상 (기본: `…/auth/gsw`) |
+| `VITE_GSW_LMS_BRIDGE_URL` | 클라이언트 | Vite **빌드 시** embed — 프로덕션 URL로 설정 필수 |
+| `GET /api/gsw-bridge-config` | 서버 | 런타임 `GSW_LMS_BRIDGE_URL` 반환 (교육 센터 클릭 시 우선 사용) |
 | `SUPABASE_URL` | 서버 | (선택) 미설정 시 포털과 동일 기본 URL 사용 |
 | `SUPABASE_ANON_KEY` | 서버 | (선택) 미설정 시 공개 anon 키 fallback — **권장: Vercel에 명시 등록** |
 | `GSW_BRIDGE_SECRET` | 서버 | **권장** — LMS와 동일. 미설정 시 코드 내 공통 fallback 사용(양쪽 동일 문자열) |
@@ -86,6 +87,20 @@ LMS(`D:\LMS\lms-project`)에는 이미 구현되어 있습니다:
 2. 포털 로그인 → 「교육 센터」 → LMS `/dashboard` (또는 로그인 완료 화면)
 3. (개발) `GSW_BRIDGE_ALLOW_DEV=true` → 로그인 화면 「GSW 브릿지 데모」 → LMS 수신 확인
 4. 만료: 5분 후 동일 token 재사용 시 LMS에서 거부되는지 확인
+
+## 문제 해결: 교육 센터가 `localhost:3000`으로 연결됨
+
+**원인:** `VITE_GSW_LMS_BRIDGE_URL`이 로컬 개발용(`http://localhost:3000/auth/gsw`)으로 **프로덕션 빌드**에 박혀 있거나, Vercel env가 잘못된 경우.
+
+**조치 (Vercel `evkmc-as-app`):**
+
+1. `GSW_LMS_BRIDGE_URL` = `https://lms-youtube-testbed.vercel.app/auth/gsw`
+2. `VITE_GSW_LMS_BRIDGE_URL` = 위와 **동일** (둘 다 production/preview/development 타깃)
+3. **Redeploy** (env만 바꾸면 이전 빌드 번들은 그대로일 수 있음)
+
+스크립트: `VERCEL_TOKEN=... node scripts/set-vercel-bridge-env.mjs`
+
+**코드 보완 (2026-05):** `GET /api/gsw-bridge-config` + `js/lmsBridgeUrl.js` — 프로덕션 포털에서 localhost URL이면 자동으로 Vercel LMS URL 사용.
 
 ## 관련 코드
 

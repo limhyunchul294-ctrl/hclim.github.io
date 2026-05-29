@@ -1,4 +1,13 @@
 {
+  "env": {
+    "GSW_LMS_BRIDGE_URL": "https://lms-youtube-testbed.vercel.app/auth/gsw"
+  },
+  "build": {
+    "env": {
+      "VITE_GSW_LMS_BRIDGE_URL": "https://lms-youtube-testbed.vercel.app/auth/gsw",
+      "VITE_GSW_BRIDGE_ALLOW_DEV": "false"
+    }
+  },
   "rewrites": [
     { "source": "/login", "destination": "/login.html" },
     { "source": "/((?!api/|assets/|js/|_astro/|favicon.ico|manifest.webmanifest|sw.js).*)", "destination": "/index.html" }

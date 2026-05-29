@@ -2,6 +2,7 @@ node_modules/
 .env
 .env.local
 scripts/.gsw-bridge-secret
+scripts/.vercel-token
 .env.*.local
 .env.bak
 *.env.bak

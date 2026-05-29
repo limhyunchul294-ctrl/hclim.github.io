@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { LMS_BRIDGE_URL_PRODUCTION, resolveLmsBridgeUrl } from './lmsBridgeUrl.js';
 
 // js/config.js
 // ✅ 수정사항: 환경변수에서 API 키를 안전하게 로드합니다
@@ -14,10 +15,10 @@ window.APP_CONFIG = {
     import.meta.env.VITE_SUPABASE_ANON_KEY ||
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlc2VkY290b29paG5wamtscXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjA5ODAsImV4cCI6MjA3NDgzNjk4MH0.AcbNoC19S_shBKXXs6-2LOo0KSnZ_Mk1ZejZtUX1EmI',
 
-  /** LMS GSW 브릿지 수신 URL (쿼리 token=JWT) */
-  GSW_LMS_BRIDGE_URL:
-    import.meta.env.VITE_GSW_LMS_BRIDGE_URL ||
-    'https://lms-youtube-testbed.vercel.app/auth/gsw',
+  /** LMS GSW 브릿지 수신 URL (쿼리 token=JWT) — 프로덕션에서 localhost 오설정 시 자동 보정 */
+  GSW_LMS_BRIDGE_URL: resolveLmsBridgeUrl(
+    import.meta.env.VITE_GSW_LMS_BRIDGE_URL || LMS_BRIDGE_URL_PRODUCTION
+  ),
   GSW_BRIDGE_ALLOW_DEV: import.meta.env.VITE_GSW_BRIDGE_ALLOW_DEV === 'true',
   GSW_BRIDGE_ONLY: import.meta.env.VITE_GSW_BRIDGE_ONLY === 'true',
 };

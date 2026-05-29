@@ -20,6 +20,15 @@ const SUPABASE_URL = 'https://sesedcotooihnpjklqzs.supabase.co';
 const SUPABASE_ANON_KEY =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlc2VkY290b29paG5wamtscXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjA5ODAsImV4cCI6MjA3NDgzNjk4MH0.AcbNoC19S_shBKXXs6-2LOo0KSnZ_Mk1ZejZtUX1EmI';
 
+function loadVercelToken() {
+    if (process.env.VERCEL_TOKEN?.trim()) return process.env.VERCEL_TOKEN.trim();
+    const tokenFile = path.join(__dirname, '.vercel-token');
+    if (fs.existsSync(tokenFile)) {
+        return fs.readFileSync(tokenFile, 'utf8').trim();
+    }
+    return null;
+}
+
 function loadOrCreateSecret() {
     const secretFile = path.join(__dirname, '.gsw-bridge-secret');
     if (fs.existsSync(secretFile)) {
@@ -77,20 +86,22 @@ async function upsertEnv(token, projectId, key, value, targets = ['production', 
 }
 
 async function main() {
-    const token = process.env.VERCEL_TOKEN?.trim();
+    const token = loadVercelToken();
     if (!token) {
-        console.error('VERCEL_TOKEN 환경 변수가 필요합니다.');
+        console.error('VERCEL_TOKEN 환경 변수 또는 scripts/.vercel-token 파일이 필요합니다.');
         console.error('  https://vercel.com/account/tokens 에서 생성 후:');
         console.error('  $env:VERCEL_TOKEN="..." ; node scripts/set-vercel-bridge-env.mjs');
         process.exit(1);
     }
 
     const bridgeSecret = loadOrCreateSecret();
+    const lmsBridge = 'https://lms-youtube-testbed.vercel.app/auth/gsw';
     const portalVars = {
         GSW_BRIDGE_SECRET: bridgeSecret,
         SUPABASE_URL: SUPABASE_URL,
         SUPABASE_ANON_KEY: SUPABASE_ANON_KEY,
-        GSW_LMS_BRIDGE_URL: 'https://lms-youtube-testbed.vercel.app/auth/gsw',
+        GSW_LMS_BRIDGE_URL: lmsBridge,
+        VITE_GSW_LMS_BRIDGE_URL: lmsBridge,
     };
     const lmsVars = {
         GSW_BRIDGE_SECRET: bridgeSecret,

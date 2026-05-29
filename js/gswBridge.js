@@ -2,13 +2,28 @@
  * GSW 포털 → LMS 교육 센터 브릿지 (서명 토큰 발급 후 redirect)
  */
 
+import { resolveLmsBridgeUrl } from './lmsBridgeUrl.js';
+
 function bridgeConfig() {
     const cfg = window.APP_CONFIG || {};
     return {
-        lmsBridgeUrl: (cfg.GSW_LMS_BRIDGE_URL || '').replace(/\/$/, ''),
+        lmsBridgeUrl: resolveLmsBridgeUrl(cfg.GSW_LMS_BRIDGE_URL || ''),
         allowDev: cfg.GSW_BRIDGE_ALLOW_DEV === true || cfg.GSW_BRIDGE_ALLOW_DEV === 'true',
         bridgeOnly: cfg.GSW_BRIDGE_ONLY === true || cfg.GSW_BRIDGE_ONLY === 'true',
     };
+}
+
+/** 서버 env(Vercel) 기준 LMS URL — VITE_ 빌드값이 localhost일 때 덮어씀 */
+async function fetchServerLmsBridgeUrl() {
+    try {
+        const res = await fetch('/api/gsw-bridge-config', { credentials: 'same-origin' });
+        if (!res.ok) return null;
+        const body = await res.json().catch(() => ({}));
+        const url = body?.lmsBridgeUrl;
+        return url ? resolveLmsBridgeUrl(String(url)) : null;
+    } catch {
+        return null;
+    }
 }
 
 function buildRedirectUrl(baseUrl, token) {
@@ -20,7 +35,8 @@ function buildRedirectUrl(baseUrl, token) {
  * 로그인 사용자 → LMS bridge URL로 이동
  */
 export async function redirectToLmsEducationCenter() {
-    const { lmsBridgeUrl } = bridgeConfig();
+    const serverUrl = await fetchServerLmsBridgeUrl();
+    let lmsBridgeUrl = serverUrl || bridgeConfig().lmsBridgeUrl;
     if (!lmsBridgeUrl) {
         window.showToast?.('LMS 브릿지 URL이 설정되지 않았습니다. (VITE_GSW_LMS_BRIDGE_URL)', 'error');
         return;
