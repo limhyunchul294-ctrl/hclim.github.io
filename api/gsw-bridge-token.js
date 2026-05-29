@@ -13,14 +13,14 @@ async function resolvePortalProfile(supabase, user) {
 
     let { data: profile } = await supabase
         .from('users')
-        .select('profile_id, name, email, affiliation, username')
+        .select('profile_id, name, email, affiliation, username, phone, role, grade')
         .eq('auth_user_id', userId)
         .maybeSingle();
 
     if (!profile && userEmail) {
         const byEmail = await supabase
             .from('users')
-            .select('profile_id, name, email, affiliation, username')
+            .select('profile_id, name, email, affiliation, username, phone, role, grade')
             .ilike('email', userEmail)
             .maybeSingle();
         profile = byEmail.data;
@@ -36,8 +36,12 @@ async function resolvePortalProfile(supabase, user) {
         '사용자'
     ).trim();
     const department = profile?.affiliation?.trim() || undefined;
+    const username = profile?.username?.trim() || undefined;
+    const phone = profile?.phone?.trim() || undefined;
+    const role = profile?.role?.trim() || undefined;
+    const grade = profile?.grade?.trim() || undefined;
 
-    return { email, gsw_user_id: gswUserId, name, department };
+    return { email, gsw_user_id: gswUserId, name, department, username, phone, role, grade };
 }
 
 export default async function handler(req, res) {

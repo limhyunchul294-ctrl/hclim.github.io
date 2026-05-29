@@ -59,6 +59,10 @@ export function signGswBridgeToken(payload) {
     };
     const department = payload.department != null ? String(payload.department).trim() : '';
     if (department) full.department = department;
+    for (const key of ['username', 'phone', 'role', 'grade']) {
+        const v = payload[key];
+        if (v != null && String(v).trim()) full[key] = String(v).trim();
+    }
 
     const payloadB64 = base64UrlEncode(Buffer.from(JSON.stringify(full), 'utf8'));
     const sig = createHmac('sha256', getSecret()).update(payloadB64).digest();
