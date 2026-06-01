@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Supabase Auth를 통해 OTP 발송
                 const { data: otpData, error: otpError } = await window.supabaseClient.auth.signInWithOtp({
                     phone: formattedPhone,
-                    options: { shouldCreateUser: false },
+                    options: { shouldCreateUser: true },
                 });
 
                 if (otpError) {
@@ -295,6 +295,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                         console.error('   - 사용자명:', username);
                         console.error('   - 전체 오류:', JSON.stringify(otpError, null, 2));
                         
+                        actionBtn.textContent = '휴대전화 인증하기';
+                        enableButton();
+                        return;
+                    } else if (
+                        otpError.message?.includes('Signups not allowed for otp') ||
+                        otpError.code === 'otp_disabled'
+                    ) {
+                        showError(
+                            '인증 계정이 아직 준비되지 않았습니다. 이메일 로그인을 이용하거나 관리자에게 문의해주세요.'
+                        );
                         actionBtn.textContent = '휴대전화 인증하기';
                         enableButton();
                         return;
@@ -523,9 +533,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        // public.users에만 있고 auth.users가 없는 계정은 최초 1회 Auth 계정 생성 필요
         const { error } = await window.supabaseClient.auth.signInWithOtp({
             email,
-            options: { shouldCreateUser: false },
+            options: { shouldCreateUser: true },
         });
         if (error) {
             if (error.message?.includes('rate limit')) {
@@ -534,6 +545,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (error.message?.includes('Email logins are disabled')) {
                 throw new Error(
                     '이메일 로그인이 비활성화되어 있습니다. 관리자에게 Supabase 이메일 설정을 확인해달라고 요청해주세요.'
+                );
+            }
+            if (
+                error.message?.includes('Signups not allowed for otp') ||
+                error.code === 'otp_disabled'
+            ) {
+                throw new Error(
+                    '인증 계정이 아직 준비되지 않았습니다. 관리자에게 Auth 계정 연동을 요청해주세요.'
                 );
             }
             throw new Error(error.message || '인증 코드 발송에 실패했습니다.');
