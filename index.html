@@ -667,6 +667,16 @@
     .tree-item-qq-leaf {
       border-bottom: 1px solid #f1f5f9;
     }
+    /* PDF·이미지 말단 항목: 모바일에서만 '열람' 아이콘 표시 */
+    .tree-leaf-open-icon {
+      display: none;
+      margin-left: auto;
+      color: #0ea5e9;
+      flex-shrink: 0;
+    }
+    @media (max-width: 1023px) {
+      .tree-leaf-open-icon { display: inline-flex; align-items: center; }
+    }
     .doc-mobile-toolbar button {
       min-height: 44px;
       padding: 0.5rem 0.85rem;

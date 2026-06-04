@@ -1420,7 +1420,7 @@ async function getWatermarkedFileUrl(bucketName, fileName, pageRange = null) {
                         <span class="tree-icon">${getTreeIcon(item.type)}</span>
                         <span class="tree-label">${item.label}</span>
                         ${item.children ? `<span class="tree-badge">${item.children.length}</span>` : ''}
-                        ${!item.children && isQQManual ? '<span class="text-xs text-sky-600 ml-1">탭하여 확인</span>' : ''}
+                        ${!item.children && (item.type === 'pdf' || item.type === 'image') ? '<span class="tree-leaf-open-icon" aria-hidden="true" title="탭하여 열람"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>' : ''}
                     </div>
                     ${item.children ? `
                         <div class="tree-children collapsed">
