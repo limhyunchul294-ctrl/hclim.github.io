@@ -8,8 +8,8 @@ export const LINE_QQ = 'qq';
 const STORAGE_KEY = 'gsw-product-line-v1';
 
 const VAN_DOC_PATHS = ['/shop', '/etm', '/dtc', '/wiring', '/tsb'];
-const QQ_DOC_PATHS = ['/shop'];
-const QQ_BLOCKED_DOC_PATHS = ['/etm', '/dtc', '/wiring', '/tsb'];
+const QQ_DOC_PATHS = ['/shop', '/etm'];
+const QQ_BLOCKED_DOC_PATHS = ['/dtc', '/wiring', '/tsb'];
 
 export const PRODUCT_LINES = {
     [LINE_VAN]: {
@@ -91,6 +91,10 @@ export function getNavLinksForLine(line) {
             { href: '#/dtc', label: 'DTC 매뉴얼', icon: NAV_ICON_DTC },
             { href: '#/wiring', label: '와이어링 커넥터', icon: NAV_ICON_WIRING },
             { href: '#/tsb', label: 'TSB', icon: NAV_ICON_TSB },
+        );
+    } else if (line === LINE_QQ) {
+        links.push(
+            { href: '#/qq/etm', label: '전장회로도', icon: NAV_ICON_ETM },
         );
     }
     links.push(boardDropdown(line === LINE_QQ ? '#/qq' : '#'));

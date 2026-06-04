@@ -7,6 +7,7 @@ import './securityAgreement.js';
 import { maintenanceManualTreeData, maintenanceManualMapping } from './maintenanceManualMapping.js';
 import { qqMaintenanceManualTreeData, qqMaintenanceManualMapping, QQ_CHAPTERS } from './maintenanceManualMappingQQ.js';
 import { etmTreeData, etmMapping } from './etmMapping.js';
+import { qqEtmTreeData, qqEtmMapping } from './etmMappingQQ.js';
 import { dtcTreeData, getDtcEntry, parseActionSteps, DTC_META, searchDtc } from './dtcMapping.js';
 import { renderDtcWorkflowHtml, mountDtcWorkflow } from './dtcWorkflow.js';
 import {
@@ -182,9 +183,12 @@ if (window.__APP_INIT__) {
             Object.assign(PDF_MAPPING, qqMaintenanceManualMapping);
         }
         
-        // ETM 매핑 병합
+        // ETM 매핑 병합 (VAN + QQ)
         if (etmMapping) {
             Object.assign(PDF_MAPPING, etmMapping);
+        }
+        if (qqEtmMapping) {
+            Object.assign(PDF_MAPPING, qqEtmMapping);
         }
 
         // TSB 목차 라벨을 다운로드·뷰어 제목에 반영
@@ -385,7 +389,7 @@ if (window.__APP_INIT__) {
                             ]
                         }
                     ],
-                '전장회로도': etmTreeData || [
+                '전장회로도': (getCurrentProductLine() === LINE_QQ ? qqEtmTreeData : etmTreeData) || [
                         {
                             id: 'etm-1',
                             label: '▪ 1. 고전압 시스템',

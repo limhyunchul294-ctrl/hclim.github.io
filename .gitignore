@@ -35,6 +35,10 @@ organize-files.ps1
 # QQ 정비지침서 원본 PDF (Supabase Storage 업로드용)
 QQ_SM/*.pdf
 
+# QQ 전장회로도(ETM) 원본·분할 PDF (Supabase Storage 업로드용, split_manual.py만 Git 추적)
+QQ_ETM/*.pdf
+QQ_ETM/split/*.pdf
+
 # DTC 도면 원본 (Storage 업로드용, mappings.json만 Git 추적)
 DTC/images/dtc/**
 !DTC/images/dtc/mappings.json
