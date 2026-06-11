@@ -105,7 +105,7 @@ async function main() {
     };
     const lmsVars = {
         GSW_BRIDGE_SECRET: bridgeSecret,
-        NEXT_PUBLIC_GSW_PORTAL_URL: 'https://evkmc-as-app.vercel.app',
+        NEXT_PUBLIC_GSW_PORTAL_URL: 'https://evkmc-as-portal.vercel.app',
     };
 
     for (const p of PROJECTS) {

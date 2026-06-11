@@ -40,7 +40,7 @@ export default defineConfig({
     // 로컬 Vite만 켠 경우 /api 는 Vercel 프로덕션 API로 프록시 (세션은 동일 Supabase)
     proxy: {
       '/api': {
-        target: 'https://evkmc-as-app.vercel.app',
+        target: 'https://evkmc-as-portal.vercel.app',
         changeOrigin: true,
         secure: true,
       },

@@ -667,7 +667,7 @@ window.securityAgreement = {
                                     <span class="expand-icon text-slate-600">▼</span>
                                 </div>
                                 <div class="expandable-content hidden mt-4 pt-4 border-t border-slate-300 text-sm leading-relaxed">
-                                    <p class="mb-3">본 포털(evkmc-as-app.vercel.app)은 EVKMC에서 제공하는 자동차 정비 관련 기술 문서를 공유하는 정비 포털입니다. 협력점 및 인증 사용자에게 최신의 기술 정보와 서비스 자료를 제공하여 고품질의 정비 서비스를 지원하고자 합니다.</p>
+                                    <p class="mb-3">본 포털(evkmc-as-portal.vercel.app)은 EVKMC에서 제공하는 자동차 정비 관련 기술 문서를 공유하는 정비 포털입니다. 협력점 및 인증 사용자에게 최신의 기술 정보와 서비스 자료를 제공하여 고품질의 정비 서비스를 지원하고자 합니다.</p>
                                     <p class="mb-3">본 포털은 정비 산업의 기술 수준 향상과 정비 서비스 품질 관리를 위한 전문적인 플랫폼으로, 다양한 협력점의 정비 업무 효율성을 극대화하기 위해 설계되었습니다. 제공되는 모든 자료는 EVKMC의 독자적인 연구와 개발을 통해 축적된 기술 자산으로, 저작권법 및 영업비밀보호법으로 보호받습니다.</p>
                                     <p>본 포털의 자료는 협력점 직원들의 정비 기술 향상 및 고객 서비스 개선을 목적으로 제한적으로 공유되는 것이며, 무단 배포나 외부 공개는 EVKMC의 기술 자산 보호를 침해하는 심각한 행위입니다. 이러한 행위는 관련 법령에 따라 형사적, 민사적 책임을 초래합니다.</p>
                                 </div>
@@ -1362,7 +1362,7 @@ window.securityAgreement = {
                             <span class="expand-icon text-slate-600">▼</span>
                         </div>
                         <div class="expandable-content hidden mt-4 pt-4 border-t border-slate-300 text-sm leading-relaxed">
-                            <p class="mb-3">본 포털(evkmc-as-app.vercel.app)은 EVKMC에서 제공하는 자동차 정비 관련 기술 문서를 공유하는 정비 포털입니다. 협력점 및 인증 사용자에게 최신의 기술 정보와 서비스 자료를 제공하여 고품질의 정비 서비스를 지원하고자 합니다.</p>
+                            <p class="mb-3">본 포털(evkmc-as-portal.vercel.app)은 EVKMC에서 제공하는 자동차 정비 관련 기술 문서를 공유하는 정비 포털입니다. 협력점 및 인증 사용자에게 최신의 기술 정보와 서비스 자료를 제공하여 고품질의 정비 서비스를 지원하고자 합니다.</p>
                             <p class="mb-3">본 포털은 정비 산업의 기술 수준 향상과 정비 서비스 품질 관리를 위한 전문적인 플랫폼으로, 다양한 협력점의 정비 업무 효율성을 극대화하기 위해 설계되었습니다. 제공되는 모든 자료는 EVKMC의 독자적인 연구와 개발을 통해 축적된 기술 자산으로, 저작권법 및 영업비밀보호법으로 보호받습니다.</p>
                             <p>본 포털의 자료는 협력점 직원들의 정비 기술 향상 및 고객 서비스 개선을 목적으로 제한적으로 공유되는 것이며, 무단 배포나 외부 공개는 EVKMC의 기술 자산 보호를 침해하는 심각한 행위입니다. 이러한 행위는 관련 법령에 따라 형사적, 민사적 책임을 초래합니다.</p>
                         </div>
