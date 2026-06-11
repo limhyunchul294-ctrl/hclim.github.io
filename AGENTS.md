@@ -7,7 +7,7 @@ EVKMC A/S 정비 기술 문서 포털 — 전기차 정비 기술자를 위한 �
 Vanilla JS SPA (Vite) + Supabase (PostgreSQL, Auth, Storage, Edge Functions) + Vercel 배포.
 
 ### 프로덕션 URL
-- **Vercel**: `evkmc-as-portal.vercel.app` (구 주소 `evkmc-as-app.vercel.app`도 동작)
+- **Vercel**: `evkmc-as-portal.vercel.app` (프로젝트명: `evkmc-as-portal`, 구 주소 `evkmc-as-app.vercel.app`은 제거됨)
 - **Supabase**: `sesedcotooihnpjklqzs.supabase.co` (URL/키가 `js/config.js`에 하드코딩됨)
 
 ### 개발 환경

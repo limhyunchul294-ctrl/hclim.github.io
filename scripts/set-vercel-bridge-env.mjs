@@ -12,7 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEAM_ID = 'team_mOdjx4N6KbjbSTDbMe9sZNkm';
 
 const PROJECTS = [
-    { id: 'prj_woVkRISdDrvM6ALpEM6OxBIFd5bM', name: 'evkmc-as-app' },
+    { id: 'prj_woVkRISdDrvM6ALpEM6OxBIFd5bM', name: 'evkmc-as-portal' },
     { id: 'prj_0UAK8SbpK4JBq4zGNIoUZvunc3Xc', name: 'lms-youtube-testbed' },
 ];
 
@@ -110,7 +110,7 @@ async function main() {
 
     for (const p of PROJECTS) {
         console.log(`\n=== ${p.name} ===`);
-        const vars = p.name === 'evkmc-as-app' ? portalVars : lmsVars;
+        const vars = p.name === 'evkmc-as-portal' ? portalVars : lmsVars;
         for (const [key, value] of Object.entries(vars)) {
             const action = await upsertEnv(token, p.id, key, value);
             console.log(`  ${key}: ${action}`);
