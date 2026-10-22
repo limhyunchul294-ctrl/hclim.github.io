@@ -121,17 +121,22 @@ export function useCameraLandmarker({
       rafRef.current = requestAnimationFrame(loop)
     } catch (err) {
       stop()
-      const message =
+      const raw =
         err instanceof Error
           ? err.message
           : '카메라 또는 모델 로드에 실패했습니다.'
-      setStatus({
-        kind: 'error',
-        message:
-          message.includes('Permission') || message.includes('NotAllowed')
-            ? '카메라 권한이 거부되었습니다. 브라우저 설정에서 허용해 주세요.'
-            : message,
-      })
+      let message = raw
+      if (/NotAllowed|Permission|permission/i.test(raw)) {
+        message =
+          '카메라 권한이 거부되었습니다. 브라우저 설정에서 허용해 주세요.'
+      } else if (/NotFound|DevicesNotFound|Requested device/i.test(raw)) {
+        message =
+          '사용 가능한 카메라를 찾지 못했습니다. 전면 카메라가 있는 기기에서 다시 시도해 주세요.'
+      } else if (/NotReadable|TrackStart/i.test(raw)) {
+        message =
+          '카메라에 접근할 수 없습니다. 다른 앱이 사용 중인지 확인해 주세요.'
+      }
+      setStatus({ kind: 'error', message })
     }
   }, [loop, stop])
 
