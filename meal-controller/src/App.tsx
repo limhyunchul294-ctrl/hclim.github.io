@@ -3,10 +3,12 @@ import { CameraPanel } from './components/CameraPanel'
 import { StatusBadges } from './components/StatusBadges'
 import { VideoPlayer } from './components/VideoPlayer'
 import { useCameraLandmarker } from './hooks/useCameraLandmarker'
+import { BlinkTracker } from './lib/blinkScore'
 import { ChewScorer } from './lib/chewScore'
 import { PlayerStateMachine } from './lib/playerStateMachine'
 import {
   DEFAULT_SETTINGS,
+  type BlinkSnapshot,
   type ChewSnapshot,
   type ControllerSettings,
   type FaceFrame,
@@ -46,8 +48,16 @@ function App() {
     resumeProgress: 0,
   })
   const [latest, setLatest] = useState<FaceFrame | null>(null)
+  const [blink, setBlink] = useState<BlinkSnapshot>({
+    blinkRatePerMin: 0,
+    sessionBlinkCount: 0,
+    eyesClosedLong: false,
+    blinkLeft: 0,
+    blinkRight: 0,
+  })
 
   const scorerRef = useRef(new ChewScorer())
+  const blinkRef = useRef(new BlinkTracker())
   const fsmRef = useRef(new PlayerStateMachine())
   const settingsRef = useRef(settings)
 
@@ -65,6 +75,8 @@ function App() {
     setLatest(frame)
     const snap = scorerRef.current.push(frame, settingsRef.current)
     setChew(snap)
+    // Blink is additive metrics only — never gates shouldPlay.
+    setBlink(blinkRef.current.push(frame, settingsRef.current))
     const out = fsmRef.current.step({
       nowMs: frame.timestampMs,
       hasFace: frame.hasFace,
@@ -138,7 +150,13 @@ function App() {
 
         <aside className="side-panel">
           <StatusBadges phase={machine.phase} isChewing={chew.isChewing} />
-          <h2>M2 · 저작 → pause / resume</h2>
+          <h2>저작 → pause / resume</h2>
+          {blink.eyesClosedLong && (
+            <p className="soft-warn" role="status">
+              눈이 감긴 채 오래 유지되고 있습니다 (참고 신호 · 재생에는 영향
+              없음)
+            </p>
+          )}
 
           <div className="btn-row">
             <button
@@ -146,6 +164,7 @@ function App() {
               className="btn primary"
               onClick={() => {
                 scorerRef.current.reset()
+                blinkRef.current.reset()
                 fsmRef.current.reset()
                 setEnabled(true)
               }}
@@ -231,6 +250,20 @@ function App() {
                   <dd>{pauseHint}s</dd>
                 </div>
               )}
+              <div>
+                <dt>깜빡임 (세션)</dt>
+                <dd>{blink.sessionBlinkCount}</dd>
+              </div>
+              <div>
+                <dt>깜빡임/분</dt>
+                <dd>{blink.blinkRatePerMin.toFixed(1)}</dd>
+              </div>
+              <div>
+                <dt>eyeBlink L/R</dt>
+                <dd>
+                  {blink.blinkLeft.toFixed(2)} / {blink.blinkRight.toFixed(2)}
+                </dd>
+              </div>
             </dl>
           )}
 
