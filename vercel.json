@@ -10,7 +10,7 @@
   },
   "rewrites": [
     { "source": "/login", "destination": "/login.html" },
-    { "source": "/((?!api/|assets/|js/|_astro/|favicon.ico|manifest.webmanifest|sw.js).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|assets/|js/|meal-controller/|_astro/|favicon.ico|manifest.webmanifest|sw.js).*)", "destination": "/index.html" }
   ],
   "redirects": [
     {
@@ -20,6 +20,15 @@
     }
   ],
   "headers": [
+    {
+      "source": "/meal-controller/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=()" }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [

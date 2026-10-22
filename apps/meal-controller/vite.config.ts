@@ -1,11 +1,12 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-// GitHub project Pages (repo hclim.github.io under limhyunchul294-ctrl):
-// https://limhyunchul294-ctrl.github.io/hclim.github.io/meal-controller/
+// Relative base so the same build works under:
+// - https://evkmc-as-portal.vercel.app/meal-controller/
+// - https://limhyunchul294-ctrl.github.io/hclim.github.io/meal-controller/
 export default defineConfig({
   plugins: [react()],
-  base: '/hclim.github.io/meal-controller/',
+  base: './',
   server: {
     port: 5173,
     host: true,
