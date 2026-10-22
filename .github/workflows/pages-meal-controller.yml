@@ -1,0 +1,51 @@
+name: Build meal-controller static
+
+# Rebuilds committed files under meal-controller/ for GitHub Pages.
+# Enable Pages: Settings → Pages → Branch master → / (root).
+# Live URL:
+#   https://limhyunchul294-ctrl.github.io/hclim.github.io/meal-controller/
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/meal-controller/**'
+      - '.github/workflows/pages-meal-controller.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: meal-controller-static
+  cancel-in-progress: true
+
+jobs:
+  build-and-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/meal-controller/package-lock.json
+
+      - name: Install & build
+        working-directory: apps/meal-controller
+        run: |
+          npm ci
+          npm run build
+
+      - name: Commit published static files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A meal-controller
+          if git diff --staged --quiet; then
+            echo "No changes in meal-controller/"
+            exit 0
+          fi
+          git commit -m "chore(meal-controller): publish static build for GitHub Pages"
+          git push
