@@ -274,13 +274,76 @@
   font-weight: 600;
 }
 
+.check-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0.35rem 0 0.75rem;
+}
+
 .check-row {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  margin-bottom: 0.85rem;
+  margin-bottom: 0;
   font-size: 0.9rem;
   color: var(--text-muted);
+}
+
+.settings {
+  margin: 0.25rem 0 0.85rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.settings h3 {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+}
+
+.slider-row {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.slider-row strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.slider-row input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 0.85rem 0.7rem 2rem;
+  }
+
+  .brand {
+    font-size: 1.35rem;
+  }
+
+  .side-panel {
+    padding: 0.85rem 0.9rem;
+  }
+
+  .btn,
+  .file-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .nudge-title {
+    font-size: 1.15rem;
+  }
 }
 
 .metrics {

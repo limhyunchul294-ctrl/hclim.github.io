@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CameraPanel } from './components/CameraPanel'
+import { SettingsPanel } from './components/SettingsPanel'
 import { StatusBadges } from './components/StatusBadges'
 import { VideoPlayer } from './components/VideoPlayer'
 import { useCameraLandmarker } from './hooks/useCameraLandmarker'
@@ -150,7 +151,7 @@ function App() {
 
         <aside className="side-panel">
           <StatusBadges phase={machine.phase} isChewing={chew.isChewing} />
-          <h2>저작 → pause / resume</h2>
+          <h2>식사 중 시청 제어</h2>
           {blink.eyesClosedLong && (
             <p className="soft-warn" role="status">
               눈이 감긴 채 오래 유지되고 있습니다 (참고 신호 · 재생에는 영향
@@ -201,26 +202,30 @@ function App() {
             </label>
           </div>
 
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={settings.showMesh}
-              onChange={(e) =>
-                setSettings((s) => ({ ...s, showMesh: e.target.checked }))
-              }
-            />
-            얼굴 메시
-          </label>
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={settings.showDebug}
-              onChange={(e) =>
-                setSettings((s) => ({ ...s, showDebug: e.target.checked }))
-              }
-            />
-            디버그 수치
-          </label>
+          <SettingsPanel settings={settings} onChange={setSettings} />
+
+          <div className="check-grid">
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={settings.showMesh}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, showMesh: e.target.checked }))
+                }
+              />
+              얼굴 메시
+            </label>
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={settings.showDebug}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, showDebug: e.target.checked }))
+                }
+              />
+              디버그 수치
+            </label>
+          </div>
 
           {settings.showDebug && (
             <dl className="metrics">
@@ -273,7 +278,9 @@ function App() {
           </p>
 
           <p className="privacy">
-            카메라 프레임은 기기 안에서만 처리됩니다. 서버로 업로드되지 않습니다.
+            프라이버시: MediaPipe Face Landmarker가 <strong>온디바이스</strong>
+            에서만 동작합니다. 카메라 프레임·랜드마크는 서버로 업로드되지
+            않습니다.
           </p>
         </aside>
       </main>
