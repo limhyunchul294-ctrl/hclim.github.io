@@ -5,12 +5,12 @@
 }
 
 .app-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .brand {
   margin: 0;
-  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -21,46 +21,153 @@
   font-size: 0.95rem;
 }
 
-.app-main {
+.layout-m1 {
   display: grid;
   gap: 1rem;
+  grid-template-columns: 1fr;
 }
 
-.placeholder-card {
+@media (min-width: 860px) {
+  .layout-m1 {
+    grid-template-columns: 1.4fr 1fr;
+    align-items: start;
+  }
+}
+
+.camera-panel {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.25rem 1.35rem;
+  padding: 0.65rem;
   box-shadow: var(--shadow);
 }
 
-.placeholder-card h1 {
-  margin: 0 0 0.5rem;
-  font-size: 1.25rem;
+.camera-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.placeholder-card p {
-  margin: 0.5rem 0;
+.camera-video,
+.camera-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-video {
+  transform: scaleX(-1);
+}
+
+.camera-overlay {
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+.face-lost-banner {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  background: rgba(212, 101, 106, 0.92);
+  color: #fff;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.camera-status {
+  margin: 0.55rem 0 0.15rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
 }
 
-.placeholder-card ul {
-  margin: 0.75rem 0;
-  padding-left: 1.2rem;
-  color: var(--text);
+.side-panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--shadow);
 }
 
-.placeholder-card code {
-  font-size: 0.9em;
+.side-panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.btn {
+  border: 1px solid var(--border);
   background: var(--surface);
-  padding: 0.1em 0.35em;
-  border-radius: 4px;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: #06120f;
+  font-weight: 600;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.metrics {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.metrics > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0.55rem;
+  background: var(--surface);
+  border-radius: 8px;
+}
+
+.metrics dt {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.metrics dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .privacy {
-  margin-top: 1rem !important;
+  margin: 1rem 0 0;
   padding-top: 0.75rem;
   border-top: 1px solid var(--border);
-  font-size: 0.85rem;
-  color: var(--accent) !important;
+  font-size: 0.82rem;
+  color: var(--accent);
 }

@@ -43,8 +43,8 @@ npm run preview
 
 | 단계 | 내용 |
 |------|------|
-| M0 | Vite + React + TS 스캐폴드 (현재) |
-| M1 | 카메라 + Face Landmarker |
+| M0 | Vite + React + TS 스캐폴드 |
+| M1 | 카메라 + Face Landmarker + 메시 오버레이 · 얼굴 소실 UI (현재) |
 | M2 | 저작 스코어 + PLAYING/PAUSED 상태머신 |
 | M3 | 눈 깜빡임 지표 (부가) |
 | M4 | 임계값 슬라이더 · 모바일 레이아웃 · 폴리시 |
