@@ -1,0 +1,52 @@
+name: Deploy meal-controller GitHub Pages
+
+# Deploys meal-controller/ as the GitHub Pages site (Actions source).
+# URL after enable: https://limhyunchul294-ctrl.github.io/hclim.github.io/
+# (artifact root = meal-controller build; relative asset paths)
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/meal-controller/**'
+      - 'meal-controller/**'
+      - '.github/workflows/deploy-meal-controller-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages-meal
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/meal-controller/package-lock.json
+      - name: Build
+        working-directory: apps/meal-controller
+        run: |
+          npm ci
+          npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: meal-controller
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
