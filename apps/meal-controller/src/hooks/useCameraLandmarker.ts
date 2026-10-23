@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { FaceLandmarker } from '@mediapipe/tasks-vision'
 import {
   createFaceLandmarker,
@@ -183,6 +183,21 @@ export function useCameraLandmarker({
     }
     return () => stop()
   }, [enabled, start, stop])
+
+  // Re-bind the same MediaStream when the <video> remounts (panel ↔ PiP).
+  useLayoutEffect(() => {
+    if (!enabled || status.kind !== 'ready') return
+    const video = videoRef.current
+    const stream = streamRef.current
+    if (!video || !stream) return
+    if (video.srcObject !== stream) {
+      video.srcObject = stream
+      video.muted = true
+      video.setAttribute('playsinline', 'true')
+      video.setAttribute('webkit-playsinline', 'true')
+      void video.play().catch(() => {})
+    }
+  })
 
   return {
     videoRef,

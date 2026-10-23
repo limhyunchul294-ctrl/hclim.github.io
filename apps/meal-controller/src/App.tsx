@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { CameraFeed } from './components/CameraFeed'
 import { CameraPanel } from './components/CameraPanel'
 import {
   PlaybackStage,
@@ -167,7 +168,8 @@ function App() {
 
   const { videoRef, canvasRef, status, faceLost, faceCount } =
     useCameraLandmarker({
-      showMesh: settings.showMesh,
+      // Draw landmarks in PiP so parents can see recognition without 세밀 설정
+      showMesh: settings.showMesh || settings.showRecognitionPreview,
       onFrame,
       enabled,
     })
@@ -224,6 +226,9 @@ function App() {
 
   const showFriendNudge = enabled && missingBuddy
 
+  // PiP only when camera is actually running (same stream / landmarker)
+  const pipActive = settings.showRecognitionPreview && enabled && status.kind === 'ready'
+
   return (
     <div className="app">
       <header className="app-header">
@@ -251,6 +256,17 @@ function App() {
               noChewSec: machine.noChewSec,
               effectivePauseSec: machine.effectivePauseSec,
             }}
+            recognitionSlot={
+              pipActive ? (
+                <CameraFeed
+                  videoRef={videoRef}
+                  canvasRef={canvasRef}
+                  faceLost={faceLost}
+                  missingBuddy={showFriendNudge}
+                  variant="pip"
+                />
+              ) : null
+            }
             onManualPause={() => setManualPaused(true)}
             onManualPlay={() => setManualPaused(false)}
           />
@@ -260,6 +276,12 @@ function App() {
             faceLost={enabled && status.kind === 'ready' && faceLost}
             missingBuddy={showFriendNudge}
             statusLabel={statusLabel}
+            showFeed={!pipActive}
+            note={
+              pipActive
+                ? '인식 화면은 영상 오른쪽 위에 작게 보여요.'
+                : undefined
+            }
           />
         </div>
 
@@ -333,6 +355,23 @@ function App() {
               열어 주세요. 앱처럼 전체 화면으로 나와요.
             </p>
           )}
+
+          <label className="check-row preview-toggle">
+            <input
+              type="checkbox"
+              checked={settings.showRecognitionPreview}
+              onChange={(e) =>
+                setSettings((s) => ({
+                  ...s,
+                  showRecognitionPreview: e.target.checked,
+                }))
+              }
+            />
+            인식 화면 보기
+            <span className="preview-toggle-hint">
+              (켜면 영상 위에 작게 보여요 · 기본 꺼짐)
+            </span>
+          </label>
 
           <div className="mode-tabs" role="tablist">
             <button

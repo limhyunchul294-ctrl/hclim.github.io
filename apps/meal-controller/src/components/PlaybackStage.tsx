@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useYouTubeApiReady } from '../hooks/useYouTubeApi'
 import {
   exitAppFullscreen,
@@ -35,6 +35,8 @@ type Props = {
   secSinceLastBlink: number
   showHud: boolean
   hud: LiveHud
+  /** Optional PiP recognition feed (same camera stream). */
+  recognitionSlot?: ReactNode
   onManualPause: () => void
   onManualPlay: () => void
 }
@@ -57,6 +59,7 @@ export function PlaybackStage({
   secSinceLastBlink,
   showHud,
   hud,
+  recognitionSlot = null,
   onManualPause,
   onManualPlay,
 }: Props) {
@@ -254,7 +257,9 @@ export function PlaybackStage({
       className={`video-panel ${appFs ? 'video-panel-fs' : ''} ${cssFs ? 'video-panel-css-fs' : ''}`}
       ref={shellRef}
     >
-      <div className="video-stage">
+      <div
+        className={`video-stage ${recognitionSlot ? 'video-stage-has-pip' : ''}`}
+      >
         {source?.kind === 'youtube' ? (
           <div ref={ytHostRef} className="yt-host" />
         ) : source?.kind === 'local' ? (
@@ -286,6 +291,8 @@ export function PlaybackStage({
           aria-label="조작 버튼 보이기"
           onClick={revealControls}
         />
+
+        {recognitionSlot}
 
         {showHud && (
           <div className="live-hud" aria-live="polite">
