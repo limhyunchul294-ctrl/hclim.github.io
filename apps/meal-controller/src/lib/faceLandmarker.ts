@@ -7,7 +7,6 @@ import {
 const MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
 
-/** CDN WASM pinned to the installed package major.minor.patch via import.meta. */
 const WASM_CDN =
   'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm'
 
@@ -42,13 +41,15 @@ export async function createFaceLandmarker(): Promise<FaceLandmarker> {
   }
 }
 
-function blendScore(
-  result: FaceLandmarkerResult,
-  name: string,
-): number {
+function blendScore(result: FaceLandmarkerResult, name: string): number {
   const cats = result.faceBlendshapes?.[0]?.categories
-  if (!cats) return 0
-  const hit = cats.find((c) => c.categoryName === name)
+  if (!cats?.length) return 0
+  const want = name.toLowerCase().replace(/[_\s]/g, '')
+  const hit = cats.find((c) => {
+    const a = (c.categoryName ?? '').toLowerCase().replace(/[_\s]/g, '')
+    const b = (c.displayName ?? '').toLowerCase().replace(/[_\s]/g, '')
+    return a === want || b === want
+  })
   return hit?.score ?? 0
 }
 

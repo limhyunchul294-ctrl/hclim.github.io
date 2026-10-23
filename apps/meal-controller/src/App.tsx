@@ -177,6 +177,15 @@ function App() {
             resumeNeed={settings.resumeCycles}
             resumeHave={machine.resumeProgress}
             secSinceLastBlink={blink.secSinceLastBlink}
+            showHud={settings.showDebug && enabled}
+            hud={{
+              jawOpen: latest?.jawOpen ?? 0,
+              chewScore: chew.score,
+              isChewing: chew.isChewing,
+              phase: machine.phase,
+              noChewSec: machine.noChewSec,
+              effectivePauseSec: machine.effectivePauseSec,
+            }}
           />
           <CameraPanel
             videoRef={videoRef}
@@ -337,9 +346,9 @@ function App() {
           )}
 
           <p className="hint">
-            씹으면 유튜브가 재생되고, 멈추면 화면이 커다랗게 「한 입 더」를
-            보여 줍니다. 오래 깜빡이지 않으면 「눈을 깜빡여 주세요」가 영상 위에
-            뜹니다.
+            카메라 <strong>시작</strong> 후 얼굴을 비추고 씹으면 재생됩니다.
+            유튜브 <strong>앱 전체화면</strong>을 쓰세요(유튜브 자체 전체화면은
+            끕니다). 디버그 켜면 영상 위 HUD에 jaw/score/CHEW/상태가 보입니다.
           </p>
 
           <p className="privacy">

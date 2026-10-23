@@ -30,6 +30,7 @@ export function useCameraLandmarker({
   const streamRef = useRef<MediaStream | null>(null)
   const rafRef = useRef<number>(0)
   const lastTsRef = useRef<number>(-1)
+  const runningRef = useRef(false)
   const onFrameRef = useRef(onFrame)
   const showMeshRef = useRef(showMesh)
 
@@ -45,26 +46,29 @@ export function useCameraLandmarker({
   }, [showMesh])
 
   const stop = useCallback(() => {
+    runningRef.current = false
     cancelAnimationFrame(rafRef.current)
+    rafRef.current = 0
     streamRef.current?.getTracks().forEach((t) => t.stop())
     streamRef.current = null
     landmarkerRef.current?.close()
     landmarkerRef.current = null
+    lastTsRef.current = -1
     if (videoRef.current) {
       videoRef.current.srcObject = null
     }
   }, [])
 
   const loop = useCallback(() => {
+    if (!runningRef.current) return
     const video = videoRef.current
     const canvas = canvasRef.current
     const landmarker = landmarkerRef.current
-    if (!video || !canvas || !landmarker) return
 
-    if (video.readyState >= 2) {
+    if (video && canvas && landmarker && video.readyState >= 2) {
       const now = performance.now()
-      if (now - lastTsRef.current > 40) {
-        // ~25 FPS max; chewing band is ~0.6–2.5 Hz
+      // Monotonic timestamps required by MediaPipe VIDEO mode
+      if (now > lastTsRef.current + 33) {
         lastTsRef.current = now
         try {
           const result = landmarker.detectForVideo(video, now)
@@ -118,6 +122,8 @@ export function useCameraLandmarker({
       await video.play()
 
       setStatus({ kind: 'ready' })
+      runningRef.current = true
+      lastTsRef.current = -1
       rafRef.current = requestAnimationFrame(loop)
     } catch (err) {
       stop()

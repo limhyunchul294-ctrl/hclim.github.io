@@ -51,7 +51,7 @@ export function sanitizeSettings(s: ControllerSettings): ControllerSettings {
     pauseDelaySec: clamp(s.pauseDelaySec, 1, 8),
     resumeCycles: Math.round(clamp(s.resumeCycles, 1, 6)),
     sensitivity: clamp(s.sensitivity, 0.2, 0.95),
-    amplitudeThreshold: clamp(s.amplitudeThreshold, 0.02, 0.25),
+    amplitudeThreshold: clamp(s.amplitudeThreshold, 0.015, 0.25),
     freqMinHz: freqMin,
     freqMaxHz: freqMax,
     faceLostDelaySec: clamp(s.faceLostDelaySec, 0.3, 3),
