@@ -46,6 +46,8 @@ function App() {
   const [ytMeta, setYtMeta] = useState<YtVideoMeta | null>(null)
   const [localSrc, setLocalSrc] = useState<string | null>(null)
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
+  /** Parent/kid manual pause — sits above chew FSM play intent. */
+  const [manualPaused, setManualPaused] = useState(false)
 
   const [chew, setChew] = useState<ChewSnapshot>({
     score: 0,
@@ -156,7 +158,8 @@ function App() {
         ? { kind: 'local', src: localSrc }
         : null
 
-  const wantPlay = machine.shouldPlay && enabled && !dryEyeBlocksPlay
+  const wantPlay =
+    machine.shouldPlay && enabled && !dryEyeBlocksPlay && !manualPaused
 
   return (
     <div className="app">
@@ -172,7 +175,7 @@ function App() {
           <PlaybackStage
             source={playbackSource}
             shouldPlay={wantPlay}
-            showChewNudge={machine.showNudge && enabled}
+            showChewNudge={machine.showNudge && enabled && !manualPaused}
             showBlinkNudge={blink.needsBlinkNudge && enabled}
             resumeNeed={settings.resumeCycles}
             resumeHave={machine.resumeProgress}
@@ -186,6 +189,9 @@ function App() {
               noChewSec: machine.noChewSec,
               effectivePauseSec: machine.effectivePauseSec,
             }}
+            onManualPause={() => setManualPaused(true)}
+            onManualPlay={() => setManualPaused(false)}
+            onManualStop={() => setManualPaused(true)}
           />
           <CameraPanel
             videoRef={videoRef}
@@ -207,6 +213,7 @@ function App() {
                 scorerRef.current.reset()
                 blinkRef.current.reset()
                 fsmRef.current.reset()
+                setManualPaused(false)
                 setEnabled(true)
               }}
               disabled={enabled && status.kind !== 'error'}
@@ -298,16 +305,6 @@ function App() {
               />
               얼굴 메시
             </label>
-            <label className="check-row">
-              <input
-                type="checkbox"
-                checked={settings.showDebug}
-                onChange={(e) =>
-                  setSettings((s) => ({ ...s, showDebug: e.target.checked }))
-                }
-              />
-              디버그 수치
-            </label>
           </div>
 
           {settings.showDebug && (
@@ -347,8 +344,8 @@ function App() {
 
           <p className="hint">
             카메라 <strong>시작</strong> 후 얼굴을 비추고 씹으면 재생됩니다.
-            유튜브 <strong>앱 전체화면</strong>을 쓰세요(유튜브 자체 전체화면은
-            끕니다). 디버그 켜면 영상 위 HUD에 jaw/score/CHEW/상태가 보입니다.
+            전체화면에서는 아래쪽 큰 <strong>일시정지·재생·나가기</strong>{' '}
+            버튼을 쓰세요.
           </p>
 
           <p className="privacy">

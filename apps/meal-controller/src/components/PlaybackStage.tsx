@@ -25,6 +25,9 @@ type Props = {
   secSinceLastBlink: number
   showHud: boolean
   hud: LiveHud
+  onManualPause: () => void
+  onManualPlay: () => void
+  onManualStop: () => void
 }
 
 const YT_PLAYING = 1
@@ -44,6 +47,9 @@ export function PlaybackStage({
   secSinceLastBlink,
   showHud,
   hud,
+  onManualPause,
+  onManualPlay,
+  onManualStop,
 }: Props) {
   const shellRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -59,24 +65,26 @@ export function PlaybackStage({
     shouldPlayRef.current = shouldPlay
   }, [shouldPlay])
 
-  const applyDesired = useCallback((want: boolean) => {
-    const p = playerRef.current
-    if (p) {
-      try {
-        if (want) p.playVideo()
-        else p.pauseVideo()
-      } catch {
-        /* not ready */
+  const applyDesired = useCallback(
+    (want: boolean) => {
+      const p = playerRef.current
+      if (p) {
+        try {
+          if (want) p.playVideo()
+          else p.pauseVideo()
+        } catch {
+          /* not ready */
+        }
       }
-    }
-    const el = videoRef.current
-    if (el && localSrc) {
-      if (want) void el.play().catch(() => {})
-      else el.pause()
-    }
-  }, [localSrc])
+      const el = videoRef.current
+      if (el && localSrc) {
+        if (want) void el.play().catch(() => {})
+        else el.pause()
+      }
+    },
+    [localSrc],
+  )
 
-  // Create / recreate YT player when video id changes
   useEffect(() => {
     if (!videoId || !ytReady || !ytHostRef.current) return
     let cancelled = false
@@ -98,7 +106,7 @@ export function PlaybackStage({
       playerVars: {
         autoplay: 0,
         controls: 1,
-        fs: 0, // disable YouTube native fullscreen — use app wrapper instead
+        fs: 0,
         rel: 0,
         modestbranding: 1,
         playsinline: 1,
@@ -112,9 +120,7 @@ export function PlaybackStage({
         },
         onStateChange: (e) => {
           if (cancelled) return
-          // User hit play on YT chrome while we want pause → force pause.
-          const playing =
-            e.data === YT_PLAYING || e.data === YT_BUFFERING
+          const playing = e.data === YT_PLAYING || e.data === YT_BUFFERING
           if (playing && !shouldPlayRef.current) {
             try {
               player.pauseVideo()
@@ -137,12 +143,10 @@ export function PlaybackStage({
     }
   }, [videoId, ytReady, applyDesired])
 
-  // React to shouldPlay changes
   useEffect(() => {
     applyDesired(shouldPlay)
   }, [shouldPlay, applyDesired, videoId, localSrc])
 
-  // Keep forcing sync — catches YT UI play and late-ready player
   useEffect(() => {
     const id = window.setInterval(() => {
       const p = playerRef.current
@@ -182,6 +186,16 @@ export function PlaybackStage({
     }
   }
 
+  const exitFullscreen = async () => {
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen()
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
   return (
     <div
       className={`video-panel ${appFs ? 'video-panel-fs' : ''}`}
@@ -200,9 +214,7 @@ export function PlaybackStage({
             controls={false}
           />
         ) : (
-          <div className="video-empty">
-            유튜브 주소를 붙여넣어 주세요
-          </div>
+          <div className="video-empty">유튜브 주소를 붙여넣어 주세요</div>
         )}
 
         {showHud && (
@@ -214,21 +226,11 @@ export function PlaybackStage({
             </span>
             <span>{hud.phase}</span>
             <span>
-              noChew {hud.noChewSec.toFixed(1)}/{hud.effectivePauseSec.toFixed(1)}s
+              noChew {hud.noChewSec.toFixed(1)}/
+              {hud.effectivePauseSec.toFixed(1)}s
             </span>
           </div>
         )}
-
-        <div className="stage-toolbar">
-          <button
-            type="button"
-            className="btn stage-fs-btn"
-            onClick={() => void toggleAppFullscreen()}
-          >
-            {appFs ? '전체화면 종료' : '앱 전체화면'}
-          </button>
-          <span className="stage-fs-hint">유튜브 전체화면 대신 이걸 쓰세요</span>
-        </div>
 
         {showBlinkNudge && (
           <div className="stage-overlay blink-overlay" role="alert">
@@ -261,6 +263,50 @@ export function PlaybackStage({
             </p>
           </div>
         )}
+
+        {/* Always above iframe + overlays — kid-sized hit targets */}
+        <div className="stage-controls" role="toolbar" aria-label="재생 조작">
+          {shouldPlay ? (
+            <button
+              type="button"
+              className="btn stage-ctrl-btn"
+              onClick={onManualPause}
+            >
+              일시정지
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn stage-ctrl-btn primary"
+              onClick={onManualPlay}
+            >
+              재생
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn stage-ctrl-btn"
+            onClick={onManualStop}
+          >
+            정지
+          </button>
+          <button
+            type="button"
+            className="btn stage-ctrl-btn stage-ctrl-fs"
+            onClick={() => void toggleAppFullscreen()}
+          >
+            {appFs ? '전체화면 종료' : '앱 전체화면'}
+          </button>
+          {appFs && (
+            <button
+              type="button"
+              className="btn stage-ctrl-btn stage-ctrl-exit"
+              onClick={() => void exitFullscreen()}
+            >
+              나가기
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
