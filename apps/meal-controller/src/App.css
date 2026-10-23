@@ -644,6 +644,21 @@ html.meal-css-fs body {
   border-radius: 14px;
 }
 
+.a2hs-tip {
+  margin: -0.35rem 0 1rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(74, 171, 140, 0.14);
+  border: 1px solid rgba(74, 171, 140, 0.35);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.a2hs-tip strong {
+  color: var(--ok);
+}
+
 .file-row {
   display: flex;
   flex-wrap: wrap;

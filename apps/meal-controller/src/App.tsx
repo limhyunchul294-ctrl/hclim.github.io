@@ -8,6 +8,7 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { StatusBadges } from './components/StatusBadges'
 import { YoutubePicker } from './components/YoutubePicker'
 import { useCameraLandmarker } from './hooks/useCameraLandmarker'
+import { useStandaloneDisplay } from './hooks/useStandaloneDisplay'
 import { useWakeLock } from './hooks/useWakeLock'
 import { BlinkTracker } from './lib/blinkScore'
 import { MultiFaceChew } from './lib/multiFaceChew'
@@ -84,6 +85,7 @@ function App() {
   const settingsRef = useRef(settings)
 
   useWakeLock(enabled)
+  const isStandalone = useStandaloneDisplay()
 
   useEffect(() => {
     settingsRef.current = settings
@@ -323,6 +325,14 @@ function App() {
               중지
             </button>
           </div>
+
+          {!isStandalone && (
+            <p className="a2hs-tip" role="note">
+              Safari에서는 주소창이 남을 수 있어요. 주소창을 없애려면{' '}
+              <strong>공유 → 홈 화면에 추가</strong> 한 뒤, 홈 아이콘으로
+              열어 주세요. 앱처럼 전체 화면으로 나와요.
+            </p>
+          )}
 
           <div className="mode-tabs" role="tablist">
             <button
