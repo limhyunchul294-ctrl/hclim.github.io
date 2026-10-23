@@ -25,7 +25,6 @@ export function parseYouTubeId(input: string): string | null {
       const v = url.searchParams.get('v')
       if (v && /^[\w-]{11}$/.test(v)) return v
       const parts = url.pathname.split('/').filter(Boolean)
-      // /embed/ID /shorts/ID /live/ID
       const idx = parts.findIndex((p) =>
         ['embed', 'shorts', 'live', 'v'].includes(p),
       )
@@ -37,6 +36,21 @@ export function parseYouTubeId(input: string): string | null {
     /* not a URL */
   }
   return null
+}
+
+export function watchUrl(videoId: string): string {
+  return `https://www.youtube.com/watch?v=${videoId}`
+}
+
+export function youtubeHomeUrl(): string {
+  return 'https://www.youtube.com/'
+}
+
+/** Open YouTube site search (no API — just a normal web link). */
+export function youtubeResultsUrl(query: string): string {
+  const q = query.trim()
+  if (!q) return youtubeHomeUrl()
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`
 }
 
 export function loadYtHistory(): YtVideoMeta[] {
@@ -63,7 +77,7 @@ export function pushYtHistory(item: YtVideoMeta): YtVideoMeta[] {
 
 /** oEmbed — no API key; title + thumbnail for a known URL. */
 export async function fetchOEmbed(videoId: string): Promise<YtVideoMeta> {
-  const watch = `https://www.youtube.com/watch?v=${videoId}`
+  const watch = watchUrl(videoId)
   const endpoint = `https://www.youtube.com/oembed?url=${encodeURIComponent(watch)}&format=json`
   const res = await fetch(endpoint)
   if (!res.ok) {
@@ -86,61 +100,4 @@ export async function fetchOEmbed(videoId: string): Promise<YtVideoMeta> {
       `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
     channelTitle: data.author_name,
   }
-}
-
-export function getYouTubeApiKey(): string | undefined {
-  const key = import.meta.env.VITE_YOUTUBE_API_KEY
-  return typeof key === 'string' && key.trim() ? key.trim() : undefined
-}
-
-export async function searchYouTube(
-  query: string,
-  apiKey: string,
-  maxResults = 8,
-): Promise<YtVideoMeta[]> {
-  const params = new URLSearchParams({
-    part: 'snippet',
-    type: 'video',
-    maxResults: String(maxResults),
-    q: query,
-    key: apiKey,
-    safeSearch: 'strict',
-    relevanceLanguage: 'ko',
-  })
-  const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/search?${params}`,
-  )
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(
-      res.status === 403
-        ? 'YouTube API 키가 거부되었습니다. 키·할당량·API 활성화를 확인하세요.'
-        : `검색 실패 (${res.status}): ${text.slice(0, 120)}`,
-    )
-  }
-  const data = (await res.json()) as {
-    items?: Array<{
-      id?: { videoId?: string }
-      snippet?: {
-        title?: string
-        channelTitle?: string
-        thumbnails?: { medium?: { url?: string }; default?: { url?: string } }
-      }
-    }>
-  }
-  const out: YtVideoMeta[] = []
-  for (const item of data.items ?? []) {
-    const id = item.id?.videoId
-    if (!id) continue
-    out.push({
-      id,
-      title: item.snippet?.title ?? id,
-      channelTitle: item.snippet?.channelTitle,
-      thumbnailUrl:
-        item.snippet?.thumbnails?.medium?.url ??
-        item.snippet?.thumbnails?.default?.url ??
-        `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
-    })
-  }
-  return out
 }

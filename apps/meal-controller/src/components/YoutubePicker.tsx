@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   fetchOEmbed,
-  getYouTubeApiKey,
   loadYtHistory,
   parseYouTubeId,
   pushYtHistory,
-  searchYouTube,
+  watchUrl,
+  youtubeHomeUrl,
+  youtubeResultsUrl,
   type YtVideoMeta,
 } from '../lib/youtube'
 
@@ -15,146 +16,200 @@ type Props = {
 }
 
 export function YoutubePicker({ activeId, onSelect }: Props) {
-  const [query, setQuery] = useState('')
+  const [paste, setPaste] = useState('')
+  const [keywords, setKeywords] = useState('')
   const [history, setHistory] = useState<YtVideoMeta[]>(() => loadYtHistory())
-  const [results, setResults] = useState<YtVideoMeta[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const apiKey = getYouTubeApiKey()
+  const [toast, setToast] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     setHistory(loadYtHistory())
   }, [activeId])
 
-  const playFromInput = async () => {
+  useEffect(() => {
+    if (!toast) return
+    const t = window.setTimeout(() => setToast(null), 2200)
+    return () => window.clearTimeout(t)
+  }, [toast])
+
+  const playFromText = async (text: string) => {
     setError(null)
-    const id = parseYouTubeId(query)
+    const id = parseYouTubeId(text)
     if (!id) {
-      if (apiKey && query.trim()) {
-        await runSearch()
-        return
-      }
-      setError('유튜브 주소 또는 영상 ID를 입력해 주세요.')
+      setError('유튜브 주소(또는 영상 ID)를 붙여넣어 주세요.')
+      inputRef.current?.focus()
       return
     }
     setBusy(true)
     try {
       const meta = await fetchOEmbed(id)
-      const next = pushYtHistory(meta)
-      setHistory(next)
+      setHistory(pushYtHistory(meta))
+      setPaste(watchUrl(id))
       onSelect(meta)
+      setToast('재생 준비 완료!')
     } catch {
-      setError('영상을 불러오지 못했습니다.')
+      setError('영상을 불러오지 못했습니다. 주소를 다시 확인해 주세요.')
     } finally {
       setBusy(false)
     }
   }
 
-  const runSearch = async () => {
-    if (!apiKey) {
-      setError(
-        '검색에는 VITE_YOUTUBE_API_KEY가 필요합니다. 주소/ID 붙여넣기는 키 없이 가능합니다.',
-      )
-      return
-    }
-    const q = query.trim()
-    if (!q) {
-      setError('검색어를 입력해 주세요.')
-      return
-    }
-    setBusy(true)
+  const openYouTube = () => {
+    window.open(youtubeHomeUrl(), '_blank', 'noopener,noreferrer')
+  }
+
+  const openYouTubeSearch = () => {
+    window.open(
+      youtubeResultsUrl(keywords || paste),
+      '_blank',
+      'noopener,noreferrer',
+    )
+  }
+
+  const pasteFromClipboard = async () => {
     setError(null)
     try {
-      const items = await searchYouTube(q, apiKey)
-      setResults(items)
-      if (items.length === 0) setError('검색 결과가 없습니다.')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '검색에 실패했습니다.')
-      setResults([])
-    } finally {
-      setBusy(false)
+      if (!navigator.clipboard?.readText) {
+        setError('이 브라우저에서는 클립보드 읽기를 지원하지 않습니다. 직접 붙여넣어 주세요.')
+        inputRef.current?.focus()
+        return
+      }
+      const text = await navigator.clipboard.readText()
+      if (!text.trim()) {
+        setError('클립보드가 비어 있어요. 유튜브에서 주소를 복사한 뒤 다시 눌러 주세요.')
+        return
+      }
+      setPaste(text.trim())
+      await playFromText(text)
+    } catch {
+      setError(
+        '클립보드를 읽지 못했어요. 권한을 허용하거나, 입력칸에 직접 붙여넣어 주세요.',
+      )
+      inputRef.current?.focus()
+    }
+  }
+
+  const copyCurrent = async () => {
+    if (!activeId) {
+      setError('먼저 재생할 영상을 선택해 주세요.')
+      return
+    }
+    const url = watchUrl(activeId)
+    try {
+      await navigator.clipboard.writeText(url)
+      setToast('주소를 복사했어요')
+      setError(null)
+    } catch {
+      setError('복사에 실패했습니다. 주소를 길게 눌러 복사해 주세요.')
+      setPaste(url)
     }
   }
 
   const pick = (meta: YtVideoMeta) => {
-    const next = pushYtHistory(meta)
-    setHistory(next)
+    setHistory(pushYtHistory(meta))
+    setPaste(watchUrl(meta.id))
     onSelect(meta)
   }
 
   return (
     <section className="yt-picker" aria-label="유튜브 영상 고르기">
       <h3>유튜브 보기</h3>
-      <p className="yt-picker-hint">
-        {apiKey
-          ? '검색하거나 주소를 붙여넣으세요'
-          : '주소를 붙여넣으세요 (검색은 API 키 설정 후 가능)'}
-      </p>
+      <ol className="yt-steps">
+        <li>유튜브에서 영상을 고르고 주소를 복사해요</li>
+        <li>아래에 붙여넣고 「재생」을 눌러요</li>
+      </ol>
 
+      <div className="yt-action-grid">
+        <button type="button" className="btn primary yt-big-btn" onClick={openYouTube}>
+          유튜브에서 고르기
+        </button>
+        <button
+          type="button"
+          className="btn yt-big-btn"
+          onClick={() => void pasteFromClipboard()}
+          disabled={busy}
+        >
+          클립보드에서 붙여넣기
+        </button>
+      </div>
+
+      <label className="yt-field-label" htmlFor="yt-paste-input">
+        주소 붙여넣기
+      </label>
       <div className="yt-search-row">
         <input
+          id="yt-paste-input"
+          ref={inputRef}
           className="yt-search-input"
-          type="search"
-          enterKeyHint="search"
-          placeholder="유튜브 주소, ID, 또는 검색어"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          type="url"
+          inputMode="url"
+          autoComplete="off"
+          enterKeyHint="go"
+          placeholder="https://youtu.be/… 또는 youtube.com/watch?v=…"
+          value={paste}
+          onChange={(e) => setPaste(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') void playFromInput()
+            if (e.key === 'Enter') void playFromText(paste)
           }}
         />
         <button
           type="button"
           className="btn primary"
           disabled={busy}
-          onClick={() => void playFromInput()}
+          onClick={() => void playFromText(paste)}
         >
-          {busy ? '…' : apiKey ? '검색/재생' : '재생'}
+          {busy ? '…' : '재생'}
         </button>
       </div>
 
-      {apiKey && (
+      <div className="yt-secondary-row">
         <button
           type="button"
-          className="btn yt-search-only"
-          disabled={busy}
-          onClick={() => void runSearch()}
+          className="btn"
+          disabled={!activeId}
+          onClick={() => void copyCurrent()}
         >
-          검색만 하기
+          지금 영상 주소 복사
         </button>
-      )}
+      </div>
 
-      {!apiKey && (
-        <p className="yt-key-note">
-          검색을 켜려면 빌드 환경에{' '}
-          <code>VITE_YOUTUBE_API_KEY</code> 를 넣고 다시 배포하세요.
+      <div className="yt-keyword-block">
+        <label className="yt-field-label" htmlFor="yt-keywords">
+          키워드로 유튜브 검색 열기 (선택)
+        </label>
+        <div className="yt-search-row">
+          <input
+            id="yt-keywords"
+            className="yt-search-input"
+            type="search"
+            placeholder="예: 동요, 공룡"
+            value={keywords}
+            onChange={(e) => setKeywords(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') openYouTubeSearch()
+            }}
+          />
+          <button type="button" className="btn" onClick={openYouTubeSearch}>
+            유튜브 검색
+          </button>
+        </div>
+        <p className="yt-picker-hint">
+          새 탭에서 고른 뒤 주소를 복사 → 「클립보드에서 붙여넣기」 또는 위에
+          붙여넣기
         </p>
-      )}
+      </div>
 
       {error && (
         <p className="yt-error" role="alert">
           {error}
         </p>
       )}
-
-      {results.length > 0 && (
-        <div className="yt-grid">
-          <h4>검색 결과</h4>
-          <ul className="yt-list">
-            {results.map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  className={`yt-card ${activeId === item.id ? 'active' : ''}`}
-                  onClick={() => pick(item)}
-                >
-                  <img src={item.thumbnailUrl} alt="" loading="lazy" />
-                  <span className="yt-card-title">{item.title}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {toast && (
+        <p className="yt-toast" role="status">
+          {toast}
+        </p>
       )}
 
       {history.length > 0 && (

@@ -31,18 +31,16 @@ npm run build
 
 https://evkmc-as-portal.vercel.app/meal-controller/
 
-## 유튜브 (아이 시청용)
+## 유튜브 (API 키 없음)
 
-1. **주소/ID 붙여넣기** — API 키 없이 재생 (oEmbed로 제목·썸네일)
-2. **검색** — `VITE_YOUTUBE_API_KEY` 가 빌드에 있을 때만 (YouTube Data API v3, `safeSearch=strict`)
-3. 최근 본 영상은 `localStorage`에 저장
-4. 저작 상태머신이 IFrame `playVideo` / `pauseVideo` 를 제어합니다
+1. **유튜브에서 고르기** — 새 탭으로 youtube.com 열기
+2. 영상 주소를 복사한 뒤 **클립보드에서 붙여넣기** 또는 입력칸에 붙여넣기 → **재생**
+3. (선택) 키워드로 **유튜브 검색** 탭만 열고, 고른 뒤 다시 주소를 붙여넣기
+4. 최근 본 영상은 oEmbed 썸네일과 함께 `localStorage`에 저장
+5. 저작 상태머신이 IFrame `playVideo` / `pauseVideo` 를 제어합니다
 
-키 설정: `apps/meal-controller/.env.example` 참고. Vercel 환경 변수에
-`VITE_YOUTUBE_API_KEY` 추가 후 재배포.
-
-임베드 제한: 일부 연령 제한·임베드 금지 영상은 재생되지 않을 수 있습니다.
-referrer/origin이 맞아야 IFrame API가 안정적입니다.
+YouTube Data API / 비공식 스크래핑은 사용하지 않습니다.
+임베드 제한·연령 제한 영상은 재생되지 않을 수 있습니다.
 
 ## 건성안 알림
 
