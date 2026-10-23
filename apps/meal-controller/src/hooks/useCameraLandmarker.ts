@@ -19,6 +19,15 @@ type Status =
   | { kind: 'ready' }
   | { kind: 'error'; message: string }
 
+/** ~15 FPS on phones/tablets; ~24 FPS on desktop — less jank with YouTube. */
+function detectIntervalMs(): number {
+  if (typeof window === 'undefined') return 66
+  const coarse =
+    window.matchMedia('(pointer: coarse)').matches ||
+    window.matchMedia('(max-width: 1024px)').matches
+  return coarse ? 66 : 42
+}
+
 export function useCameraLandmarker({
   showMesh,
   onFrame,
@@ -33,9 +42,11 @@ export function useCameraLandmarker({
   const runningRef = useRef(false)
   const onFrameRef = useRef(onFrame)
   const showMeshRef = useRef(showMesh)
+  const intervalRef = useRef(detectIntervalMs())
 
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [faceLost, setFaceLost] = useState(false)
+  const [faceCount, setFaceCount] = useState(0)
 
   useEffect(() => {
     onFrameRef.current = onFrame
@@ -44,6 +55,20 @@ export function useCameraLandmarker({
   useEffect(() => {
     showMeshRef.current = showMesh
   }, [showMesh])
+
+  useEffect(() => {
+    const update = () => {
+      intervalRef.current = detectIntervalMs()
+    }
+    update()
+    const mq = window.matchMedia('(pointer: coarse)')
+    mq.addEventListener?.('change', update)
+    window.addEventListener('resize', update)
+    return () => {
+      mq.removeEventListener?.('change', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [])
 
   const stop = useCallback(() => {
     runningRef.current = false
@@ -54,6 +79,7 @@ export function useCameraLandmarker({
     landmarkerRef.current?.close()
     landmarkerRef.current = null
     lastTsRef.current = -1
+    setFaceCount(0)
     if (videoRef.current) {
       videoRef.current.srcObject = null
     }
@@ -68,12 +94,13 @@ export function useCameraLandmarker({
     if (video && canvas && landmarker && video.readyState >= 2) {
       const now = performance.now()
       // Monotonic timestamps required by MediaPipe VIDEO mode
-      if (now > lastTsRef.current + 33) {
+      if (now > lastTsRef.current + intervalRef.current) {
         lastTsRef.current = now
         try {
           const result = landmarker.detectForVideo(video, now)
           const frame = extractFaceSignals(result, now)
           setFaceLost(!frame.hasFace)
+          setFaceCount(frame.faceCount)
           onFrameRef.current(frame)
 
           const ctx = canvas.getContext('2d')
@@ -83,12 +110,10 @@ export function useCameraLandmarker({
               canvas.height = video.videoHeight || 480
             }
             ctx.clearRect(0, 0, canvas.width, canvas.height)
-            if (
-              showMeshRef.current &&
-              frame.hasFace &&
-              result.faceLandmarks?.[0]
-            ) {
-              drawFaceMesh(ctx, result.faceLandmarks[0])
+            if (showMeshRef.current && result.faceLandmarks?.length) {
+              for (const lm of result.faceLandmarks) {
+                drawFaceMesh(ctx, lm)
+              }
             }
           }
         } catch (err) {
@@ -101,7 +126,7 @@ export function useCameraLandmarker({
 
   const start = useCallback(async () => {
     stop()
-    setStatus({ kind: 'loading', message: '모델·카메라 준비 중…' })
+    setStatus({ kind: 'loading', message: '카메라 준비 중…' })
     try {
       const landmarker = await createFaceLandmarker()
       landmarkerRef.current = landmarker
@@ -109,7 +134,7 @@ export function useCameraLandmarker({
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
-          facingMode: 'user',
+          facingMode: { ideal: 'user' },
           width: { ideal: 640 },
           height: { ideal: 480 },
         },
@@ -118,6 +143,9 @@ export function useCameraLandmarker({
 
       const video = videoRef.current
       if (!video) throw new Error('video element missing')
+      video.setAttribute('playsinline', 'true')
+      video.setAttribute('webkit-playsinline', 'true')
+      video.muted = true
       video.srcObject = stream
       await video.play()
 
@@ -134,13 +162,13 @@ export function useCameraLandmarker({
       let message = raw
       if (/NotAllowed|Permission|permission/i.test(raw)) {
         message =
-          '카메라 권한이 거부되었습니다. 브라우저 설정에서 허용해 주세요.'
+          '카메라 권한이 거부되었습니다. 설정에서 카메라를 허용해 주세요.'
       } else if (/NotFound|DevicesNotFound|Requested device/i.test(raw)) {
         message =
-          '사용 가능한 카메라를 찾지 못했습니다. 전면 카메라가 있는 기기에서 다시 시도해 주세요.'
+          '전면 카메라를 찾지 못했어요. 아이폰·아이패드로 다시 시도해 주세요.'
       } else if (/NotReadable|TrackStart/i.test(raw)) {
         message =
-          '카메라에 접근할 수 없습니다. 다른 앱이 사용 중인지 확인해 주세요.'
+          '카메라를 쓸 수 없어요. 다른 앱이 쓰는 중인지 확인해 주세요.'
       }
       setStatus({ kind: 'error', message })
     }
@@ -156,5 +184,12 @@ export function useCameraLandmarker({
     return () => stop()
   }, [enabled, start, stop])
 
-  return { videoRef, canvasRef, status, faceLost, restart: start }
+  return {
+    videoRef,
+    canvasRef,
+    status,
+    faceLost,
+    faceCount,
+    restart: start,
+  }
 }

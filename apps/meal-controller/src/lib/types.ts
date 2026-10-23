@@ -1,8 +1,23 @@
 export type PlayerPhase = 'NO_FACE' | 'ARMED' | 'PLAYING' | 'PAUSED'
 
+/** How many diners must be visible and chewing. */
+export type FaceMode = 1 | 2
+
+export type FaceSignals = {
+  jawOpen: number
+  mouthSmile: number
+  eyeBlinkLeft: number
+  eyeBlinkRight: number
+  mar: number
+  landmarks: Array<{ x: number; y: number; z: number }>
+}
+
 export type FaceFrame = {
   timestampMs: number
   hasFace: boolean
+  faceCount: number
+  faces: FaceSignals[]
+  /** Primary face (index 0) — convenience for blink / HUD. */
   jawOpen: number
   mouthSmile: number
   eyeBlinkLeft: number
@@ -32,6 +47,8 @@ export type BlinkSnapshot = {
 }
 
 export type ControllerSettings = {
+  /** 1 = one child; 2 = both visible faces must chew. */
+  faceMode: FaceMode
   /** Seconds without chewing before pause. */
   pauseDelaySec: number
   /** Chew cycles needed to resume. */
@@ -61,21 +78,23 @@ export type ControllerSettings = {
   showDebug: boolean
 }
 
+/** Toddler-tuned defaults (forgiving pause, slightly easier chew). */
 export const DEFAULT_SETTINGS: ControllerSettings = {
-  pauseDelaySec: 3.5,
+  faceMode: 1,
+  pauseDelaySec: 4.5,
   resumeCycles: 2,
-  sensitivity: 0.7,
-  amplitudeThreshold: 0.035,
+  sensitivity: 0.78,
+  amplitudeThreshold: 0.032,
   freqMinHz: 0.5,
   freqMaxHz: 2.8,
-  faceLostDelaySec: 1.0,
-  debounceSec: 0.4,
+  faceLostDelaySec: 1.2,
+  debounceSec: 0.45,
   habitualPauseMultiplier: 1.0,
-  noBlinkWarnSec: 12,
+  noBlinkWarnSec: 14,
   pauseOnDryEye: false,
-  showMesh: true,
+  showMesh: false,
   showDebug: false,
 }
 
-/** Bump when defaults change so old prefs (e.g. debug on) don't stick. */
-export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v3'
+/** Bump when defaults change so old prefs don't stick. */
+export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v4'

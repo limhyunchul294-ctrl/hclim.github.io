@@ -3,6 +3,7 @@ import {
   FilesetResolver,
   type FaceLandmarkerResult,
 } from '@mediapipe/tasks-vision'
+import type { FaceFrame, FaceSignals } from './types'
 
 const MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
@@ -14,11 +15,12 @@ async function resolveWasm() {
   return FilesetResolver.forVisionTasks(WASM_CDN)
 }
 
+/** Always allow up to 2 faces; app enforces 1명 / 2명 rules. */
 export async function createFaceLandmarker(): Promise<FaceLandmarker> {
   const vision = await resolveWasm()
   const common = {
     runningMode: 'VIDEO' as const,
-    numFaces: 1,
+    numFaces: 2,
     outputFaceBlendshapes: true,
     outputFacialTransformationMatrixes: false,
   }
@@ -41,8 +43,12 @@ export async function createFaceLandmarker(): Promise<FaceLandmarker> {
   }
 }
 
-function blendScore(result: FaceLandmarkerResult, name: string): number {
-  const cats = result.faceBlendshapes?.[0]?.categories
+function blendScore(
+  result: FaceLandmarkerResult,
+  name: string,
+  faceIndex: number,
+): number {
+  const cats = result.faceBlendshapes?.[faceIndex]?.categories
   if (!cats?.length) return 0
   const want = name.toLowerCase().replace(/[_\s]/g, '')
   const hit = cats.find((c) => {
@@ -68,41 +74,60 @@ export function computeMar(
   return vertical / horizontal
 }
 
+function signalsForFace(
+  result: FaceLandmarkerResult,
+  faceIndex: number,
+): FaceSignals | null {
+  const landmarks = result.faceLandmarks?.[faceIndex]
+  if (!landmarks?.length) return null
+  const smileL = blendScore(result, 'mouthSmileLeft', faceIndex)
+  const smileR = blendScore(result, 'mouthSmileRight', faceIndex)
+  return {
+    jawOpen: blendScore(result, 'jawOpen', faceIndex),
+    mouthSmile: Math.max(smileL, smileR),
+    eyeBlinkLeft: blendScore(result, 'eyeBlinkLeft', faceIndex),
+    eyeBlinkRight: blendScore(result, 'eyeBlinkRight', faceIndex),
+    mar: computeMar(landmarks),
+    landmarks: landmarks.map((p) => ({ x: p.x, y: p.y, z: p.z ?? 0 })),
+  }
+}
+
 export function extractFaceSignals(
   result: FaceLandmarkerResult,
   timestampMs: number,
-) {
-  const landmarks = result.faceLandmarks?.[0]
-  const hasFace = Boolean(landmarks && landmarks.length > 0)
-
-  if (!hasFace || !landmarks) {
+): FaceFrame {
+  const count = result.faceLandmarks?.length ?? 0
+  const faces: FaceSignals[] = []
+  for (let i = 0; i < count; i++) {
+    const s = signalsForFace(result, i)
+    if (s) faces.push(s)
+  }
+  const primary = faces[0]
+  if (!primary) {
     return {
       timestampMs,
       hasFace: false,
+      faceCount: 0,
+      faces: [],
       jawOpen: 0,
       mouthSmile: 0,
       eyeBlinkLeft: 0,
       eyeBlinkRight: 0,
       mar: 0,
-      landmarks: [] as Array<{ x: number; y: number; z: number }>,
+      landmarks: [],
     }
   }
-
-  const jawOpen = blendScore(result, 'jawOpen')
-  const smileL = blendScore(result, 'mouthSmileLeft')
-  const smileR = blendScore(result, 'mouthSmileRight')
-  const eyeBlinkLeft = blendScore(result, 'eyeBlinkLeft')
-  const eyeBlinkRight = blendScore(result, 'eyeBlinkRight')
-
   return {
     timestampMs,
     hasFace: true,
-    jawOpen,
-    mouthSmile: Math.max(smileL, smileR),
-    eyeBlinkLeft,
-    eyeBlinkRight,
-    mar: computeMar(landmarks),
-    landmarks: landmarks.map((p) => ({ x: p.x, y: p.y, z: p.z ?? 0 })),
+    faceCount: faces.length,
+    faces,
+    jawOpen: primary.jawOpen,
+    mouthSmile: primary.mouthSmile,
+    eyeBlinkLeft: primary.eyeBlinkLeft,
+    eyeBlinkRight: primary.eyeBlinkRight,
+    mar: primary.mar,
+    landmarks: primary.landmarks,
   }
 }
 
