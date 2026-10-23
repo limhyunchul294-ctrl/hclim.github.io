@@ -27,7 +27,6 @@ type Props = {
   hud: LiveHud
   onManualPause: () => void
   onManualPlay: () => void
-  onManualStop: () => void
 }
 
 const YT_PLAYING = 1
@@ -49,17 +48,30 @@ export function PlaybackStage({
   hud,
   onManualPause,
   onManualPlay,
-  onManualStop,
 }: Props) {
   const shellRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const ytHostRef = useRef<HTMLDivElement | null>(null)
   const playerRef = useRef<YtPlayer | null>(null)
   const shouldPlayRef = useRef(shouldPlay)
+  const hideTimerRef = useRef<number>(0)
   const ytReady = useYouTubeApiReady()
   const [appFs, setAppFs] = useState(false)
+  const [controlsVisible, setControlsVisible] = useState(false)
   const videoId = source?.kind === 'youtube' ? source.videoId : null
   const localSrc = source?.kind === 'local' ? source.src : null
+
+  const revealControls = useCallback(() => {
+    setControlsVisible(true)
+    window.clearTimeout(hideTimerRef.current)
+    hideTimerRef.current = window.setTimeout(() => {
+      setControlsVisible(false)
+    }, 2500)
+  }, [])
+
+  useEffect(() => {
+    return () => window.clearTimeout(hideTimerRef.current)
+  }, [])
 
   useEffect(() => {
     shouldPlayRef.current = shouldPlay
@@ -186,16 +198,6 @@ export function PlaybackStage({
     }
   }
 
-  const exitFullscreen = async () => {
-    if (document.fullscreenElement) {
-      try {
-        await document.exitFullscreen()
-      } catch {
-        /* ignore */
-      }
-    }
-  }
-
   return (
     <div
       className={`video-panel ${appFs ? 'video-panel-fs' : ''}`}
@@ -212,10 +214,27 @@ export function PlaybackStage({
             playsInline
             loop
             controls={false}
+            onClick={revealControls}
           />
         ) : (
-          <div className="video-empty">유튜브 주소를 붙여넣어 주세요</div>
+          <div className="video-empty" onClick={revealControls}>
+            유튜브 주소를 붙여넣어 주세요
+          </div>
         )}
+
+        {/* Edge hit zones — iframe steals center taps */}
+        <button
+          type="button"
+          className="stage-hit-edge stage-hit-top"
+          aria-label="조작 버튼 보이기"
+          onClick={revealControls}
+        />
+        <button
+          type="button"
+          className="stage-hit-edge stage-hit-bottom"
+          aria-label="조작 버튼 보이기"
+          onClick={revealControls}
+        />
 
         {showHud && (
           <div className="live-hud" aria-live="polite">
@@ -264,13 +283,21 @@ export function PlaybackStage({
           </div>
         )}
 
-        {/* Always above iframe + overlays — kid-sized hit targets */}
-        <div className="stage-controls" role="toolbar" aria-label="재생 조작">
+        <div
+          className={`stage-controls ${controlsVisible ? 'is-visible' : ''}`}
+          role="toolbar"
+          aria-label="재생 조작"
+          aria-hidden={!controlsVisible}
+          onPointerDown={revealControls}
+        >
           {shouldPlay ? (
             <button
               type="button"
               className="btn stage-ctrl-btn"
-              onClick={onManualPause}
+              onClick={() => {
+                onManualPause()
+                revealControls()
+              }}
             >
               일시정지
             </button>
@@ -278,34 +305,24 @@ export function PlaybackStage({
             <button
               type="button"
               className="btn stage-ctrl-btn primary"
-              onClick={onManualPlay}
+              onClick={() => {
+                onManualPlay()
+                revealControls()
+              }}
             >
               재생
             </button>
           )}
           <button
             type="button"
-            className="btn stage-ctrl-btn"
-            onClick={onManualStop}
-          >
-            정지
-          </button>
-          <button
-            type="button"
             className="btn stage-ctrl-btn stage-ctrl-fs"
-            onClick={() => void toggleAppFullscreen()}
+            onClick={() => {
+              void toggleAppFullscreen()
+              revealControls()
+            }}
           >
             {appFs ? '전체화면 종료' : '앱 전체화면'}
           </button>
-          {appFs && (
-            <button
-              type="button"
-              className="btn stage-ctrl-btn stage-ctrl-exit"
-              onClick={() => void exitFullscreen()}
-            >
-              나가기
-            </button>
-          )}
         </div>
       </div>
     </div>
