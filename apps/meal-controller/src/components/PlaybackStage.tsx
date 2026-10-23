@@ -1,10 +1,19 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useYouTubeApiReady } from '../hooks/useYouTubeApi'
 import type { YtPlayer } from '../lib/youtubeApi'
 
 export type PlaybackSource =
   | { kind: 'local'; src: string }
   | { kind: 'youtube'; videoId: string }
+
+export type LiveHud = {
+  jawOpen: number
+  chewScore: number
+  isChewing: boolean
+  phase: string
+  noChewSec: number
+  effectivePauseSec: number
+}
 
 type Props = {
   source: PlaybackSource | null
@@ -14,10 +23,16 @@ type Props = {
   resumeNeed: number
   resumeHave: number
   secSinceLastBlink: number
+  showHud: boolean
+  hud: LiveHud
 }
 
+const YT_PLAYING = 1
+const YT_BUFFERING = 3
+
 /**
- * Local <video> or YouTube IFrame — same shouldPlay control + on-screen nudges.
+ * Local <video> or YouTube IFrame — forced play/pause sync + app fullscreen
+ * wrapper so overlays stay visible (YT native fullscreen disabled).
  */
 export function PlaybackStage({
   source,
@@ -27,18 +42,39 @@ export function PlaybackStage({
   resumeNeed,
   resumeHave,
   secSinceLastBlink,
+  showHud,
+  hud,
 }: Props) {
+  const shellRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const ytHostRef = useRef<HTMLDivElement | null>(null)
   const playerRef = useRef<YtPlayer | null>(null)
   const shouldPlayRef = useRef(shouldPlay)
   const ytReady = useYouTubeApiReady()
+  const [appFs, setAppFs] = useState(false)
   const videoId = source?.kind === 'youtube' ? source.videoId : null
   const localSrc = source?.kind === 'local' ? source.src : null
 
   useEffect(() => {
     shouldPlayRef.current = shouldPlay
   }, [shouldPlay])
+
+  const applyDesired = useCallback((want: boolean) => {
+    const p = playerRef.current
+    if (p) {
+      try {
+        if (want) p.playVideo()
+        else p.pauseVideo()
+      } catch {
+        /* not ready */
+      }
+    }
+    const el = videoRef.current
+    if (el && localSrc) {
+      if (want) void el.play().catch(() => {})
+      else el.pause()
+    }
+  }, [localSrc])
 
   // Create / recreate YT player when video id changes
   useEffect(() => {
@@ -62,6 +98,7 @@ export function PlaybackStage({
       playerVars: {
         autoplay: 0,
         controls: 1,
+        fs: 0, // disable YouTube native fullscreen — use app wrapper instead
         rel: 0,
         modestbranding: 1,
         playsinline: 1,
@@ -71,11 +108,19 @@ export function PlaybackStage({
         onReady: () => {
           if (cancelled) return
           playerRef.current = player
-          try {
-            if (shouldPlayRef.current) player.playVideo()
-            else player.pauseVideo()
-          } catch {
-            /* user gesture may be required once */
+          applyDesired(shouldPlayRef.current)
+        },
+        onStateChange: (e) => {
+          if (cancelled) return
+          // User hit play on YT chrome while we want pause → force pause.
+          const playing =
+            e.data === YT_PLAYING || e.data === YT_BUFFERING
+          if (playing && !shouldPlayRef.current) {
+            try {
+              player.pauseVideo()
+            } catch {
+              /* ignore */
+            }
           }
         },
       },
@@ -90,33 +135,58 @@ export function PlaybackStage({
       }
       playerRef.current = null
     }
-  }, [videoId, ytReady])
+  }, [videoId, ytReady, applyDesired])
 
-  // Sync play/pause for local video
+  // React to shouldPlay changes
   useEffect(() => {
-    const el = videoRef.current
-    if (!el || !localSrc) return
-    if (shouldPlay) {
-      void el.play().catch(() => {})
-    } else {
-      el.pause()
+    applyDesired(shouldPlay)
+  }, [shouldPlay, applyDesired, videoId, localSrc])
+
+  // Keep forcing sync — catches YT UI play and late-ready player
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const p = playerRef.current
+      if (!p) return
+      try {
+        const state = p.getPlayerState()
+        const playing = state === YT_PLAYING || state === YT_BUFFERING
+        if (shouldPlayRef.current && !playing) p.playVideo()
+        if (!shouldPlayRef.current && playing) p.pauseVideo()
+      } catch {
+        /* ignore */
+      }
+    }, 250)
+    return () => window.clearInterval(id)
+  }, [videoId])
+
+  useEffect(() => {
+    const onFs = () => {
+      const el = shellRef.current
+      setAppFs(Boolean(el && document.fullscreenElement === el))
     }
-  }, [shouldPlay, localSrc])
+    document.addEventListener('fullscreenchange', onFs)
+    return () => document.removeEventListener('fullscreenchange', onFs)
+  }, [])
 
-  // Sync play/pause for YouTube
-  useEffect(() => {
-    const p = playerRef.current
-    if (!p || !videoId) return
+  const toggleAppFullscreen = async () => {
+    const el = shellRef.current
+    if (!el) return
     try {
-      if (shouldPlay) p.playVideo()
-      else p.pauseVideo()
+      if (document.fullscreenElement === el) {
+        await document.exitFullscreen()
+      } else {
+        await el.requestFullscreen()
+      }
     } catch {
-      /* player not ready */
+      /* unsupported */
     }
-  }, [shouldPlay, videoId])
+  }
 
   return (
-    <div className="video-panel">
+    <div
+      className={`video-panel ${appFs ? 'video-panel-fs' : ''}`}
+      ref={shellRef}
+    >
       <div className="video-stage">
         {source?.kind === 'youtube' ? (
           <div ref={ytHostRef} className="yt-host" />
@@ -131,9 +201,34 @@ export function PlaybackStage({
           />
         ) : (
           <div className="video-empty">
-            유튜브 주소를 넣거나 영상을 검색해 주세요
+            유튜브 주소를 붙여넣어 주세요
           </div>
         )}
+
+        {showHud && (
+          <div className="live-hud" aria-live="polite">
+            <span>jaw {hud.jawOpen.toFixed(3)}</span>
+            <span>score {hud.chewScore.toFixed(2)}</span>
+            <span className={hud.isChewing ? 'hud-on' : 'hud-off'}>
+              {hud.isChewing ? 'CHEW' : 'idle'}
+            </span>
+            <span>{hud.phase}</span>
+            <span>
+              noChew {hud.noChewSec.toFixed(1)}/{hud.effectivePauseSec.toFixed(1)}s
+            </span>
+          </div>
+        )}
+
+        <div className="stage-toolbar">
+          <button
+            type="button"
+            className="btn stage-fs-btn"
+            onClick={() => void toggleAppFullscreen()}
+          >
+            {appFs ? '전체화면 종료' : '앱 전체화면'}
+          </button>
+          <span className="stage-fs-hint">유튜브 전체화면 대신 이걸 쓰세요</span>
+        </div>
 
         {showBlinkNudge && (
           <div className="stage-overlay blink-overlay" role="alert">
@@ -154,7 +249,10 @@ export function PlaybackStage({
         )}
 
         {showChewNudge && showBlinkNudge && (
-          <div className="stage-overlay chew-overlay chew-secondary" role="status">
+          <div
+            className="stage-overlay chew-overlay chew-secondary"
+            role="status"
+          >
             <p className="stage-overlay-title stage-overlay-title-sm">
               한 입 더 씹어 주세요
             </p>

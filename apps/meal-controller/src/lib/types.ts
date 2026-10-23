@@ -64,12 +64,12 @@ export type ControllerSettings = {
 export const DEFAULT_SETTINGS: ControllerSettings = {
   pauseDelaySec: 3.5,
   resumeCycles: 2,
-  sensitivity: 0.55,
-  amplitudeThreshold: 0.08,
-  freqMinHz: 0.6,
-  freqMaxHz: 2.5,
+  sensitivity: 0.7,
+  amplitudeThreshold: 0.035,
+  freqMinHz: 0.5,
+  freqMaxHz: 2.8,
   faceLostDelaySec: 1.0,
-  debounceSec: 0.5,
+  debounceSec: 0.4,
   habitualPauseMultiplier: 1.0,
   noBlinkWarnSec: 12,
   pauseOnDryEye: false,
@@ -77,4 +77,5 @@ export const DEFAULT_SETTINGS: ControllerSettings = {
   showDebug: true,
 }
 
-export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v1'
+/** Bump when defaults change so old too-strict prefs don't stick. */
+export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v2'
