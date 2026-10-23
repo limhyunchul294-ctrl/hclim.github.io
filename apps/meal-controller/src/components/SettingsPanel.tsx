@@ -79,7 +79,13 @@ export function SettingsPanel({
             <button
               type="button"
               className="btn btn-tiny"
-              onClick={() => onChange({ ...DEFAULT_SETTINGS, faceMode: settings.faceMode })}
+              onClick={() =>
+                onChange({
+                  ...DEFAULT_SETTINGS,
+                  faceMode: settings.faceMode,
+                  showRecognitionPreview: settings.showRecognitionPreview,
+                })
+              }
             >
               초기화
             </button>

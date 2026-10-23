@@ -1,4 +1,5 @@
-import type { RefObject } from 'react'
+import type { ReactNode, RefObject } from 'react'
+import { CameraFeed } from './CameraFeed'
 
 type Props = {
   videoRef: RefObject<HTMLVideoElement | null>
@@ -6,6 +7,10 @@ type Props = {
   faceLost: boolean
   missingBuddy: boolean
   statusLabel: string
+  /** When false, feed is shown as PiP on the video stage instead. */
+  showFeed: boolean
+  /** Optional note under status (e.g. PiP active). */
+  note?: ReactNode
 }
 
 export function CameraPanel({
@@ -14,30 +19,22 @@ export function CameraPanel({
   faceLost,
   missingBuddy,
   statusLabel,
+  showFeed,
+  note,
 }: Props) {
   return (
-    <div className="camera-panel">
-      <div className="camera-stage">
-        <video
-          ref={videoRef}
-          className="camera-video"
-          playsInline
-          muted
-          autoPlay
+    <div className={`camera-panel ${showFeed ? '' : 'camera-panel-compact'}`}>
+      {showFeed ? (
+        <CameraFeed
+          videoRef={videoRef}
+          canvasRef={canvasRef}
+          faceLost={faceLost}
+          missingBuddy={missingBuddy}
+          variant="panel"
         />
-        <canvas ref={canvasRef} className="camera-overlay" />
-        {missingBuddy && (
-          <div className="face-lost-banner friend-banner" role="status">
-            친구도 화면에 나와요
-          </div>
-        )}
-        {faceLost && !missingBuddy && (
-          <div className="face-lost-banner" role="status">
-            얼굴을 보여 주세요
-          </div>
-        )}
-      </div>
+      ) : null}
       <p className="camera-status">{statusLabel}</p>
+      {note ? <p className="camera-note">{note}</p> : null}
     </div>
   )
 }

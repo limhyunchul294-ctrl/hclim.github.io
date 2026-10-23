@@ -74,6 +74,8 @@ export type ControllerSettings = {
   noBlinkWarnSec: number
   /** Optional: also pause video on dry-eye nudge (default off). */
   pauseOnDryEye: boolean
+  /** PiP camera/recognition preview over the video (default off). */
+  showRecognitionPreview: boolean
   showMesh: boolean
   showDebug: boolean
 }
@@ -92,6 +94,7 @@ export const DEFAULT_SETTINGS: ControllerSettings = {
   habitualPauseMultiplier: 1.0,
   noBlinkWarnSec: 14,
   pauseOnDryEye: false,
+  showRecognitionPreview: false,
   showMesh: false,
   showDebug: false,
 }

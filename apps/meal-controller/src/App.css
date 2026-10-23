@@ -213,6 +213,111 @@ html.meal-css-fs body {
   min-height: 48px;
 }
 
+.video-stage-has-pip .stage-hit-top {
+  /* Leave top-right clear for recognition PiP */
+  right: min(38%, 170px);
+}
+
+.recognition-pip {
+  position: absolute;
+  top: max(0.45rem, env(safe-area-inset-top, 0px));
+  right: max(0.45rem, env(safe-area-inset-right, 0px));
+  z-index: 32;
+  width: min(32vw, 148px);
+  aspect-ratio: 3 / 4;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  background: #000;
+  pointer-events: none; /* don't steal YouTube / control taps */
+}
+
+.recognition-pip .camera-video,
+.recognition-pip .camera-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recognition-pip .face-lost-banner {
+  bottom: 8%;
+  font-size: 0.65rem;
+  padding: 0.25rem 0.4rem;
+  white-space: normal;
+  max-width: 94%;
+  border-radius: 8px;
+}
+
+.recognition-pip-label {
+  position: absolute;
+  left: 0.35rem;
+  top: 0.35rem;
+  z-index: 1;
+  padding: 0.12rem 0.4rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+.video-panel-fs .recognition-pip,
+.video-panel-css-fs .recognition-pip {
+  width: min(28vw, 168px);
+  top: max(0.65rem, env(safe-area-inset-top, 0px));
+  right: max(0.65rem, env(safe-area-inset-right, 0px));
+}
+
+.camera-panel-compact {
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+
+.camera-note {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.preview-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.14);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.preview-toggle input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--accent);
+}
+
+.preview-toggle-hint {
+  flex: 1 1 100%;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+@media (min-width: 700px) {
+  .recognition-pip {
+    width: min(22vw, 160px);
+  }
+}
+
 .stage-hit-bottom {
   bottom: 0;
   height: 22%;

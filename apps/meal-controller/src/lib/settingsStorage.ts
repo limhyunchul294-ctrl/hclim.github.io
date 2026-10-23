@@ -68,6 +68,7 @@ export function sanitizeSettings(s: ControllerSettings): ControllerSettings {
     habitualPauseMultiplier: clamp(s.habitualPauseMultiplier, 0.5, 2.5),
     noBlinkWarnSec: clamp(s.noBlinkWarnSec, 5, 30),
     pauseOnDryEye: Boolean(s.pauseOnDryEye),
+    showRecognitionPreview: Boolean(s.showRecognitionPreview),
     showMesh: Boolean(s.showMesh),
     showDebug: Boolean(s.showDebug),
   }
