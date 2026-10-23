@@ -191,7 +191,6 @@ function App() {
             }}
             onManualPause={() => setManualPaused(true)}
             onManualPlay={() => setManualPaused(false)}
-            onManualStop={() => setManualPaused(true)}
           />
           <CameraPanel
             videoRef={videoRef}
@@ -344,8 +343,8 @@ function App() {
 
           <p className="hint">
             카메라 <strong>시작</strong> 후 얼굴을 비추고 씹으면 재생됩니다.
-            전체화면에서는 아래쪽 큰 <strong>일시정지·재생·나가기</strong>{' '}
-            버튼을 쓰세요.
+            화면 가장자리를 탭하면 <strong>일시정지/재생·전체화면</strong>이
+            잠깐 나타납니다.
           </p>
 
           <p className="privacy">
