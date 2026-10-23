@@ -3,6 +3,8 @@ import { useYouTubeApiReady } from '../hooks/useYouTubeApi'
 import {
   exitAppFullscreen,
   getFullscreenElement,
+  hasFullscreenApi,
+  isIOSLike,
   onFullscreenChange,
   requestAppFullscreen,
 } from '../lib/fullscreen'
@@ -65,10 +67,14 @@ export function PlaybackStage({
   const shouldPlayRef = useRef(shouldPlay)
   const hideTimerRef = useRef<number>(0)
   const ytReady = useYouTubeApiReady()
-  const [appFs, setAppFs] = useState(false)
+  /** Native Fullscreen API (desktop). */
+  const [nativeFs, setNativeFs] = useState(false)
+  /** CSS immersive fallback (iOS Safari / API failure). */
+  const [cssFs, setCssFs] = useState(false)
   const [controlsVisible, setControlsVisible] = useState(false)
   const videoId = source?.kind === 'youtube' ? source.videoId : null
   const localSrc = source?.kind === 'local' ? source.src : null
+  const appFs = nativeFs || cssFs
 
   const revealControls = useCallback(() => {
     setControlsVisible(true)
@@ -85,6 +91,23 @@ export function PlaybackStage({
   useEffect(() => {
     shouldPlayRef.current = shouldPlay
   }, [shouldPlay])
+
+  // Lock page scroll while CSS immersive covers the viewport
+  useEffect(() => {
+    if (!cssFs) return
+    const html = document.documentElement
+    const body = document.body
+    const prevHtml = html.style.overflow
+    const prevBody = body.style.overflow
+    html.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
+    html.classList.add('meal-css-fs')
+    return () => {
+      html.style.overflow = prevHtml
+      body.style.overflow = prevBody
+      html.classList.remove('meal-css-fs')
+    }
+  }, [cssFs])
 
   const applyDesired = useCallback(
     (want: boolean) => {
@@ -187,28 +210,48 @@ export function PlaybackStage({
   useEffect(() => {
     const onFs = () => {
       const el = shellRef.current
-      setAppFs(Boolean(el && getFullscreenElement() === el))
+      const active = Boolean(el && getFullscreenElement() === el)
+      setNativeFs(active)
+      // If native FS dropped unexpectedly, keep CSS mode if user wanted immersive
+      if (!active && cssFs) {
+        /* stay in cssFs */
+      }
     }
     return onFullscreenChange(onFs)
-  }, [])
+  }, [cssFs])
 
   const toggleAppFullscreen = async () => {
     const el = shellRef.current
     if (!el) return
-    try {
-      if (getFullscreenElement() === el) {
-        await exitAppFullscreen()
-      } else {
-        await requestAppFullscreen(el)
-      }
-    } catch {
-      /* unsupported on some iOS Safari builds — still OK */
+
+    // Exit whichever mode is active
+    if (nativeFs || getFullscreenElement() === el) {
+      await exitAppFullscreen()
+      setNativeFs(false)
+      setCssFs(false)
+      return
+    }
+    if (cssFs) {
+      setCssFs(false)
+      return
+    }
+
+    // Enter: try system Fullscreen API first (skip on known-broken iOS)
+    let enteredNative = false
+    if (!isIOSLike() && hasFullscreenApi(el)) {
+      enteredNative = await requestAppFullscreen(el)
+      setNativeFs(enteredNative)
+    }
+
+    // Always fall back so the button never no-ops on iPhone
+    if (!enteredNative) {
+      setCssFs(true)
     }
   }
 
   return (
     <div
-      className={`video-panel ${appFs ? 'video-panel-fs' : ''}`}
+      className={`video-panel ${appFs ? 'video-panel-fs' : ''} ${cssFs ? 'video-panel-css-fs' : ''}`}
       ref={shellRef}
     >
       <div className="video-stage">
