@@ -206,6 +206,18 @@ export function SettingsPanel({
             />
             건성안 알림 시 영상도 일시정지 (기본 꺼짐)
           </label>
+
+          <details className="debug-details">
+            <summary>개발자 디버그 (기본 숨김)</summary>
+            <label className="check-row advanced-check">
+              <input
+                type="checkbox"
+                checked={settings.showDebug}
+                onChange={(e) => set('showDebug', e.target.checked)}
+              />
+              영상 HUD·수치 표시
+            </label>
+          </details>
         </div>
       )}
     </section>

@@ -74,8 +74,8 @@ export const DEFAULT_SETTINGS: ControllerSettings = {
   noBlinkWarnSec: 12,
   pauseOnDryEye: false,
   showMesh: true,
-  showDebug: true,
+  showDebug: false,
 }
 
-/** Bump when defaults change so old too-strict prefs don't stick. */
-export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v2'
+/** Bump when defaults change so old prefs (e.g. debug on) don't stick. */
+export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v3'
