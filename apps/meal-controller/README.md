@@ -31,10 +31,24 @@ npm run build
 
 https://evkmc-as-portal.vercel.app/meal-controller/
 
+## 유튜브 (아이 시청용)
+
+1. **주소/ID 붙여넣기** — API 키 없이 재생 (oEmbed로 제목·썸네일)
+2. **검색** — `VITE_YOUTUBE_API_KEY` 가 빌드에 있을 때만 (YouTube Data API v3, `safeSearch=strict`)
+3. 최근 본 영상은 `localStorage`에 저장
+4. 저작 상태머신이 IFrame `playVideo` / `pauseVideo` 를 제어합니다
+
+키 설정: `apps/meal-controller/.env.example` 참고. Vercel 환경 변수에
+`VITE_YOUTUBE_API_KEY` 추가 후 재배포.
+
+임베드 제한: 일부 연령 제한·임베드 금지 영상은 재생되지 않을 수 있습니다.
+referrer/origin이 맞아야 IFrame API가 안정적입니다.
+
 ## 건성안 알림
 
-깜빡임이 `T_noblink`(기본 12초) 동안 없으면 「눈을 깜빡여 주세요」 소프트 알림.
-저작 pause와는 분리되어 있으며, 영상 정지는 세밀 설정의 옵션(기본 꺼짐).
+깜빡임이 `T_noblink`(기본 12초) 동안 없으면 영상 화면 전체에
+「눈을 깜빡여 주세요」 오버레이. 깜빡이면 자동으로 사라집니다.
+저작 pause와 분리(기본). 세밀 설정의 옵션으로 영상 정지도 가능.
 
 ## 프라이버시
 

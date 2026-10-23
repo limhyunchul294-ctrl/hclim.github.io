@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CameraPanel } from './components/CameraPanel'
+import {
+  PlaybackStage,
+  type PlaybackSource,
+} from './components/PlaybackStage'
 import { SettingsPanel } from './components/SettingsPanel'
 import { StatusBadges } from './components/StatusBadges'
-import { VideoPlayer } from './components/VideoPlayer'
+import { YoutubePicker } from './components/YoutubePicker'
 import { useCameraLandmarker } from './hooks/useCameraLandmarker'
 import { BlinkTracker } from './lib/blinkScore'
 import { ChewScorer } from './lib/chewScore'
 import { PlayerStateMachine } from './lib/playerStateMachine'
 import { loadSettings, saveSettings } from './lib/settingsStorage'
+import type { YtVideoMeta } from './lib/youtube'
 import {
   type BlinkSnapshot,
   type ChewSnapshot,
@@ -17,7 +22,7 @@ import {
 } from './lib/types'
 import './App.css'
 
-/** CC0 flower clip — reliable for demo; user may replace with local file. */
+/** CC0 flower clip — secondary local option. */
 const SAMPLE_VIDEO =
   'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
 
@@ -30,12 +35,16 @@ type MachineView = {
   effectivePauseSec: number
 }
 
+type MediaMode = 'youtube' | 'local'
+
 function App() {
   const [enabled, setEnabled] = useState(false)
   const [settings, setSettings] = useState<ControllerSettings>(() =>
     loadSettings(),
   )
-  const [videoSrc, setVideoSrc] = useState<string | null>(SAMPLE_VIDEO)
+  const [mediaMode, setMediaMode] = useState<MediaMode>('youtube')
+  const [ytMeta, setYtMeta] = useState<YtVideoMeta | null>(null)
+  const [localSrc, setLocalSrc] = useState<string | null>(null)
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
 
   const [chew, setChew] = useState<ChewSnapshot>({
@@ -124,7 +133,8 @@ function App() {
     if (objectUrl) URL.revokeObjectURL(objectUrl)
     const url = URL.createObjectURL(file)
     setObjectUrl(url)
-    setVideoSrc(url)
+    setLocalSrc(url)
+    setMediaMode('local')
   }
 
   const pauseHint = useMemo(() => {
@@ -139,21 +149,34 @@ function App() {
   const dryEyeBlocksPlay =
     settings.pauseOnDryEye && blink.needsBlinkNudge && enabled
 
+  const playbackSource: PlaybackSource | null =
+    mediaMode === 'youtube' && ytMeta
+      ? { kind: 'youtube', videoId: ytMeta.id }
+      : mediaMode === 'local' && localSrc
+        ? { kind: 'local', src: localSrc }
+        : null
+
+  const wantPlay = machine.shouldPlay && enabled && !dryEyeBlocksPlay
+
   return (
     <div className="app">
       <header className="app-header">
         <p className="brand">식사 중 영상시청 컨트롤러</p>
-        <p className="tagline">저작할 때만 영상이 재생됩니다 · 온디바이스</p>
+        <p className="tagline">
+          유튜브를 보며 씹어요 · 깜빡임도 챙기세요 · 온디바이스
+        </p>
       </header>
 
       <main className="app-main layout-m2">
         <div className="col-media">
-          <VideoPlayer
-            src={videoSrc}
-            shouldPlay={machine.shouldPlay && enabled && !dryEyeBlocksPlay}
-            showNudge={machine.showNudge}
+          <PlaybackStage
+            source={playbackSource}
+            shouldPlay={wantPlay}
+            showChewNudge={machine.showNudge && enabled}
+            showBlinkNudge={blink.needsBlinkNudge && enabled}
             resumeNeed={settings.resumeCycles}
             resumeHave={machine.resumeProgress}
+            secSinceLastBlink={blink.secSinceLastBlink}
           />
           <CameraPanel
             videoRef={videoRef}
@@ -166,17 +189,6 @@ function App() {
         <aside className="side-panel">
           <StatusBadges phase={machine.phase} isChewing={chew.isChewing} />
           <h2>식사 중 시청 제어</h2>
-
-          {blink.needsBlinkNudge && (
-            <div className="dryeye-nudge" role="status">
-              <p className="dryeye-title">눈을 깜빡여 주세요</p>
-              <p className="dryeye-sub">
-                {blink.secSinceLastBlink.toFixed(1)}초 동안 깜빡임이 없어요.
-                화면만 보면 눈이 건조해질 수 있습니다
-                {settings.pauseOnDryEye ? ' · 선택 옵션으로 재생도 멈춤' : ''}
-              </p>
-            </div>
-          )}
 
           <div className="btn-row">
             <button
@@ -202,24 +214,62 @@ function App() {
             </button>
           </div>
 
-          <div className="file-row">
+          <div className="mode-tabs" role="tablist">
             <button
               type="button"
-              className="btn"
-              onClick={() => setVideoSrc(SAMPLE_VIDEO)}
+              role="tab"
+              aria-selected={mediaMode === 'youtube'}
+              className={`btn ${mediaMode === 'youtube' ? 'primary' : ''}`}
+              onClick={() => setMediaMode('youtube')}
             >
-              샘플 영상
+              유튜브
             </button>
-            <label className="btn file-btn">
-              파일 선택
-              <input
-                type="file"
-                accept="video/*"
-                hidden
-                onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mediaMode === 'local'}
+              className={`btn ${mediaMode === 'local' ? 'primary' : ''}`}
+              onClick={() => setMediaMode('local')}
+            >
+              내 파일
+            </button>
           </div>
+
+          {mediaMode === 'youtube' ? (
+            <YoutubePicker
+              activeId={ytMeta?.id ?? null}
+              onSelect={(meta) => {
+                setYtMeta(meta)
+                setMediaMode('youtube')
+              }}
+            />
+          ) : (
+            <div className="file-row">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setLocalSrc(SAMPLE_VIDEO)
+                  setMediaMode('local')
+                }}
+              >
+                샘플 영상
+              </button>
+              <label className="btn file-btn">
+                파일 선택
+                <input
+                  type="file"
+                  accept="video/*"
+                  hidden
+                  onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+            </div>
+          )}
+
+          {ytMeta && mediaMode === 'youtube' && (
+            <p className="now-playing">지금: {ytMeta.title}</p>
+          )}
 
           <SettingsPanel
             settings={settings}
@@ -266,20 +316,8 @@ function App() {
                 <dd>{chew.score.toFixed(2)}</dd>
               </div>
               <div>
-                <dt>진폭</dt>
-                <dd>{chew.amplitude.toFixed(3)}</dd>
-              </div>
-              <div>
-                <dt>cycles / 창</dt>
-                <dd>{chew.cyclesInWindow}</dd>
-              </div>
-              <div>
                 <dt>무저작</dt>
                 <dd>{machine.noChewSec.toFixed(1)}s</dd>
-              </div>
-              <div>
-                <dt>실효 pause</dt>
-                <dd>{machine.effectivePauseSec.toFixed(1)}s</dd>
               </div>
               {pauseHint != null && (
                 <div>
@@ -288,10 +326,6 @@ function App() {
                 </div>
               )}
               <div>
-                <dt>깜빡임 (세션)</dt>
-                <dd>{blink.sessionBlinkCount}</dd>
-              </div>
-              <div>
                 <dt>깜빡임/분</dt>
                 <dd>{blink.blinkRatePerMin.toFixed(1)}</dd>
               </div>
@@ -299,26 +333,19 @@ function App() {
                 <dt>마지막 깜빡임</dt>
                 <dd>{blink.secSinceLastBlink.toFixed(1)}s 전</dd>
               </div>
-              <div>
-                <dt>eyeBlink L/R</dt>
-                <dd>
-                  {blink.blinkLeft.toFixed(2)} / {blink.blinkRight.toFixed(2)}
-                </dd>
-              </div>
             </dl>
           )}
 
           <p className="hint">
-            주기적으로 씹으면 재생되고, 약{' '}
-            {machine.effectivePauseSec.toFixed(1)}초 멈추면 일시정지됩니다.
-            깜빡이지 않고 {settings.noBlinkWarnSec.toFixed(0)}초가 지나면 건성안
-            알림이 뜹니다(기본은 재생과 무관).
+            씹으면 유튜브가 재생되고, 멈추면 화면이 커다랗게 「한 입 더」를
+            보여 줍니다. 오래 깜빡이지 않으면 「눈을 깜빡여 주세요」가 영상 위에
+            뜹니다.
           </p>
 
           <p className="privacy">
-            프라이버시: MediaPipe Face Landmarker가 <strong>온디바이스</strong>
-            에서만 동작합니다. 카메라 프레임·랜드마크는 서버로 업로드되지
-            않습니다. 설정은 이 기기의 localStorage에만 저장됩니다.
+            프라이버시: 얼굴 감지는 <strong>온디바이스</strong>입니다. 유튜브
+            재생은 YouTube에 연결됩니다. 설정·최근 영상은 이 기기
+            localStorage에만 저장됩니다.
           </p>
         </aside>
       </main>
