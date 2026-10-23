@@ -8,8 +8,9 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { StatusBadges } from './components/StatusBadges'
 import { YoutubePicker } from './components/YoutubePicker'
 import { useCameraLandmarker } from './hooks/useCameraLandmarker'
+import { useWakeLock } from './hooks/useWakeLock'
 import { BlinkTracker } from './lib/blinkScore'
-import { ChewScorer } from './lib/chewScore'
+import { MultiFaceChew } from './lib/multiFaceChew'
 import { PlayerStateMachine } from './lib/playerStateMachine'
 import { loadSettings, saveSettings } from './lib/settingsStorage'
 import type { YtVideoMeta } from './lib/youtube'
@@ -18,6 +19,7 @@ import {
   type ChewSnapshot,
   type ControllerSettings,
   type FaceFrame,
+  type FaceMode,
   type PlayerPhase,
 } from './lib/types'
 import './App.css'
@@ -37,6 +39,15 @@ type MachineView = {
 
 type MediaMode = 'youtube' | 'local'
 
+const emptyBlink = (): BlinkSnapshot => ({
+  blinkRatePerMin: 0,
+  sessionBlinkCount: 0,
+  secSinceLastBlink: 0,
+  needsBlinkNudge: false,
+  blinkLeft: 0,
+  blinkRight: 0,
+})
+
 function App() {
   const [enabled, setEnabled] = useState(false)
   const [settings, setSettings] = useState<ControllerSettings>(() =>
@@ -46,8 +57,8 @@ function App() {
   const [ytMeta, setYtMeta] = useState<YtVideoMeta | null>(null)
   const [localSrc, setLocalSrc] = useState<string | null>(null)
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
-  /** Parent/kid manual pause — sits above chew FSM play intent. */
   const [manualPaused, setManualPaused] = useState(false)
+  const [missingBuddy, setMissingBuddy] = useState(false)
 
   const [chew, setChew] = useState<ChewSnapshot>({
     score: 0,
@@ -65,19 +76,14 @@ function App() {
     effectivePauseSec: settings.pauseDelaySec,
   })
   const [latest, setLatest] = useState<FaceFrame | null>(null)
-  const [blink, setBlink] = useState<BlinkSnapshot>({
-    blinkRatePerMin: 0,
-    sessionBlinkCount: 0,
-    secSinceLastBlink: 0,
-    needsBlinkNudge: false,
-    blinkLeft: 0,
-    blinkRight: 0,
-  })
+  const [blink, setBlink] = useState<BlinkSnapshot>(emptyBlink)
 
-  const scorerRef = useRef(new ChewScorer())
-  const blinkRef = useRef(new BlinkTracker())
+  const multiChewRef = useRef(new MultiFaceChew())
+  const blinkRefs = useRef([new BlinkTracker(), new BlinkTracker()])
   const fsmRef = useRef(new PlayerStateMachine())
   const settingsRef = useRef(settings)
+
+  useWakeLock(enabled)
 
   useEffect(() => {
     settingsRef.current = settings
@@ -90,18 +96,62 @@ function App() {
     }
   }, [objectUrl])
 
+  const setFaceMode = (mode: FaceMode) => {
+    setSettings((s) => ({ ...s, faceMode: mode }))
+    multiChewRef.current.reset()
+    blinkRefs.current.forEach((b) => b.reset())
+    fsmRef.current.reset()
+  }
+
   const onFrame = useCallback((frame: FaceFrame) => {
     setLatest(frame)
-    const snap = scorerRef.current.push(frame, settingsRef.current)
-    setChew(snap)
-    setBlink(blinkRef.current.push(frame, settingsRef.current))
+    const s = settingsRef.current
+    const agg = multiChewRef.current.push(frame, s, s.faceMode)
+    setChew(agg)
+    setMissingBuddy(agg.missingBuddy)
+
+    // Blink: any required face staring → nudge
+    let blinkSnap = emptyBlink()
+    if (agg.facesReady) {
+      const snaps = []
+      for (let i = 0; i < s.faceMode; i++) {
+        const face = frame.faces[i]
+        snaps.push(
+          blinkRefs.current[i].push(
+            {
+              ...frame,
+              hasFace: true,
+              jawOpen: face.jawOpen,
+              mouthSmile: face.mouthSmile,
+              eyeBlinkLeft: face.eyeBlinkLeft,
+              eyeBlinkRight: face.eyeBlinkRight,
+              mar: face.mar,
+              landmarks: face.landmarks,
+              faceCount: 1,
+              faces: [face],
+            },
+            s,
+          ),
+        )
+      }
+      blinkSnap = {
+        blinkRatePerMin: Math.min(...snaps.map((x) => x.blinkRatePerMin)),
+        sessionBlinkCount: snaps.reduce((a, x) => a + x.sessionBlinkCount, 0),
+        secSinceLastBlink: Math.max(...snaps.map((x) => x.secSinceLastBlink)),
+        needsBlinkNudge: snaps.some((x) => x.needsBlinkNudge),
+        blinkLeft: snaps[0]?.blinkLeft ?? 0,
+        blinkRight: snaps[0]?.blinkRight ?? 0,
+      }
+    }
+    setBlink(blinkSnap)
+
     const out = fsmRef.current.step({
       nowMs: frame.timestampMs,
-      hasFace: frame.hasFace,
-      isChewing: snap.isChewing,
-      newCycle: snap.newCycle,
-      habitualGapSec: snap.habitualGapSec,
-      settings: settingsRef.current,
+      hasFace: agg.facesReady,
+      isChewing: agg.isChewing,
+      newCycle: agg.newCycle,
+      habitualGapSec: agg.habitualGapSec,
+      settings: s,
     })
     setMachine({
       phase: out.phase,
@@ -113,22 +163,27 @@ function App() {
     })
   }, [])
 
-  const { videoRef, canvasRef, status, faceLost } = useCameraLandmarker({
-    showMesh: settings.showMesh,
-    onFrame,
-    enabled,
-  })
+  const { videoRef, canvasRef, status, faceLost, faceCount } =
+    useCameraLandmarker({
+      showMesh: settings.showMesh,
+      onFrame,
+      enabled,
+    })
 
   const statusLabel =
     status.kind === 'idle'
-      ? '카메라를 시작해 주세요'
+      ? '시작을 눌러 주세요'
       : status.kind === 'loading'
         ? status.message
         : status.kind === 'error'
           ? status.message
-          : faceLost
-            ? '얼굴 없음'
-            : '얼굴 감지 중'
+          : missingBuddy
+            ? '친구도 화면에 나와요'
+            : faceLost
+              ? '얼굴을 보여 주세요'
+              : settings.faceMode === 2
+                ? `얼굴 ${faceCount}/2`
+                : '얼굴 보는 중'
 
   const onPickFile = (file: File | null) => {
     if (!file) return
@@ -159,15 +214,19 @@ function App() {
         : null
 
   const wantPlay =
-    machine.shouldPlay && enabled && !dryEyeBlocksPlay && !manualPaused
+    machine.shouldPlay &&
+    enabled &&
+    !dryEyeBlocksPlay &&
+    !manualPaused &&
+    !missingBuddy
+
+  const showFriendNudge = enabled && missingBuddy
 
   return (
     <div className="app">
       <header className="app-header">
-        <p className="brand">식사 중 영상시청 컨트롤러</p>
-        <p className="tagline">
-          유튜브를 보며 씹어요 · 깜빡임도 챙기세요 · 온디바이스
-        </p>
+        <p className="brand">식사 중 영상시청</p>
+        <p className="tagline">씹으면 나와요 · 깜빡깜빡도 해요</p>
       </header>
 
       <main className="app-main layout-m2">
@@ -177,6 +236,7 @@ function App() {
             shouldPlay={wantPlay}
             showChewNudge={machine.showNudge && enabled && !manualPaused}
             showBlinkNudge={blink.needsBlinkNudge && enabled}
+            showFriendNudge={showFriendNudge}
             resumeNeed={settings.resumeCycles}
             resumeHave={machine.resumeProgress}
             secSinceLastBlink={blink.secSinceLastBlink}
@@ -196,21 +256,56 @@ function App() {
             videoRef={videoRef}
             canvasRef={canvasRef}
             faceLost={enabled && status.kind === 'ready' && faceLost}
+            missingBuddy={showFriendNudge}
             statusLabel={statusLabel}
           />
         </div>
 
         <aside className="side-panel">
-          <StatusBadges phase={machine.phase} isChewing={chew.isChewing} />
-          <h2>식사 중 시청 제어</h2>
+          <StatusBadges
+            phase={machine.phase}
+            isChewing={chew.isChewing}
+            faceMode={settings.faceMode}
+            faceCount={enabled ? faceCount : 0}
+            missingBuddy={showFriendNudge}
+          />
 
-          <div className="btn-row">
+          <h2>같이 먹어요</h2>
+
+          <div className="face-mode" role="group" aria-label="몇 명인가요">
+            <p className="face-mode-label">몇 명이 먹나요?</p>
+            <div className="face-mode-tabs">
+              <button
+                type="button"
+                className={`btn face-mode-btn ${settings.faceMode === 1 ? 'primary' : ''}`}
+                aria-pressed={settings.faceMode === 1}
+                onClick={() => setFaceMode(1)}
+              >
+                1명
+              </button>
+              <button
+                type="button"
+                className={`btn face-mode-btn ${settings.faceMode === 2 ? 'primary' : ''}`}
+                aria-pressed={settings.faceMode === 2}
+                onClick={() => setFaceMode(2)}
+              >
+                2명
+              </button>
+            </div>
+            <p className="face-mode-rule">
+              {settings.faceMode === 1
+                ? '한 명이 씹어야 영상이 나와요.'
+                : '두 명이 다 화면에 나오고, 둘 다 씹어야 영상이 나와요. 한 명만 보이면 「친구도 화면에 나와요」.'}
+            </p>
+          </div>
+
+          <div className="btn-row start-row">
             <button
               type="button"
-              className="btn primary"
+              className="btn primary btn-start"
               onClick={() => {
-                scorerRef.current.reset()
-                blinkRef.current.reset()
+                multiChewRef.current.reset()
+                blinkRefs.current.forEach((b) => b.reset())
                 fsmRef.current.reset()
                 setManualPaused(false)
                 setEnabled(true)
@@ -221,7 +316,7 @@ function App() {
             </button>
             <button
               type="button"
-              className="btn"
+              className="btn btn-stop"
               onClick={() => setEnabled(false)}
               disabled={!enabled}
             >
@@ -293,28 +388,17 @@ function App() {
             effectivePauseSec={machine.effectivePauseSec}
           />
 
-          <div className="check-grid">
-            <label className="check-row">
-              <input
-                type="checkbox"
-                checked={settings.showMesh}
-                onChange={(e) =>
-                  setSettings((s) => ({ ...s, showMesh: e.target.checked }))
-                }
-              />
-              얼굴 메시
-            </label>
-          </div>
-
           {settings.showDebug && (
             <dl className="metrics">
               <div>
-                <dt>jawOpen</dt>
-                <dd>{(latest?.jawOpen ?? 0).toFixed(3)}</dd>
+                <dt>faces</dt>
+                <dd>
+                  {latest?.faceCount ?? 0}/{settings.faceMode}
+                </dd>
               </div>
               <div>
-                <dt>MAR</dt>
-                <dd>{(latest?.mar ?? 0).toFixed(3)}</dd>
+                <dt>jawOpen</dt>
+                <dd>{(latest?.jawOpen ?? 0).toFixed(3)}</dd>
               </div>
               <div>
                 <dt>chewScore</dt>
@@ -331,26 +415,19 @@ function App() {
                 </div>
               )}
               <div>
-                <dt>깜빡임/분</dt>
-                <dd>{blink.blinkRatePerMin.toFixed(1)}</dd>
-              </div>
-              <div>
-                <dt>마지막 깜빡임</dt>
+                <dt>깜빡임</dt>
                 <dd>{blink.secSinceLastBlink.toFixed(1)}s 전</dd>
               </div>
             </dl>
           )}
 
           <p className="hint">
-            카메라 <strong>시작</strong> 후 얼굴을 비추고 씹으면 재생됩니다.
-            화면 가장자리를 탭하면 <strong>일시정지/재생·전체화면</strong>이
-            잠깐 나타납니다.
+            <strong>시작</strong> → 얼굴 비추고 씹어요. 화면 가장자리를
+            누르면 일시정지·전체화면이 잠깐 보여요.
           </p>
 
           <p className="privacy">
-            프라이버시: 얼굴 감지는 <strong>온디바이스</strong>입니다. 유튜브
-            재생은 YouTube에 연결됩니다. 설정·최근 영상은 이 기기
-            localStorage에만 저장됩니다.
+            얼굴은 이 기기에서만 봐요. 유튜브 재생은 YouTube로 연결돼요.
           </p>
         </aside>
       </main>

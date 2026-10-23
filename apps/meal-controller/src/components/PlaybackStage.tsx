@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useYouTubeApiReady } from '../hooks/useYouTubeApi'
+import {
+  exitAppFullscreen,
+  getFullscreenElement,
+  onFullscreenChange,
+  requestAppFullscreen,
+} from '../lib/fullscreen'
 import type { YtPlayer } from '../lib/youtubeApi'
 
 export type PlaybackSource =
@@ -20,6 +26,8 @@ type Props = {
   shouldPlay: boolean
   showChewNudge: boolean
   showBlinkNudge: boolean
+  /** 2명 모드인데 얼굴이 1명만 보일 때 */
+  showFriendNudge: boolean
   resumeNeed: number
   resumeHave: number
   secSinceLastBlink: number
@@ -41,6 +49,7 @@ export function PlaybackStage({
   shouldPlay,
   showChewNudge,
   showBlinkNudge,
+  showFriendNudge,
   resumeNeed,
   resumeHave,
   secSinceLastBlink,
@@ -178,23 +187,22 @@ export function PlaybackStage({
   useEffect(() => {
     const onFs = () => {
       const el = shellRef.current
-      setAppFs(Boolean(el && document.fullscreenElement === el))
+      setAppFs(Boolean(el && getFullscreenElement() === el))
     }
-    document.addEventListener('fullscreenchange', onFs)
-    return () => document.removeEventListener('fullscreenchange', onFs)
+    return onFullscreenChange(onFs)
   }, [])
 
   const toggleAppFullscreen = async () => {
     const el = shellRef.current
     if (!el) return
     try {
-      if (document.fullscreenElement === el) {
-        await document.exitFullscreen()
+      if (getFullscreenElement() === el) {
+        await exitAppFullscreen()
       } else {
-        await el.requestFullscreen()
+        await requestAppFullscreen(el)
       }
     } catch {
-      /* unsupported */
+      /* unsupported on some iOS Safari builds — still OK */
     }
   }
 
@@ -251,34 +259,43 @@ export function PlaybackStage({
           </div>
         )}
 
-        {showBlinkNudge && (
+        {showFriendNudge && (
+          <div className="stage-overlay friend-overlay" role="status">
+            <p className="stage-overlay-title">친구도 화면에 나와요</p>
+            <p className="stage-overlay-sub">
+              두 명이 다 보여야 영상이 나와요
+            </p>
+          </div>
+        )}
+
+        {showBlinkNudge && !showFriendNudge && (
           <div className="stage-overlay blink-overlay" role="alert">
-            <p className="stage-overlay-title">눈을 깜빡여 주세요</p>
+            <p className="stage-overlay-title">깜빡깜빡!</p>
             <p className="stage-overlay-sub">
-              {secSinceLastBlink.toFixed(0)}초 동안 깜빡이지 않았어요
+              {secSinceLastBlink.toFixed(0)}초째 눈을 안 깜빡였어요
             </p>
           </div>
         )}
 
-        {showChewNudge && !showBlinkNudge && (
+        {showChewNudge && !showBlinkNudge && !showFriendNudge && (
           <div className="stage-overlay chew-overlay" role="status">
-            <p className="stage-overlay-title">한 입 더 씹어 주세요</p>
+            <p className="stage-overlay-title">꼭꼭 씹어 봐요</p>
             <p className="stage-overlay-sub">
-              다시 씹으면 재생돼요 · {resumeHave}/{resumeNeed}회
+              다시 씹으면 나와요 · {resumeHave}/{resumeNeed}
             </p>
           </div>
         )}
 
-        {showChewNudge && showBlinkNudge && (
+        {showChewNudge && showBlinkNudge && !showFriendNudge && (
           <div
             className="stage-overlay chew-overlay chew-secondary"
             role="status"
           >
             <p className="stage-overlay-title stage-overlay-title-sm">
-              한 입 더 씹어 주세요
+              꼭꼭 씹어 봐요
             </p>
             <p className="stage-overlay-sub">
-              재개 {resumeHave}/{resumeNeed}회
+              {resumeHave}/{resumeNeed}
             </p>
           </div>
         )}

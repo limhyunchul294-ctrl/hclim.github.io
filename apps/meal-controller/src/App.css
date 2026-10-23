@@ -1,24 +1,27 @@
 .app {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 1.25rem 1rem 2.5rem;
+  padding-top: max(1.1rem, env(safe-area-inset-top, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(2.25rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
 }
 
 .app-header {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.1rem;
 }
 
 .brand {
   margin: 0;
-  font-size: clamp(1.5rem, 4vw, 2.1rem);
-  font-weight: 700;
+  font-size: clamp(1.65rem, 5vw, 2.25rem);
+  font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .tagline {
   margin: 0.35rem 0 0;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
 }
 
 .layout-m1,
@@ -33,6 +36,28 @@
   .layout-m2 {
     grid-template-columns: 1.45fr 1fr;
     align-items: start;
+  }
+}
+
+/* iPad Air landscape — roomier stage, not a stretched phone column */
+@media (min-width: 1024px) and (orientation: landscape) {
+  .app {
+    max-width: 1360px;
+  }
+
+  .layout-m2 {
+    grid-template-columns: minmax(0, 1.85fr) minmax(320px, 1fr);
+    gap: 1.25rem;
+  }
+
+  .video-stage {
+    min-height: min(62vh, 640px);
+  }
+
+  .side-panel {
+    max-height: calc(100dvh - 5rem);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -89,10 +114,17 @@
 
 .video-panel-fs {
   background: #000;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
 }
 
 .video-panel-fs .video-stage {
   height: 100%;
+  height: 100dvh;
   aspect-ratio: auto;
   border-radius: 0;
 }
@@ -179,12 +211,12 @@
 }
 
 .stage-ctrl-btn {
-  min-height: 52px;
-  min-width: 108px;
-  padding: 0.65rem 1.15rem;
-  font-size: 1.05rem;
+  min-height: var(--tap-min);
+  min-width: 120px;
+  padding: 0.7rem 1.2rem;
+  font-size: 1.1rem;
   font-weight: 800;
-  border-radius: 14px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.35);
   color: #fff;
@@ -243,6 +275,14 @@
 
 .chew-overlay {
   background: rgba(8, 12, 16, 0.78);
+}
+
+.friend-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(20, 40, 48, 0.55) 0%,
+    rgba(20, 40, 48, 0.78) 100%
+  );
 }
 
 .chew-secondary {
@@ -348,9 +388,10 @@
 }
 
 .yt-big-btn {
-  min-height: 48px;
-  font-weight: 700;
-  font-size: 0.95rem;
+  min-height: var(--tap-min);
+  font-weight: 800;
+  font-size: 1.05rem;
+  border-radius: 14px;
 }
 
 .yt-field-label {
@@ -501,6 +542,70 @@
   color: var(--text-muted);
 }
 
+.badge.face-mode-badge {
+  color: var(--text);
+}
+
+.badge.friend-badge {
+  background: rgba(212, 163, 92, 0.22);
+  color: var(--warn);
+  border-color: transparent;
+}
+
+.face-mode {
+  margin: 0 0 1rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.face-mode-label {
+  margin: 0 0 0.45rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.face-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.face-mode-btn {
+  min-height: var(--tap-min);
+  font-size: 1.2rem;
+  font-weight: 800;
+  border-radius: 14px;
+}
+
+.face-mode-rule {
+  margin: 0.65rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.start-row {
+  margin-bottom: 1rem;
+}
+
+.btn-start {
+  flex: 1.4;
+  min-height: 58px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  border-radius: 14px;
+}
+
+.btn-stop {
+  flex: 1;
+  min-height: 58px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 14px;
+}
+
 .file-row {
   display: flex;
   flex-wrap: wrap;
@@ -568,13 +673,20 @@
   left: 50%;
   bottom: 12%;
   transform: translateX(-50%);
-  background: rgba(212, 101, 106, 0.92);
+  background: rgba(201, 122, 126, 0.92);
   color: #fff;
-  padding: 0.45rem 0.9rem;
-  border-radius: 999px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  padding: 0.55rem 1rem;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
   white-space: nowrap;
+  max-width: 92%;
+  text-align: center;
+}
+
+.friend-banner {
+  background: rgba(212, 163, 92, 0.94);
+  color: #1a1408;
 }
 
 .camera-status {
@@ -607,8 +719,9 @@
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  border-radius: 8px;
-  padding: 0.5rem 0.9rem;
+  border-radius: 12px;
+  padding: 0.55rem 0.95rem;
+  min-height: 48px;
 }
 
 .btn:disabled {
@@ -743,25 +856,45 @@
 
 @media (max-width: 640px) {
   .app {
-    padding: 0.85rem 0.7rem 2rem;
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+    padding-right: max(0.7rem, env(safe-area-inset-right, 0px));
+    padding-bottom: max(1.75rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.7rem, env(safe-area-inset-left, 0px));
   }
 
   .brand {
-    font-size: 1.35rem;
+    font-size: 1.45rem;
   }
 
   .side-panel {
-    padding: 0.85rem 0.9rem;
+    padding: 0.9rem 0.95rem;
   }
 
   .btn,
   .file-btn {
     flex: 1 1 auto;
     justify-content: center;
-    min-height: 44px;
+    min-height: var(--tap-min);
   }
 
-  .nudge-title {
+  .yt-search-input {
+    min-height: var(--tap-min);
+    font-size: 16px; /* iOS zoom prevention */
+  }
+
+  .stage-ctrl-btn {
+    min-width: 112px;
+  }
+}
+
+/* iPhone Pro / Pro Max portrait — prioritize video + big start */
+@media (max-width: 430px) {
+  .camera-stage {
+    aspect-ratio: 16 / 10;
+    max-height: 28vh;
+  }
+
+  .face-mode-btn {
     font-size: 1.15rem;
   }
 }

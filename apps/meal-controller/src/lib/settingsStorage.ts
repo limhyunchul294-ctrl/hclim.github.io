@@ -2,18 +2,26 @@ import {
   DEFAULT_SETTINGS,
   SETTINGS_STORAGE_KEY,
   type ControllerSettings,
+  type FaceMode,
 } from './types'
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n))
 }
 
+function asFaceMode(v: unknown): FaceMode {
+  return v === 2 || v === '2' ? 2 : 1
+}
+
 /** Merge persisted JSON with defaults; migrate legacy keys. */
 export function loadSettings(): ControllerSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
-    if (!raw) return { ...DEFAULT_SETTINGS }
-    const parsed = JSON.parse(raw) as Partial<ControllerSettings> & {
+    // Soft-migrate from v3 if v4 empty
+    const legacy =
+      raw ?? localStorage.getItem('meal-controller-settings-v3')
+    if (!legacy) return { ...DEFAULT_SETTINGS }
+    const parsed = JSON.parse(legacy) as Partial<ControllerSettings> & {
       eyesClosedWarnSec?: number
     }
     const migrated: Partial<ControllerSettings> = { ...parsed }
@@ -21,9 +29,9 @@ export function loadSettings(): ControllerSettings {
       migrated.noBlinkWarnSec == null &&
       typeof parsed.eyesClosedWarnSec === 'number'
     ) {
-      // Old “eyes closed” → map into a sensible no-blink default range
       migrated.noBlinkWarnSec = clamp(parsed.eyesClosedWarnSec * 4, 8, 20)
     }
+    if (migrated.faceMode == null) migrated.faceMode = 1
     return sanitizeSettings({ ...DEFAULT_SETTINGS, ...migrated })
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -48,6 +56,7 @@ export function sanitizeSettings(s: ControllerSettings): ControllerSettings {
     freqMax = Math.min(4, freqMin + 0.3)
   }
   return {
+    faceMode: asFaceMode(s.faceMode),
     pauseDelaySec: clamp(s.pauseDelaySec, 1, 8),
     resumeCycles: Math.round(clamp(s.resumeCycles, 1, 6)),
     sensitivity: clamp(s.sensitivity, 0.2, 0.95),

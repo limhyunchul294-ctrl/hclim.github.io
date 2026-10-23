@@ -4,6 +4,7 @@ type Props = {
   videoRef: RefObject<HTMLVideoElement | null>
   canvasRef: RefObject<HTMLCanvasElement | null>
   faceLost: boolean
+  missingBuddy: boolean
   statusLabel: string
 }
 
@@ -11,6 +12,7 @@ export function CameraPanel({
   videoRef,
   canvasRef,
   faceLost,
+  missingBuddy,
   statusLabel,
 }: Props) {
   return (
@@ -24,9 +26,14 @@ export function CameraPanel({
           autoPlay
         />
         <canvas ref={canvasRef} className="camera-overlay" />
-        {faceLost && (
+        {missingBuddy && (
+          <div className="face-lost-banner friend-banner" role="status">
+            친구도 화면에 나와요
+          </div>
+        )}
+        {faceLost && !missingBuddy && (
           <div className="face-lost-banner" role="status">
-            얼굴이 보이지 않습니다
+            얼굴을 보여 주세요
           </div>
         )}
       </div>

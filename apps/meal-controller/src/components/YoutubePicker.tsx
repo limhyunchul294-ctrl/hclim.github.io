@@ -115,15 +115,15 @@ export function YoutubePicker({ activeId, onSelect }: Props) {
 
   return (
     <section className="yt-picker" aria-label="유튜브 영상 고르기">
-      <h3>유튜브 보기</h3>
+      <h3>유튜브 고르기</h3>
       <ol className="yt-steps">
-        <li>유튜브에서 영상을 고르고 주소를 복사해요</li>
-        <li>아래에 붙여넣고 「재생」을 눌러요</li>
+        <li>유튜브에서 고르고 주소를 복사해요</li>
+        <li>붙여넣고 「재생」을 눌러요</li>
       </ol>
 
       <div className="yt-action-grid">
         <button type="button" className="btn primary yt-big-btn" onClick={openYouTube}>
-          유튜브에서 고르기
+          유튜브 열기
         </button>
         <button
           type="button"
@@ -131,12 +131,12 @@ export function YoutubePicker({ activeId, onSelect }: Props) {
           onClick={() => void pasteFromClipboard()}
           disabled={busy}
         >
-          클립보드에서 붙여넣기
+          붙여넣기
         </button>
       </div>
 
       <label className="yt-field-label" htmlFor="yt-paste-input">
-        주소 붙여넣기
+        주소
       </label>
       <div className="yt-search-row">
         <input
