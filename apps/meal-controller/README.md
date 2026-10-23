@@ -27,6 +27,16 @@ npm run build
 
 빌드 결과가 `../../meal-controller/`(저장소의 `meal-controller/`)에 출력됩니다. 이 폴더를 커밋하면 Pages에서 바로 서빙됩니다.
 
+## 공개 URL
+
+https://evkmc-as-portal.vercel.app/meal-controller/
+
+## 건성안 알림
+
+깜빡임이 `T_noblink`(기본 12초) 동안 없으면 「눈을 깜빡여 주세요」 소프트 알림.
+저작 pause와는 분리되어 있으며, 영상 정지는 세밀 설정의 옵션(기본 꺼짐).
+
 ## 프라이버시
 
-온디바이스 MediaPipe Face Landmarker. 카메라 프레임은 서버로 업로드되지 않습니다. HTTPS(Pages) + 카메라 권한 필요.
+온디바이스 MediaPipe Face Landmarker. 카메라 프레임은 서버로 업로드되지 않습니다.
+설정은 `localStorage`에만 저장됩니다. HTTPS + 카메라 권한 필요.

@@ -7,8 +7,8 @@ import { useCameraLandmarker } from './hooks/useCameraLandmarker'
 import { BlinkTracker } from './lib/blinkScore'
 import { ChewScorer } from './lib/chewScore'
 import { PlayerStateMachine } from './lib/playerStateMachine'
+import { loadSettings, saveSettings } from './lib/settingsStorage'
 import {
-  DEFAULT_SETTINGS,
   type BlinkSnapshot,
   type ChewSnapshot,
   type ControllerSettings,
@@ -27,11 +27,14 @@ type MachineView = {
   showNudge: boolean
   noChewSec: number
   resumeProgress: number
+  effectivePauseSec: number
 }
 
 function App() {
   const [enabled, setEnabled] = useState(false)
-  const [settings, setSettings] = useState<ControllerSettings>(DEFAULT_SETTINGS)
+  const [settings, setSettings] = useState<ControllerSettings>(() =>
+    loadSettings(),
+  )
   const [videoSrc, setVideoSrc] = useState<string | null>(SAMPLE_VIDEO)
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
 
@@ -40,6 +43,7 @@ function App() {
     isChewing: false,
     cyclesInWindow: 0,
     amplitude: 0,
+    habitualGapSec: 0,
   })
   const [machine, setMachine] = useState<MachineView>({
     phase: 'NO_FACE',
@@ -47,12 +51,14 @@ function App() {
     showNudge: false,
     noChewSec: 0,
     resumeProgress: 0,
+    effectivePauseSec: settings.pauseDelaySec,
   })
   const [latest, setLatest] = useState<FaceFrame | null>(null)
   const [blink, setBlink] = useState<BlinkSnapshot>({
     blinkRatePerMin: 0,
     sessionBlinkCount: 0,
-    eyesClosedLong: false,
+    secSinceLastBlink: 0,
+    needsBlinkNudge: false,
     blinkLeft: 0,
     blinkRight: 0,
   })
@@ -64,6 +70,7 @@ function App() {
 
   useEffect(() => {
     settingsRef.current = settings
+    saveSettings(settings)
   }, [settings])
 
   useEffect(() => {
@@ -76,13 +83,13 @@ function App() {
     setLatest(frame)
     const snap = scorerRef.current.push(frame, settingsRef.current)
     setChew(snap)
-    // Blink is additive metrics only — never gates shouldPlay.
     setBlink(blinkRef.current.push(frame, settingsRef.current))
     const out = fsmRef.current.step({
       nowMs: frame.timestampMs,
       hasFace: frame.hasFace,
       isChewing: snap.isChewing,
       newCycle: snap.newCycle,
+      habitualGapSec: snap.habitualGapSec,
       settings: settingsRef.current,
     })
     setMachine({
@@ -91,6 +98,7 @@ function App() {
       showNudge: out.showNudge,
       noChewSec: out.noChewSec,
       resumeProgress: out.resumeProgress,
+      effectivePauseSec: out.effectivePauseSec,
     })
   }, [])
 
@@ -121,9 +129,15 @@ function App() {
 
   const pauseHint = useMemo(() => {
     if (machine.phase !== 'PLAYING') return null
-    const remain = Math.max(0, settings.pauseDelaySec - machine.noChewSec)
+    const remain = Math.max(
+      0,
+      machine.effectivePauseSec - machine.noChewSec,
+    )
     return remain.toFixed(1)
-  }, [machine.phase, machine.noChewSec, settings.pauseDelaySec])
+  }, [machine.phase, machine.noChewSec, machine.effectivePauseSec])
+
+  const dryEyeBlocksPlay =
+    settings.pauseOnDryEye && blink.needsBlinkNudge && enabled
 
   return (
     <div className="app">
@@ -136,7 +150,7 @@ function App() {
         <div className="col-media">
           <VideoPlayer
             src={videoSrc}
-            shouldPlay={machine.shouldPlay && enabled}
+            shouldPlay={machine.shouldPlay && enabled && !dryEyeBlocksPlay}
             showNudge={machine.showNudge}
             resumeNeed={settings.resumeCycles}
             resumeHave={machine.resumeProgress}
@@ -152,11 +166,16 @@ function App() {
         <aside className="side-panel">
           <StatusBadges phase={machine.phase} isChewing={chew.isChewing} />
           <h2>식사 중 시청 제어</h2>
-          {blink.eyesClosedLong && (
-            <p className="soft-warn" role="status">
-              눈이 감긴 채 오래 유지되고 있습니다 (참고 신호 · 재생에는 영향
-              없음)
-            </p>
+
+          {blink.needsBlinkNudge && (
+            <div className="dryeye-nudge" role="status">
+              <p className="dryeye-title">눈을 깜빡여 주세요</p>
+              <p className="dryeye-sub">
+                {blink.secSinceLastBlink.toFixed(1)}초 동안 깜빡임이 없어요.
+                화면만 보면 눈이 건조해질 수 있습니다
+                {settings.pauseOnDryEye ? ' · 선택 옵션으로 재생도 멈춤' : ''}
+              </p>
+            </div>
           )}
 
           <div className="btn-row">
@@ -202,7 +221,12 @@ function App() {
             </label>
           </div>
 
-          <SettingsPanel settings={settings} onChange={setSettings} />
+          <SettingsPanel
+            settings={settings}
+            onChange={setSettings}
+            habitualGapSec={chew.habitualGapSec}
+            effectivePauseSec={machine.effectivePauseSec}
+          />
 
           <div className="check-grid">
             <label className="check-row">
@@ -242,12 +266,20 @@ function App() {
                 <dd>{chew.score.toFixed(2)}</dd>
               </div>
               <div>
+                <dt>진폭</dt>
+                <dd>{chew.amplitude.toFixed(3)}</dd>
+              </div>
+              <div>
                 <dt>cycles / 창</dt>
                 <dd>{chew.cyclesInWindow}</dd>
               </div>
               <div>
                 <dt>무저작</dt>
                 <dd>{machine.noChewSec.toFixed(1)}s</dd>
+              </div>
+              <div>
+                <dt>실효 pause</dt>
+                <dd>{machine.effectivePauseSec.toFixed(1)}s</dd>
               </div>
               {pauseHint != null && (
                 <div>
@@ -264,6 +296,10 @@ function App() {
                 <dd>{blink.blinkRatePerMin.toFixed(1)}</dd>
               </div>
               <div>
+                <dt>마지막 깜빡임</dt>
+                <dd>{blink.secSinceLastBlink.toFixed(1)}s 전</dd>
+              </div>
+              <div>
                 <dt>eyeBlink L/R</dt>
                 <dd>
                   {blink.blinkLeft.toFixed(2)} / {blink.blinkRight.toFixed(2)}
@@ -273,14 +309,16 @@ function App() {
           )}
 
           <p className="hint">
-            입을 주기적으로 씹으면 재생되고, 약 {settings.pauseDelaySec}초
-            멈추면 일시정지됩니다. 입만 벌리고 고정하면 재생되지 않습니다.
+            주기적으로 씹으면 재생되고, 약{' '}
+            {machine.effectivePauseSec.toFixed(1)}초 멈추면 일시정지됩니다.
+            깜빡이지 않고 {settings.noBlinkWarnSec.toFixed(0)}초가 지나면 건성안
+            알림이 뜹니다(기본은 재생과 무관).
           </p>
 
           <p className="privacy">
             프라이버시: MediaPipe Face Landmarker가 <strong>온디바이스</strong>
             에서만 동작합니다. 카메라 프레임·랜드마크는 서버로 업로드되지
-            않습니다.
+            않습니다. 설정은 이 기기의 localStorage에만 저장됩니다.
           </p>
         </aside>
       </main>
