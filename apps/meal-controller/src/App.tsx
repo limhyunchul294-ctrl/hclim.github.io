@@ -232,7 +232,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <p className="brand">식사 중 영상시청</p>
+        <p className="brand">냠냠 시청</p>
         <p className="tagline">씹으면 나와요 · 깜빡깜빡도 해요</p>
       </header>
 
