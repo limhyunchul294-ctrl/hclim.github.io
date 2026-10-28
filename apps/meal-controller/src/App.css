@@ -405,9 +405,11 @@ html.meal-css-fs body {
   z-index: 8;
   display: grid;
   place-content: center;
-  gap: 0.45rem;
+  justify-items: center;
+  gap: 0.55rem;
   text-align: center;
-  padding: 1.25rem 1.25rem 5rem;
+  /* Keep bottom clear for floating pause / fullscreen controls */
+  padding: 1.25rem 1.25rem max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom, 0px)));
   pointer-events: none;
   animation: nudge-in 280ms ease-out;
 }
@@ -418,6 +420,104 @@ html.meal-css-fs body {
 
 .chew-overlay {
   background: rgba(8, 12, 16, 0.78);
+}
+
+/* --- Toddler nudge art (CSS-only motion) --- */
+.nudge-art {
+  width: min(52vw, 220px);
+  height: auto;
+  display: block;
+  margin: 0 auto 0.15rem;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
+}
+
+.nudge-art-sm {
+  width: min(28vw, 110px);
+}
+
+.blink-eyes-art .eye-ball {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: blink-ball 2.4s ease-in-out infinite;
+}
+
+.blink-eyes-art .eye-right .eye-ball {
+  animation-delay: 0.06s;
+}
+
+@keyframes blink-ball {
+  0%,
+  78%,
+  100% {
+    transform: scaleY(1);
+  }
+  82%,
+  88% {
+    transform: scaleY(0.08);
+  }
+  90% {
+    transform: scaleY(1);
+  }
+  93% {
+    transform: scaleY(0.12);
+  }
+  96% {
+    transform: scaleY(1);
+  }
+}
+
+.chew-mouth-art .jaw {
+  transform-origin: 80px 78px;
+  animation: chew-jaw 0.55s ease-in-out infinite;
+}
+
+.chew-mouth-art .nyam-marks {
+  animation: nyam-bob 0.55s ease-in-out infinite;
+}
+
+.chew-mouth-art .crumb {
+  animation: crumb-bounce 0.55s ease-in-out infinite;
+}
+
+@keyframes chew-jaw {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(7px) scaleY(0.92);
+  }
+}
+
+@keyframes nyam-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+@keyframes crumb-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blink-eyes-art .eye-ball,
+  .chew-mouth-art .jaw,
+  .chew-mouth-art .nyam-marks,
+  .chew-mouth-art .crumb {
+    animation: none;
+  }
 }
 
 .friend-overlay {

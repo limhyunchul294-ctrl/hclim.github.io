@@ -9,6 +9,7 @@ import {
   requestAppFullscreen,
 } from '../lib/fullscreen'
 import type { YtPlayer } from '../lib/youtubeApi'
+import { BlinkEyesArt, ChewMouthArt } from './NudgeArt'
 
 export type PlaybackSource =
   | { kind: 'local'; src: string }
@@ -320,18 +321,20 @@ export function PlaybackStage({
 
         {showBlinkNudge && !showFriendNudge && (
           <div className="stage-overlay blink-overlay" role="alert">
-            <p className="stage-overlay-title">깜빡깜빡!</p>
+            <BlinkEyesArt />
+            <p className="stage-overlay-title">눈을 깜빡여 주세요</p>
             <p className="stage-overlay-sub">
-              {secSinceLastBlink.toFixed(0)}초째 눈을 안 깜빡였어요
+              깜빡깜빡! · {secSinceLastBlink.toFixed(0)}초째예요
             </p>
           </div>
         )}
 
         {showChewNudge && !showBlinkNudge && !showFriendNudge && (
           <div className="stage-overlay chew-overlay" role="status">
-            <p className="stage-overlay-title">꼭꼭 씹어 봐요</p>
+            <ChewMouthArt />
+            <p className="stage-overlay-title">한 입 더 씹어 봐요</p>
             <p className="stage-overlay-sub">
-              다시 씹으면 나와요 · {resumeHave}/{resumeNeed}
+              냠냠 하면 나와요 · {resumeHave}/{resumeNeed}
             </p>
           </div>
         )}
@@ -341,8 +344,9 @@ export function PlaybackStage({
             className="stage-overlay chew-overlay chew-secondary"
             role="status"
           >
+            <ChewMouthArt className="nudge-art-sm" />
             <p className="stage-overlay-title stage-overlay-title-sm">
-              꼭꼭 씹어 봐요
+              한 입 더 씹어 봐요
             </p>
             <p className="stage-overlay-sub">
               {resumeHave}/{resumeNeed}

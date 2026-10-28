@@ -1,6 +1,6 @@
 {
-  "name": "식사 중 영상시청",
-  "short_name": "식사 영상",
+  "name": "냠냠 시청",
+  "short_name": "냠냠 시청",
   "description": "씹으면 재생 · 유아용 온디바이스 식사 시청 컨트롤러",
   "start_url": "./",
   "scope": "./",
