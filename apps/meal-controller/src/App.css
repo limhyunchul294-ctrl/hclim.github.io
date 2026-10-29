@@ -422,32 +422,36 @@ html.meal-css-fs body {
   background: rgba(8, 12, 16, 0.78);
 }
 
-/* --- AI nudge art: 2-frame CSS swap (mobile Safari friendly) --- */
+/* --- Cutout AI nudge art (transparent PNG, 2-frame swap) --- */
 .nudge-art {
-  width: min(58vw, 260px);
-  margin: 0 auto 0.2rem;
-  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.4));
+  width: min(72vw, 320px);
+  margin: 0 auto 0.15rem;
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.45));
 }
 
 .nudge-art-sm {
-  width: min(32vw, 140px);
+  width: min(36vw, 150px);
 }
 
 .nudge-art-frames {
   position: relative;
-  aspect-ratio: 16 / 9;
-  border-radius: 18px;
-  overflow: hidden;
-  background: #f3e6d8;
+  width: 100%;
+  /* Let transparent PNG define silhouette — no card/background */
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+  aspect-ratio: 72 / 28;
 }
 
 .chew-mouth-art.nudge-art-frames {
-  aspect-ratio: 1 / 1;
-  width: min(48vw, 220px);
+  aspect-ratio: 1 / 0.85;
+  width: min(52vw, 240px);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .chew-mouth-art.nudge-art-sm {
-  width: min(28vw, 120px);
+  width: min(30vw, 130px);
 }
 
 .nudge-frame {
@@ -455,7 +459,7 @@ html.meal-css-fs body {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
   pointer-events: none;
   user-select: none;
