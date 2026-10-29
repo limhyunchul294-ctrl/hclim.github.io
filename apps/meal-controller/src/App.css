@@ -422,101 +422,99 @@ html.meal-css-fs body {
   background: rgba(8, 12, 16, 0.78);
 }
 
-/* --- Toddler nudge art (CSS-only motion) --- */
+/* --- AI nudge art: 2-frame CSS swap (mobile Safari friendly) --- */
 .nudge-art {
-  width: min(52vw, 220px);
-  height: auto;
-  display: block;
-  margin: 0 auto 0.15rem;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
+  width: min(58vw, 260px);
+  margin: 0 auto 0.2rem;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.4));
 }
 
 .nudge-art-sm {
-  width: min(28vw, 110px);
+  width: min(32vw, 140px);
 }
 
-.blink-eyes-art .eye-ball {
-  transform-origin: center;
-  transform-box: fill-box;
-  animation: blink-ball 2.4s ease-in-out infinite;
+.nudge-art-frames {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #f3e6d8;
 }
 
-.blink-eyes-art .eye-right .eye-ball {
-  animation-delay: 0.06s;
+.chew-mouth-art.nudge-art-frames {
+  aspect-ratio: 1 / 1;
+  width: min(48vw, 220px);
 }
 
-@keyframes blink-ball {
+.chew-mouth-art.nudge-art-sm {
+  width: min(28vw, 120px);
+}
+
+.nudge-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.nudge-frame-a {
+  opacity: 1;
+  z-index: 1;
+}
+
+.nudge-frame-b {
+  opacity: 0;
+  z-index: 2;
+}
+
+.blink-eyes-art .nudge-frame-b {
+  animation: nudge-blink-swap 2.5s steps(1, end) infinite;
+}
+
+.chew-mouth-art .nudge-frame-b {
+  animation: nudge-chew-swap 0.6s steps(1, end) infinite;
+}
+
+@keyframes nudge-blink-swap {
   0%,
   78%,
   100% {
-    transform: scaleY(1);
+    opacity: 0;
   }
   82%,
-  88% {
-    transform: scaleY(0.08);
-  }
   90% {
-    transform: scaleY(1);
+    opacity: 1;
   }
-  93% {
-    transform: scaleY(0.12);
-  }
+  93%,
   96% {
-    transform: scaleY(1);
+    opacity: 1;
+  }
+  97% {
+    opacity: 0;
   }
 }
 
-.chew-mouth-art .jaw {
-  transform-origin: 80px 78px;
-  animation: chew-jaw 0.55s ease-in-out infinite;
-}
-
-.chew-mouth-art .nyam-marks {
-  animation: nyam-bob 0.55s ease-in-out infinite;
-}
-
-.chew-mouth-art .crumb {
-  animation: crumb-bounce 0.55s ease-in-out infinite;
-}
-
-@keyframes chew-jaw {
+@keyframes nudge-chew-swap {
   0%,
+  49% {
+    opacity: 0;
+  }
+  50%,
   100% {
-    transform: translateY(0) scaleY(1);
-  }
-  50% {
-    transform: translateY(7px) scaleY(0.92);
-  }
-}
-
-@keyframes nyam-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.55;
-  }
-  50% {
-    transform: translateY(-6px);
     opacity: 1;
   }
 }
 
-@keyframes crumb-bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(4px);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .blink-eyes-art .eye-ball,
-  .chew-mouth-art .jaw,
-  .chew-mouth-art .nyam-marks,
-  .chew-mouth-art .crumb {
+  .blink-eyes-art .nudge-frame-b,
+  .chew-mouth-art .nudge-frame-b {
     animation: none;
+    opacity: 0;
   }
 }
 
