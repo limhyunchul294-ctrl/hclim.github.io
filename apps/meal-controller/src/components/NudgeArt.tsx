@@ -1,12 +1,12 @@
 /**
- * AI-illustrated nudge frames (open/closed) with CSS opacity swap.
- * Files in public/nudge/ — no Lottie; works on mobile Safari.
+ * Cutout AI nudge frames (transparent PNG): eyes-only / lips-only.
+ * CSS opacity swap — no Lottie.
  */
 
-const blinkOpen = './nudge/blink-open.jpg'
-const blinkClosed = './nudge/blink-closed.jpg'
-const chewOpen = './nudge/chew-open.jpg'
-const chewClosed = './nudge/chew-closed.jpg'
+const blinkOpen = './nudge/blink-open.png'
+const blinkClosed = './nudge/blink-closed.png'
+const chewOpen = './nudge/chew-open.png'
+const chewClosed = './nudge/chew-closed.png'
 
 export function BlinkEyesArt({ className = '' }: { className?: string }) {
   return (
@@ -18,8 +18,8 @@ export function BlinkEyesArt({ className = '' }: { className?: string }) {
         className="nudge-frame nudge-frame-a"
         src={blinkOpen}
         alt=""
-        width={640}
-        height={360}
+        width={720}
+        height={280}
         decoding="async"
         draggable={false}
       />
@@ -27,8 +27,8 @@ export function BlinkEyesArt({ className = '' }: { className?: string }) {
         className="nudge-frame nudge-frame-b"
         src={blinkClosed}
         alt=""
-        width={640}
-        height={360}
+        width={720}
+        height={280}
         decoding="async"
         draggable={false}
       />
@@ -46,8 +46,8 @@ export function ChewMouthArt({ className = '' }: { className?: string }) {
         className="nudge-frame nudge-frame-a"
         src={chewOpen}
         alt=""
-        width={512}
-        height={512}
+        width={480}
+        height={480}
         decoding="async"
         draggable={false}
       />
@@ -55,8 +55,8 @@ export function ChewMouthArt({ className = '' }: { className?: string }) {
         className="nudge-frame nudge-frame-b"
         src={chewClosed}
         alt=""
-        width={512}
-        height={512}
+        width={480}
+        height={480}
         decoding="async"
         draggable={false}
       />
