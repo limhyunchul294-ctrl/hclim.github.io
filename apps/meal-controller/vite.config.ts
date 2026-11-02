@@ -2,7 +2,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 // Relative base so the same build works under:
-// - https://evkmc-as-portal.vercel.app/meal-controller/
+// - https://nyam-controller.vercel.app/meal-controller/
+// - https://evkmc-as-portal.vercel.app/meal-controller/ (legacy alias)
 // - https://limhyunchul294-ctrl.github.io/hclim.github.io/meal-controller/
 export default defineConfig({
   plugins: [react()],
