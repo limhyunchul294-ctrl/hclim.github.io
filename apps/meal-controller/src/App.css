@@ -34,30 +34,50 @@
 @media (min-width: 900px) {
   .layout-m1,
   .layout-m2 {
-    grid-template-columns: 1.45fr 1fr;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
     align-items: start;
+  }
+
+  .col-media,
+  .side-panel {
+    min-width: 0;
   }
 }
 
-/* iPad Air landscape — roomier stage, not a stretched phone column */
+/* iPad Air landscape — roomier stage, not a stretched phone column.
+ * Do NOT pair aspect-ratio with a large min-height: WebKit grows width to
+ * keep 16:9, so the video stage spills over the settings column. */
 @media (min-width: 1024px) and (orientation: landscape) {
   .app {
     max-width: 1360px;
   }
 
+  .layout-m1,
   .layout-m2 {
-    grid-template-columns: minmax(0, 1.85fr) minmax(320px, 1fr);
+    grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
     gap: 1.25rem;
+    align-items: start;
+  }
+
+  .col-media,
+  .side-panel,
+  .video-panel {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .video-stage {
-    min-height: min(62vh, 640px);
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
   }
 
   .side-panel {
     max-height: calc(100dvh - 5rem);
     overflow: auto;
     -webkit-overflow-scrolling: touch;
+    position: sticky;
+    top: max(0.75rem, env(safe-area-inset-top, 0px));
   }
 }
 
@@ -77,6 +97,7 @@
 .video-stage {
   position: relative;
   width: 100%;
+  max-width: 100%;
   aspect-ratio: 16 / 9;
   background: #000;
   border-radius: 8px;
