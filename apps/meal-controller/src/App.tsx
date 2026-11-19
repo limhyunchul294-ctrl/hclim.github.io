@@ -23,7 +23,11 @@ import {
   writeRoleToUrl,
   type AppRole,
 } from './lib/roomCode'
-import { EMPTY_REMOTE_STATE, type RemoteControlState } from './lib/roomSyncTypes'
+import {
+  EMPTY_DETECT,
+  type CommandBroadcast,
+  type DetectBroadcast,
+} from './lib/roomSyncTypes'
 import { loadSettings, saveSettings } from './lib/settingsStorage'
 import type { YtVideoMeta } from './lib/youtube'
 import {
@@ -68,6 +72,10 @@ const emptyPosture = (): PostureSnapshot => ({
   needsPostureNudge: false,
 })
 
+function settingsEqual(a: ControllerSettings, b: ControllerSettings): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
 function App() {
   const initial = parseRoleFromUrl()
   const [role, setRole] = useState<AppRole>(initial.role)
@@ -82,7 +90,7 @@ function App() {
   const [localSrc, setLocalSrc] = useState<string | null>(null)
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
   const [manualPaused, setManualPaused] = useState(false)
-  /** Parent 「재생」 boost — TV plays until pause or chew FSM auto-pauses. */
+  /** Parent 「재생」 boost — plays until pause or chew FSM auto-pauses. */
   const [forcePlay, setForcePlay] = useState(false)
   const [missingBuddy, setMissingBuddy] = useState(false)
 
@@ -110,12 +118,16 @@ function App() {
   const postureRef = useRef(new PostureTracker())
   const fsmRef = useRef(new PlayerStateMachine())
   const settingsRef = useRef(settings)
+  const lastAppliedCmdTs = useRef(0)
 
   const isController = role === 'controller'
   const isViewer = role === 'viewer'
   const isCombined = role === 'combined'
-  /** Camera runs on combined + controller only. */
-  const cameraEnabled = enabled && !isViewer
+  /**
+   * Camera + MediaPipe run on combined + viewer (TV/iPad).
+   * Phone controller is remote-only — no local face pipeline.
+   */
+  const cameraEnabled = enabled && !isController
 
   useWakeLock(cameraEnabled)
   const isStandalone = useStandaloneDisplay()
@@ -163,7 +175,6 @@ function App() {
 
     let blinkSnap = emptyBlink()
     if (frame.hasFace) {
-      // Watch: primary face; meal: all required faces
       const n = isWatch ? 1 : s.faceMode
       const snaps = []
       for (let i = 0; i < n; i++) {
@@ -223,17 +234,16 @@ function App() {
 
   const { videoRef, canvasRef, status, faceLost, faceCount, streamInfo } =
     useCameraLandmarker({
-      // Controller: always show mesh while session runs so parents can tune
       showMesh:
         settings.showMesh ||
         settings.showRecognitionPreview ||
-        (isController && cameraEnabled),
+        (isViewer && cameraEnabled),
       cameraZoom: settings.cameraZoom,
       onFrame,
       enabled: cameraEnabled,
     })
 
-  // Chew FSM auto-pause wins over parent 「재생」 boost (only on transition → PAUSED)
+  // Chew FSM auto-pause wins over parent 「재생」 boost
   const prevPhaseRef = useRef(machine.phase)
   useEffect(() => {
     const prev = prevPhaseRef.current
@@ -267,10 +277,11 @@ function App() {
     (forcePlay ||
       (isWatch ? true : machine.shouldPlay && !missingBuddy))
 
-  const outbound: RemoteControlState | null = useMemo(() => {
-    if (!isController) return null
+  const outboundDetect: DetectBroadcast | null = useMemo(() => {
+    if (!isViewer) return null
     return {
-      v: 1,
+      v: 2,
+      kind: 'detect',
       shouldPlay: localWantPlay,
       showChewNudge:
         !isWatch && machine.showNudge && cameraEnabled && !manualPaused,
@@ -284,10 +295,11 @@ function App() {
       resumeNeed: settings.resumeCycles,
       resumeHave: machine.resumeProgress,
       secSinceLastBlink: blink.secSinceLastBlink,
+      sessionOn: cameraEnabled,
       ts: Date.now(),
     }
   }, [
-    isController,
+    isViewer,
     isWatch,
     localWantPlay,
     machine.showNudge,
@@ -305,26 +317,84 @@ function App() {
     settings.resumeCycles,
   ])
 
+  const outboundCommand: CommandBroadcast | null = useMemo(() => {
+    if (!isController) return null
+    return {
+      v: 2,
+      kind: 'command',
+      forcePlay,
+      manualPaused,
+      settings,
+      ts: Date.now(),
+    }
+  }, [isController, forcePlay, manualPaused, settings])
+
   const {
     status: syncStatus,
     error: syncError,
     peerConnected,
-    remote,
+    remoteDetect,
+    remoteCommand,
   } = useRoomSync({
     room,
     role: isCombined ? null : role,
-    outbound,
+    outboundDetect,
+    outboundCommand,
     enabled: !isCombined && Boolean(room),
   })
 
-  const remoteState = remote ?? EMPTY_REMOTE_STATE
+  // Viewer: apply phone forcePlay / manualPaused / settings
+  useEffect(() => {
+    if (!isViewer || !remoteCommand) return
+    if (remoteCommand.ts && remoteCommand.ts <= lastAppliedCmdTs.current) return
+    lastAppliedCmdTs.current = remoteCommand.ts
 
-  const statusLabel = isViewer
+    setManualPaused(remoteCommand.manualPaused)
+    if (remoteCommand.manualPaused) {
+      setForcePlay(false)
+    } else if (remoteCommand.forcePlay) {
+      setForcePlay(true)
+    }
+
+    if (
+      remoteCommand.settings &&
+      !settingsEqual(remoteCommand.settings, settingsRef.current)
+    ) {
+      setSettings(remoteCommand.settings)
+      settingsRef.current = remoteCommand.settings
+    }
+  }, [isViewer, remoteCommand])
+
+  // Phone: clear local forcePlay when viewer FSM auto-pauses
+  const prevRemotePhaseRef = useRef<PlayerPhase | null>(null)
+  useEffect(() => {
+    if (!isController || !remoteDetect) return
+    const prev = prevRemotePhaseRef.current
+    prevRemotePhaseRef.current = remoteDetect.phase
+    if (
+      forcePlay &&
+      prev != null &&
+      prev !== 'PAUSED' &&
+      remoteDetect.phase === 'PAUSED'
+    ) {
+      setForcePlay(false)
+    }
+  }, [isController, remoteDetect, forcePlay])
+
+  const detectState = remoteDetect ?? EMPTY_DETECT
+
+  const statusLabel = isController
     ? peerConnected
-      ? '휴대폰 인식 연결됨'
-      : '휴대폰 연결을 기다려요'
+      ? detectState.sessionOn
+        ? detectState.phase === 'NO_FACE' || detectState.faceCount === 0
+          ? '영상 기기 카메라 · 얼굴 기다리는 중'
+          : `영상 기기 인식 중 · 얼굴 ${detectState.faceCount}`
+        : '영상 기기에서 「시작」을 눌러 카메라를 켜 주세요'
+      : '영상 화면 연결을 기다려요'
     : status.kind === 'idle'
-      ? '시작을 눌러 주세요'
+      ? isViewer
+        ? '이 기기에서 「시작」을 눌러 카메라를 켜요'
+        : '시작을 눌러 주세요'
       : status.kind === 'loading'
         ? status.message
         : status.kind === 'error'
@@ -362,38 +432,32 @@ function App() {
         ? { kind: 'local', src: localSrc }
         : null
 
-  const stageShouldPlay = isViewer
-    ? remoteState.shouldPlay && !manualPaused
-    : localWantPlay
+  // Viewer & combined use local camera FSM; controller has no stage
+  const stageShouldPlay = localWantPlay
 
-  const stageChewNudge = isViewer
-    ? remoteState.showChewNudge && !manualPaused
-    : !isWatch && machine.showNudge && cameraEnabled && !manualPaused
+  const stageChewNudge =
+    !isWatch && machine.showNudge && cameraEnabled && !manualPaused
 
-  const stageBlinkNudge = isViewer
-    ? remoteState.showBlinkNudge
-    : blink.needsBlinkNudge && cameraEnabled
+  const stageBlinkNudge = blink.needsBlinkNudge && cameraEnabled
 
-  const stageFriendNudge = isViewer
-    ? remoteState.showFriendNudge
-    : showFriendNudge
+  const stageFriendNudge = showFriendNudge
 
-  const stagePostureNudge = isViewer
-    ? remoteState.showPostureNudge
-    : showPostureNudge
+  const stagePostureNudge = showPostureNudge
 
-  const badgePhase = isViewer ? remoteState.phase : machine.phase
-  const badgeChewing = isViewer ? remoteState.isChewing : chew.isChewing
-  const badgeFaceMode = isViewer ? remoteState.faceMode : settings.faceMode
-  const badgeFaceCount = isViewer
-    ? remoteState.faceCount
+  const badgePhase = isController ? detectState.phase : machine.phase
+  const badgeChewing = isController ? detectState.isChewing : chew.isChewing
+  const badgeFaceMode = isController ? detectState.faceMode : settings.faceMode
+  const badgeFaceCount = isController
+    ? detectState.faceCount
     : cameraEnabled
       ? faceCount
       : 0
-  const badgeMissing = isViewer ? remoteState.showFriendNudge : showFriendNudge
+  const badgeMissing = isController
+    ? detectState.showFriendNudge
+    : showFriendNudge
 
   const pipActive =
-    isCombined &&
+    (isCombined || isViewer) &&
     settings.showRecognitionPreview &&
     cameraEnabled &&
     status.kind === 'ready'
@@ -410,6 +474,7 @@ function App() {
     setEnabled(false)
     setManualPaused(false)
     setForcePlay(false)
+    lastAppliedCmdTs.current = 0
     setRole('viewer')
     setRoom(code)
   }
@@ -431,12 +496,28 @@ function App() {
     setForcePlay(true)
   }
 
+  const startCameraSession = () => {
+    multiChewRef.current.reset()
+    blinkRefs.current.forEach((b) => b.reset())
+    postureRef.current.reset()
+    fsmRef.current.reset()
+    setManualPaused(false)
+    setForcePlay(false)
+    setEnabled(true)
+  }
+
+  const stopCameraSession = () => {
+    setEnabled(false)
+    setForcePlay(false)
+    setManualPaused(false)
+  }
+
   const tagline = isController
     ? isWatch
-      ? '시청 모드 · 이 휴대폰으로 살펴봐요'
-      : '식사 모드 · 이 휴대폰으로 얼굴을 봐요'
+      ? '시청 모드 · 이 휴대폰은 리모컨이에요'
+      : '식사 모드 · 이 휴대폰은 리모컨이에요'
     : isViewer
-      ? '이 화면에서 영상을 봐요'
+      ? '이 화면에서 영상·얼굴 인식을 해요'
       : isWatch
         ? '시청 모드 · 깜빡임·목 자세를 살펴요'
         : '씹으면 나와요 · 깜빡깜빡도 해요'
@@ -452,26 +533,33 @@ function App() {
         <div className="col-media">
           {isController ? (
             <div className="controller-hero">
-              <p className="controller-hero-label">인식 카메라 (이 휴대폰)</p>
-              <CameraPanel
-                videoRef={videoRef}
-                canvasRef={canvasRef}
-                faceLost={cameraEnabled && status.kind === 'ready' && faceLost}
-                missingBuddy={showFriendNudge}
-                statusLabel={statusLabel}
-                showFeed
-                streamInfo={cameraEnabled ? streamInfo : null}
-                note={
-                  peerConnected
-                    ? '영상 화면에 연결됐어요. 아래 재생·일시정지가 TV로 가요.'
-                    : '영상 화면이 코드를 입력하기를 기다려요.'
-                }
-              />
+              <p className="controller-hero-label">
+                리모컨 (카메라는 영상 기기)
+              </p>
+              <div className="controller-status-card" aria-live="polite">
+                <p className="controller-status-main">{statusLabel}</p>
+                <p className="controller-status-sub">
+                  {peerConnected
+                    ? detectState.shouldPlay
+                      ? '영상 기기에서 재생 중'
+                      : detectState.showChewNudge
+                        ? '씹기 유도 중'
+                        : detectState.showBlinkNudge
+                          ? '깜빡임 유도 중'
+                          : detectState.showPostureNudge
+                            ? '목 자세 유도 중'
+                            : '대기 중'
+                    : '아직 영상 화면이 안 들어왔어요'}
+                </p>
+              </div>
               <ControllerTransport
-                sessionOn={cameraEnabled}
-                broadcastingPlay={localWantPlay}
+                sessionOn={peerConnected && detectState.sessionOn}
+                broadcastingPlay={
+                  peerConnected ? detectState.shouldPlay : false
+                }
                 manualPaused={manualPaused}
                 peerConnected={peerConnected}
+                watchMode={isWatch}
                 onPause={onParentPause}
                 onPlay={onParentPlay}
               />
@@ -487,18 +575,10 @@ function App() {
               showBlinkNudge={stageBlinkNudge}
               showFriendNudge={stageFriendNudge}
               showPostureNudge={stagePostureNudge}
-              resumeNeed={
-                isViewer ? remoteState.resumeNeed : settings.resumeCycles
-              }
-              resumeHave={
-                isViewer ? remoteState.resumeHave : machine.resumeProgress
-              }
-              secSinceLastBlink={
-                isViewer
-                  ? remoteState.secSinceLastBlink
-                  : blink.secSinceLastBlink
-              }
-              showHud={settings.showDebug && (isViewer || cameraEnabled)}
+              resumeNeed={settings.resumeCycles}
+              resumeHave={machine.resumeProgress}
+              secSinceLastBlink={blink.secSinceLastBlink}
+              showHud={settings.showDebug && cameraEnabled}
               hud={{
                 jawOpen: latest?.jawOpen ?? 0,
                 chewScore: chew.score,
@@ -523,7 +603,7 @@ function App() {
             />
           )}
 
-          {isCombined ? (
+          {(isCombined || isViewer) && (
             <CameraPanel
               videoRef={videoRef}
               canvasRef={canvasRef}
@@ -533,16 +613,16 @@ function App() {
               showFeed={!pipActive}
               streamInfo={cameraEnabled ? streamInfo : null}
               note={
-                pipActive
-                  ? '인식 화면은 영상 오른쪽 위에 작게 보여요.'
-                  : undefined
+                isViewer
+                  ? peerConnected
+                    ? '카메라는 이 기기예요. 휴대폰은 재생·설정만 해요.'
+                    : '카메라는 이 기기에서 켜요. 휴대폰 연결을 기다려요.'
+                  : pipActive
+                    ? '인식 화면은 영상 오른쪽 위에 작게 보여요.'
+                    : undefined
               }
             />
-          ) : null}
-
-          {isViewer ? (
-            <p className="viewer-camera-note">{statusLabel}</p>
-          ) : null}
+          )}
         </div>
 
         <aside className="side-panel">
@@ -566,11 +646,13 @@ function App() {
           />
 
           <h2>
-            {isViewer
-              ? '영상 고르기'
-              : isWatch
-                ? '같이 봐요'
-                : '같이 먹어요'}
+            {isController
+              ? '휴대폰 리모컨'
+              : isViewer
+                ? '영상·카메라'
+                : isWatch
+                  ? '같이 봐요'
+                  : '같이 먹어요'}
           </h2>
 
           {!isViewer && (
@@ -603,68 +685,73 @@ function App() {
               </div>
 
               {!isWatch && (
-              <div className="face-mode" role="group" aria-label="몇 명인가요">
-                <p className="face-mode-label">몇 명이 먹나요?</p>
-                <div className="face-mode-tabs">
-                  <button
-                    type="button"
-                    className={`btn face-mode-btn ${settings.faceMode === 1 ? 'primary' : ''}`}
-                    aria-pressed={settings.faceMode === 1}
-                    onClick={() => setFaceMode(1)}
-                  >
-                    1명
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn face-mode-btn ${settings.faceMode === 2 ? 'primary' : ''}`}
-                    aria-pressed={settings.faceMode === 2}
-                    onClick={() => setFaceMode(2)}
-                  >
-                    2명
-                  </button>
+                <div className="face-mode" role="group" aria-label="몇 명인가요">
+                  <p className="face-mode-label">몇 명이 먹나요?</p>
+                  <div className="face-mode-tabs">
+                    <button
+                      type="button"
+                      className={`btn face-mode-btn ${settings.faceMode === 1 ? 'primary' : ''}`}
+                      aria-pressed={settings.faceMode === 1}
+                      onClick={() => setFaceMode(1)}
+                    >
+                      1명
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn face-mode-btn ${settings.faceMode === 2 ? 'primary' : ''}`}
+                      aria-pressed={settings.faceMode === 2}
+                      onClick={() => setFaceMode(2)}
+                    >
+                      2명
+                    </button>
+                  </div>
+                  <p className="face-mode-rule">
+                    {settings.faceMode === 1
+                      ? '한 명이 씹어야 영상이 나와요.'
+                      : '두 명이 다 화면에 나오고, 둘 다 씹어야 영상이 나와요. 한 명만 보이면 「친구도 화면에 나와요」.'}
+                  </p>
                 </div>
-                <p className="face-mode-rule">
-                  {settings.faceMode === 1
-                    ? '한 명이 씹어야 영상이 나와요.'
-                    : '두 명이 다 화면에 나오고, 둘 다 씹어야 영상이 나와요. 한 명만 보이면 「친구도 화면에 나와요」.'}
-                </p>
-              </div>
               )}
-
-              <div className="btn-row start-row">
-                <button
-                  type="button"
-                  className="btn primary btn-start"
-                  onClick={() => {
-                    multiChewRef.current.reset()
-                    blinkRefs.current.forEach((b) => b.reset())
-                    postureRef.current.reset()
-                    fsmRef.current.reset()
-                    setManualPaused(false)
-                    setForcePlay(false)
-                    setEnabled(true)
-                  }}
-                  disabled={cameraEnabled && status.kind !== 'error'}
-                >
-                  시작
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-stop"
-                  onClick={() => {
-                    setEnabled(false)
-                    setForcePlay(false)
-                    setManualPaused(false)
-                  }}
-                  disabled={!cameraEnabled}
-                >
-                  중지
-                </button>
-              </div>
             </>
           )}
 
-          {!isStandalone && !isViewer && (
+          {/* Camera start lives on the device that owns the camera */}
+          {!isController && (
+            <div className="btn-row start-row">
+              <button
+                type="button"
+                className="btn primary btn-start"
+                onClick={startCameraSession}
+                disabled={cameraEnabled && status.kind !== 'error'}
+              >
+                시작
+              </button>
+              <button
+                type="button"
+                className="btn btn-stop"
+                onClick={stopCameraSession}
+                disabled={!cameraEnabled}
+              >
+                중지
+              </button>
+            </div>
+          )}
+
+          {isViewer ? (
+            <p className="camera-device-note" role="note">
+              얼굴 인식 카메라는 <strong>이 영상 기기</strong>에서 켜져요.
+              휴대폰은 재생·일시정지와 설정만 보내요.
+            </p>
+          ) : null}
+
+          {isController ? (
+            <p className="camera-device-note" role="note">
+              카메라는 <strong>TV·아이패드</strong>에서 켜요. 여기서는
+              재생·일시정지와 설정을 바꿔요.
+            </p>
+          ) : null}
+
+          {!isStandalone && !isController && (
             <p className="a2hs-tip" role="note">
               Safari에서는 주소창이 남을 수 있어요. 주소창을 없애려면{' '}
               <strong>공유 → 홈 화면에 추가</strong> 한 뒤, 홈 아이콘으로
@@ -672,7 +759,7 @@ function App() {
             </p>
           )}
 
-          {isCombined && (
+          {(isCombined || isViewer) && (
             <label className="check-row preview-toggle">
               <input
                 type="checkbox"
@@ -754,18 +841,23 @@ function App() {
             </>
           )}
 
+          {/* Settings on phone (synced) + combined; viewer receives via MQTT */}
           {!isViewer && (
             <SettingsPanel
               key={isController ? 'settings-controller' : 'settings-combined'}
               settings={settings}
               onChange={setSettings}
-              habitualGapSec={chew.habitualGapSec}
-              effectivePauseSec={machine.effectivePauseSec}
+              habitualGapSec={
+                isController ? 0 : chew.habitualGapSec
+              }
+              effectivePauseSec={
+                isController ? undefined : machine.effectivePauseSec
+              }
               defaultOpen={isController}
             />
           )}
 
-          {settings.showDebug && !isViewer && (
+          {settings.showDebug && !isController && (
             <dl className="metrics">
               <div>
                 <dt>faces</dt>
@@ -801,19 +893,20 @@ function App() {
           <p className="hint">
             {isController
               ? isWatch
-                ? '시작 → 인식 카메라로 깜빡임·목을 살펴요. 재생·일시정지는 TV로 보내요.'
-                : '시작 → 인식 화면을 보고 설정을 맞춰요. 재생·일시정지는 TV로 보내요. 씹기 자동 멈춤은 그대로예요.'
+                ? '재생·일시정지와 설정을 보내요. 깜빡임·목 인식은 TV·아이패드 카메라로 해요.'
+                : '재생·일시정지와 설정을 보내요. 씹기 인식은 TV·아이패드 카메라로 해요.'
               : isViewer
                 ? isWatch
-                  ? '유튜브를 고른 뒤 휴대폰에서 시작하면, 씹지 않아도 재생돼요.'
-                  : '유튜브를 고른 뒤, 휴대폰에서 시작을 누르면 씹을 때 재생돼요.'
+                  ? '시작으로 카메라를 켠 뒤 유튜브를 고르세요. 휴대폰에서 재생을 눌러도 돼요.'
+                  : '시작으로 카메라를 켠 뒤 유튜브를 고르세요. 씹으면 재생되고, 휴대폰으로도 조작할 수 있어요.'
                 : isWatch
                   ? '시작 → 영상을 틀어요. 눈을 깜빡이지 않거나 고개를 숙이면 알려 줘요.'
                   : '시작 → 얼굴 비추고 씹어요. 화면 가장자리를 누르면 일시정지·전체화면이 잠깐 보여요.'}
           </p>
 
           <p className="privacy">
-            얼굴은 인식하는 기기에서만 봐요. 유튜브 재생은 YouTube로 연결돼요.
+            얼굴은 인식하는 기기(한 기기 모드 또는 영상 기기)에서만 봐요. 유튜브
+            재생은 YouTube로 연결돼요.
           </p>
         </aside>
       </main>

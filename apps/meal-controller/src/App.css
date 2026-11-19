@@ -993,6 +993,17 @@ html.meal-css-fs body {
   font-size: 0.9rem;
 }
 
+.camera-device-note {
+  margin: 0.35rem 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.14);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
 .controller-hero {
   display: grid;
   gap: 0.75rem;
@@ -1003,6 +1014,26 @@ html.meal-css-fs body {
   font-size: 0.95rem;
   font-weight: 800;
   color: var(--accent);
+}
+
+.controller-status-card {
+  padding: 1rem 1.05rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.controller-status-main {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.controller-status-sub {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
 }
 
 .role-controller .controller-hero .camera-stage {

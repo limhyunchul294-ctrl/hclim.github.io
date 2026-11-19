@@ -3,26 +3,32 @@ type Props = {
   broadcastingPlay: boolean
   manualPaused: boolean
   peerConnected: boolean
+  watchMode?: boolean
   onPause: () => void
   onPlay: () => void
 }
 
-/** Big parent play/pause for phone-controller → viewer broadcast. */
+/** Big parent play/pause for phone remote → viewer. */
 export function ControllerTransport({
   sessionOn,
   broadcastingPlay,
   manualPaused,
   peerConnected,
+  watchMode = false,
   onPause,
   onPlay,
 }: Props) {
   const statusText = !sessionOn
-    ? '먼저 「시작」을 눌러 주세요'
+    ? peerConnected
+      ? '영상 기기에서 「시작」을 기다려요'
+      : '먼저 영상 화면을 연결해 주세요'
     : manualPaused
-      ? '부모님 일시정지 · TV 멈춤'
+      ? '부모님 일시정지 · 영상 멈춤'
       : broadcastingPlay
-        ? 'TV로 재생 보내는 중'
-        : '씹으면 TV가 나와요'
+        ? '영상 기기에서 재생 중'
+        : watchMode
+          ? '대기 중 · 재생을 눌러 보세요'
+          : '씹으면 영상이 나와요'
 
   return (
     <section className="controller-transport" aria-label="영상 원격 조작">
@@ -38,7 +44,7 @@ export function ControllerTransport({
         <button
           type="button"
           className="btn controller-transport-btn"
-          disabled={!sessionOn}
+          disabled={!peerConnected}
           aria-pressed={manualPaused}
           onClick={onPause}
         >
@@ -47,7 +53,7 @@ export function ControllerTransport({
         <button
           type="button"
           className="btn primary controller-transport-btn"
-          disabled={!sessionOn}
+          disabled={!peerConnected}
           aria-pressed={!manualPaused && broadcastingPlay}
           onClick={onPlay}
         >
@@ -55,8 +61,9 @@ export function ControllerTransport({
         </button>
       </div>
       <p className="controller-transport-hint">
-        씹기 자동 멈춤은 그대로예요. 재생은 TV에 바로 보내고, 씹기를 오래 안
-        하면 다시 멈춰요.
+        {watchMode
+          ? '인식(깜빡임·목)은 영상 기기 카메라로 해요. 재생·일시정지만 여기서 보내요.'
+          : '씹기 자동 멈춤은 영상 기기에서 그대로예요. 재생·일시정지는 여기서 보내요.'}
       </p>
     </section>
   )
