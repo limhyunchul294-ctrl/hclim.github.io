@@ -17,6 +17,7 @@ import { useWakeLock } from './hooks/useWakeLock'
 import { BlinkTracker } from './lib/blinkScore'
 import { MultiFaceChew } from './lib/multiFaceChew'
 import { PlayerStateMachine } from './lib/playerStateMachine'
+import { PostureTracker, type PostureSnapshot } from './lib/postureScore'
 import {
   parseRoleFromUrl,
   writeRoleToUrl,
@@ -32,6 +33,7 @@ import {
   type FaceFrame,
   type FaceMode,
   type PlayerPhase,
+  type SessionMode,
 } from './lib/types'
 import './App.css'
 
@@ -57,6 +59,13 @@ const emptyBlink = (): BlinkSnapshot => ({
   needsBlinkNudge: false,
   blinkLeft: 0,
   blinkRight: 0,
+})
+
+const emptyPosture = (): PostureSnapshot => ({
+  pitchProxy: 0,
+  score: 0.35,
+  badSec: 0,
+  needsPostureNudge: false,
 })
 
 function App() {
@@ -94,9 +103,11 @@ function App() {
   })
   const [latest, setLatest] = useState<FaceFrame | null>(null)
   const [blink, setBlink] = useState<BlinkSnapshot>(emptyBlink)
+  const [posture, setPosture] = useState<PostureSnapshot>(emptyPosture)
 
   const multiChewRef = useRef(new MultiFaceChew())
   const blinkRefs = useRef([new BlinkTracker(), new BlinkTracker()])
+  const postureRef = useRef(new PostureTracker())
   const fsmRef = useRef(new PlayerStateMachine())
   const settingsRef = useRef(settings)
 
@@ -128,21 +139,36 @@ function App() {
     setSettings((s) => ({ ...s, faceMode: mode }))
     multiChewRef.current.reset()
     blinkRefs.current.forEach((b) => b.reset())
+    postureRef.current.reset()
     fsmRef.current.reset()
+  }
+
+  const setSessionMode = (mode: SessionMode) => {
+    setSettings((s) => ({ ...s, sessionMode: mode }))
+    multiChewRef.current.reset()
+    blinkRefs.current.forEach((b) => b.reset())
+    postureRef.current.reset()
+    fsmRef.current.reset()
+    setForcePlay(false)
+    setManualPaused(false)
   }
 
   const onFrame = useCallback((frame: FaceFrame) => {
     setLatest(frame)
     const s = settingsRef.current
+    const isWatch = s.sessionMode === 'watch'
     const agg = multiChewRef.current.push(frame, s, s.faceMode)
     setChew(agg)
-    setMissingBuddy(agg.missingBuddy)
+    setMissingBuddy(isWatch ? false : agg.missingBuddy)
 
     let blinkSnap = emptyBlink()
-    if (agg.facesReady) {
+    if (frame.hasFace) {
+      // Watch: primary face; meal: all required faces
+      const n = isWatch ? 1 : s.faceMode
       const snaps = []
-      for (let i = 0; i < s.faceMode; i++) {
-        const face = frame.faces[i]
+      for (let i = 0; i < n; i++) {
+        const face = frame.faces[i] ?? frame.faces[0]
+        if (!face) break
         snaps.push(
           blinkRefs.current[i].push(
             {
@@ -161,29 +187,34 @@ function App() {
           ),
         )
       }
-      blinkSnap = {
-        blinkRatePerMin: Math.min(...snaps.map((x) => x.blinkRatePerMin)),
-        sessionBlinkCount: snaps.reduce((a, x) => a + x.sessionBlinkCount, 0),
-        secSinceLastBlink: Math.max(...snaps.map((x) => x.secSinceLastBlink)),
-        needsBlinkNudge: snaps.some((x) => x.needsBlinkNudge),
-        blinkLeft: snaps[0]?.blinkLeft ?? 0,
-        blinkRight: snaps[0]?.blinkRight ?? 0,
+      if (snaps.length) {
+        blinkSnap = {
+          blinkRatePerMin: Math.min(...snaps.map((x) => x.blinkRatePerMin)),
+          sessionBlinkCount: snaps.reduce((a, x) => a + x.sessionBlinkCount, 0),
+          secSinceLastBlink: Math.max(...snaps.map((x) => x.secSinceLastBlink)),
+          needsBlinkNudge: snaps.some((x) => x.needsBlinkNudge),
+          blinkLeft: snaps[0]?.blinkLeft ?? 0,
+          blinkRight: snaps[0]?.blinkRight ?? 0,
+        }
       }
     }
     setBlink(blinkSnap)
 
+    const postureSnap = postureRef.current.push(frame, s)
+    setPosture(postureSnap)
+
     const out = fsmRef.current.step({
       nowMs: frame.timestampMs,
-      hasFace: agg.facesReady,
-      isChewing: agg.isChewing,
-      newCycle: agg.newCycle,
+      hasFace: isWatch ? frame.hasFace : agg.facesReady,
+      isChewing: isWatch ? true : agg.isChewing,
+      newCycle: isWatch ? false : agg.newCycle,
       habitualGapSec: agg.habitualGapSec,
       settings: s,
     })
     setMachine({
       phase: out.phase,
       shouldPlay: out.shouldPlay,
-      showNudge: out.showNudge,
+      showNudge: isWatch ? false : out.showNudge,
       noChewSec: out.noChewSec,
       resumeProgress: out.resumeProgress,
       effectivePauseSec: out.effectivePauseSec,
@@ -212,26 +243,40 @@ function App() {
     }
   }, [forcePlay, machine.phase])
 
+  const isWatch = settings.sessionMode === 'watch'
+
   const dryEyeBlocksPlay =
     settings.pauseOnDryEye && blink.needsBlinkNudge && cameraEnabled
 
-  const showFriendNudge = cameraEnabled && missingBuddy
+  const postureBlocksPlay =
+    isWatch &&
+    settings.pauseOnPosture &&
+    posture.needsPostureNudge &&
+    cameraEnabled
+
+  const showFriendNudge = !isWatch && cameraEnabled && missingBuddy
+
+  const showPostureNudge =
+    isWatch && cameraEnabled && posture.needsPostureNudge
 
   const localWantPlay =
     cameraEnabled &&
     !dryEyeBlocksPlay &&
+    !postureBlocksPlay &&
     !manualPaused &&
-    !missingBuddy &&
-    (forcePlay || machine.shouldPlay)
+    (forcePlay ||
+      (isWatch ? true : machine.shouldPlay && !missingBuddy))
 
   const outbound: RemoteControlState | null = useMemo(() => {
     if (!isController) return null
     return {
       v: 1,
       shouldPlay: localWantPlay,
-      showChewNudge: machine.showNudge && cameraEnabled && !manualPaused,
+      showChewNudge:
+        !isWatch && machine.showNudge && cameraEnabled && !manualPaused,
       showBlinkNudge: blink.needsBlinkNudge && cameraEnabled,
       showFriendNudge,
+      showPostureNudge,
       phase: machine.phase,
       isChewing: chew.isChewing,
       faceCount,
@@ -243,6 +288,7 @@ function App() {
     }
   }, [
     isController,
+    isWatch,
     localWantPlay,
     machine.showNudge,
     machine.phase,
@@ -252,6 +298,7 @@ function App() {
     blink.needsBlinkNudge,
     blink.secSinceLastBlink,
     showFriendNudge,
+    showPostureNudge,
     chew.isChewing,
     faceCount,
     settings.faceMode,
@@ -321,7 +368,7 @@ function App() {
 
   const stageChewNudge = isViewer
     ? remoteState.showChewNudge && !manualPaused
-    : machine.showNudge && cameraEnabled && !manualPaused
+    : !isWatch && machine.showNudge && cameraEnabled && !manualPaused
 
   const stageBlinkNudge = isViewer
     ? remoteState.showBlinkNudge
@@ -330,6 +377,10 @@ function App() {
   const stageFriendNudge = isViewer
     ? remoteState.showFriendNudge
     : showFriendNudge
+
+  const stagePostureNudge = isViewer
+    ? remoteState.showPostureNudge
+    : showPostureNudge
 
   const badgePhase = isViewer ? remoteState.phase : machine.phase
   const badgeChewing = isViewer ? remoteState.isChewing : chew.isChewing
@@ -381,10 +432,14 @@ function App() {
   }
 
   const tagline = isController
-    ? '이 휴대폰으로 얼굴을 봐요'
+    ? isWatch
+      ? '시청 모드 · 이 휴대폰으로 살펴봐요'
+      : '식사 모드 · 이 휴대폰으로 얼굴을 봐요'
     : isViewer
       ? '이 화면에서 영상을 봐요'
-      : '씹으면 나와요 · 깜빡깜빡도 해요'
+      : isWatch
+        ? '시청 모드 · 깜빡임·목 자세를 살펴요'
+        : '씹으면 나와요 · 깜빡깜빡도 해요'
 
   return (
     <div className={`app role-${role}`}>
@@ -431,6 +486,7 @@ function App() {
               showChewNudge={stageChewNudge}
               showBlinkNudge={stageBlinkNudge}
               showFriendNudge={stageFriendNudge}
+              showPostureNudge={stagePostureNudge}
               resumeNeed={
                 isViewer ? remoteState.resumeNeed : settings.resumeCycles
               }
@@ -509,10 +565,44 @@ function App() {
             onLeaveSplit={leaveSplit}
           />
 
-          <h2>{isViewer ? '영상 고르기' : '같이 먹어요'}</h2>
+          <h2>
+            {isViewer
+              ? '영상 고르기'
+              : isWatch
+                ? '같이 봐요'
+                : '같이 먹어요'}
+          </h2>
 
           {!isViewer && (
             <>
+              <div className="face-mode" role="group" aria-label="모드">
+                <p className="face-mode-label">지금은 어떤 모드인가요?</p>
+                <div className="face-mode-tabs">
+                  <button
+                    type="button"
+                    className={`btn face-mode-btn ${!isWatch ? 'primary' : ''}`}
+                    aria-pressed={!isWatch}
+                    onClick={() => setSessionMode('meal')}
+                  >
+                    식사 모드
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn face-mode-btn ${isWatch ? 'primary' : ''}`}
+                    aria-pressed={isWatch}
+                    onClick={() => setSessionMode('watch')}
+                  >
+                    시청 모드
+                  </button>
+                </div>
+                <p className="face-mode-rule">
+                  {isWatch
+                    ? '씹지 않아도 영상이 나와요. 눈을 오래 안 깜빡이거나 고개를 숙이면 알려 줘요.'
+                    : '씹어야 영상이 나와요. 식사할 때 쓰는 모드예요.'}
+                </p>
+              </div>
+
+              {!isWatch && (
               <div className="face-mode" role="group" aria-label="몇 명인가요">
                 <p className="face-mode-label">몇 명이 먹나요?</p>
                 <div className="face-mode-tabs">
@@ -539,6 +629,7 @@ function App() {
                     : '두 명이 다 화면에 나오고, 둘 다 씹어야 영상이 나와요. 한 명만 보이면 「친구도 화면에 나와요」.'}
                 </p>
               </div>
+              )}
 
               <div className="btn-row start-row">
                 <button
@@ -547,6 +638,7 @@ function App() {
                   onClick={() => {
                     multiChewRef.current.reset()
                     blinkRefs.current.forEach((b) => b.reset())
+                    postureRef.current.reset()
                     fsmRef.current.reset()
                     setManualPaused(false)
                     setForcePlay(false)
@@ -708,10 +800,16 @@ function App() {
 
           <p className="hint">
             {isController
-              ? '시작 → 인식 화면을 보고 설정을 맞춰요. 재생·일시정지는 TV로 보내요. 씹기 자동 멈춤은 그대로예요.'
+              ? isWatch
+                ? '시작 → 인식 카메라로 깜빡임·목을 살펴요. 재생·일시정지는 TV로 보내요.'
+                : '시작 → 인식 화면을 보고 설정을 맞춰요. 재생·일시정지는 TV로 보내요. 씹기 자동 멈춤은 그대로예요.'
               : isViewer
-                ? '유튜브를 고른 뒤, 휴대폰에서 시작을 누르면 씹을 때 재생돼요.'
-                : '시작 → 얼굴 비추고 씹어요. 화면 가장자리를 누르면 일시정지·전체화면이 잠깐 보여요.'}
+                ? isWatch
+                  ? '유튜브를 고른 뒤 휴대폰에서 시작하면, 씹지 않아도 재생돼요.'
+                  : '유튜브를 고른 뒤, 휴대폰에서 시작을 누르면 씹을 때 재생돼요.'
+                : isWatch
+                  ? '시작 → 영상을 틀어요. 눈을 깜빡이지 않거나 고개를 숙이면 알려 줘요.'
+                  : '시작 → 얼굴 비추고 씹어요. 화면 가장자리를 누르면 일시정지·전체화면이 잠깐 보여요.'}
           </p>
 
           <p className="privacy">

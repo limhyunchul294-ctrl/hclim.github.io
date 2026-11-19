@@ -448,6 +448,22 @@ html.meal-css-fs body {
   background: rgba(8, 12, 16, 0.78);
 }
 
+.posture-overlay {
+  background: rgba(28, 36, 18, 0.84);
+}
+
+.posture-neck-art {
+  width: min(42vw, 180px);
+  margin: 0 auto 0.2rem;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.4));
+}
+
+.posture-neck-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 /* --- Cutout AI nudge art (transparent PNG, 2-frame swap) --- */
 .nudge-art {
   width: min(72vw, 320px);

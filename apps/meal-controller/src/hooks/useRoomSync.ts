@@ -140,6 +140,7 @@ export function useRoomSync({
       showChewNudge: outbound.showChewNudge,
       showBlinkNudge: outbound.showBlinkNudge,
       showFriendNudge: outbound.showFriendNudge,
+      showPostureNudge: outbound.showPostureNudge,
       phase: outbound.phase,
       isChewing: outbound.isChewing,
       faceCount: outbound.faceCount,

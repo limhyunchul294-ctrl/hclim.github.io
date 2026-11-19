@@ -85,6 +85,7 @@ export function SettingsPanel({
               onClick={() =>
                 onChange({
                   ...DEFAULT_SETTINGS,
+                  sessionMode: settings.sessionMode,
                   faceMode: settings.faceMode,
                   showRecognitionPreview: settings.showRecognitionPreview,
                   cameraZoom: settings.cameraZoom,
@@ -148,6 +149,28 @@ export function SettingsPanel({
             step={0.5}
             value={settings.noBlinkWarnSec}
             onChange={(v) => set('noBlinkWarnSec', v)}
+          />
+
+          <SliderRow
+            label="거북목 알림"
+            valueText={`${settings.postureWarnSec.toFixed(1)}초`}
+            hint="고개를 숙인 채 오래 있으면 알려요 (시청 모드)"
+            min={3}
+            max={30}
+            step={0.5}
+            value={settings.postureWarnSec}
+            onChange={(v) => set('postureWarnSec', v)}
+          />
+
+          <SliderRow
+            label="거북목 민감도"
+            valueText={settings.postureThreshold.toFixed(2)}
+            hint="낮을수록 더 빨리 알려요"
+            min={0.35}
+            max={0.85}
+            step={0.01}
+            value={settings.postureThreshold}
+            onChange={(v) => set('postureThreshold', v)}
           />
 
           <SliderRow
@@ -223,6 +246,15 @@ export function SettingsPanel({
               onChange={(e) => set('pauseOnDryEye', e.target.checked)}
             />
             깜빡임 알림 때 영상도 멈춤
+          </label>
+
+          <label className="check-row advanced-check">
+            <input
+              type="checkbox"
+              checked={settings.pauseOnPosture}
+              onChange={(e) => set('pauseOnPosture', e.target.checked)}
+            />
+            거북목 알림 때 영상도 잠깐 멈춤 (기본 꺼짐)
           </label>
 
           <label className="check-row advanced-check">

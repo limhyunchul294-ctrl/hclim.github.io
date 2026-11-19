@@ -3,6 +3,7 @@ import {
   SETTINGS_STORAGE_KEY,
   type ControllerSettings,
   type FaceMode,
+  type SessionMode,
 } from './types'
 
 function clamp(n: number, min: number, max: number): number {
@@ -13,13 +14,17 @@ function asFaceMode(v: unknown): FaceMode {
   return v === 2 || v === '2' ? 2 : 1
 }
 
+function asSessionMode(v: unknown): SessionMode {
+  return v === 'watch' ? 'watch' : 'meal'
+}
+
 /** Merge persisted JSON with defaults; migrate legacy keys. */
 export function loadSettings(): ControllerSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
-    // Soft-migrate from older keys if v5 empty
     const legacy =
       raw ??
+      localStorage.getItem('meal-controller-settings-v5') ??
       localStorage.getItem('meal-controller-settings-v4') ??
       localStorage.getItem('meal-controller-settings-v3')
     if (!legacy) return { ...DEFAULT_SETTINGS }
@@ -34,7 +39,16 @@ export function loadSettings(): ControllerSettings {
       migrated.noBlinkWarnSec = clamp(parsed.eyesClosedWarnSec * 4, 8, 20)
     }
     if (migrated.faceMode == null) migrated.faceMode = 1
-    if (migrated.cameraZoom == null) migrated.cameraZoom = DEFAULT_SETTINGS.cameraZoom
+    if (migrated.cameraZoom == null) {
+      migrated.cameraZoom = DEFAULT_SETTINGS.cameraZoom
+    }
+    if (migrated.sessionMode == null) migrated.sessionMode = 'meal'
+    if (migrated.postureWarnSec == null) {
+      migrated.postureWarnSec = DEFAULT_SETTINGS.postureWarnSec
+    }
+    if (migrated.postureThreshold == null) {
+      migrated.postureThreshold = DEFAULT_SETTINGS.postureThreshold
+    }
     return sanitizeSettings({ ...DEFAULT_SETTINGS, ...migrated })
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -59,6 +73,7 @@ export function sanitizeSettings(s: ControllerSettings): ControllerSettings {
     freqMax = Math.min(4, freqMin + 0.3)
   }
   return {
+    sessionMode: asSessionMode(s.sessionMode),
     faceMode: asFaceMode(s.faceMode),
     pauseDelaySec: clamp(s.pauseDelaySec, 1, 8),
     resumeCycles: Math.round(clamp(s.resumeCycles, 1, 6)),
@@ -71,6 +86,13 @@ export function sanitizeSettings(s: ControllerSettings): ControllerSettings {
     habitualPauseMultiplier: clamp(s.habitualPauseMultiplier, 0.5, 2.5),
     noBlinkWarnSec: clamp(s.noBlinkWarnSec, 5, 30),
     pauseOnDryEye: Boolean(s.pauseOnDryEye),
+    postureWarnSec: clamp(s.postureWarnSec ?? DEFAULT_SETTINGS.postureWarnSec, 3, 30),
+    postureThreshold: clamp(
+      s.postureThreshold ?? DEFAULT_SETTINGS.postureThreshold,
+      0.35,
+      0.85,
+    ),
+    pauseOnPosture: Boolean(s.pauseOnPosture),
     showRecognitionPreview: Boolean(s.showRecognitionPreview),
     cameraZoom: clamp(s.cameraZoom ?? DEFAULT_SETTINGS.cameraZoom, 1, 2.5),
     showMesh: Boolean(s.showMesh),

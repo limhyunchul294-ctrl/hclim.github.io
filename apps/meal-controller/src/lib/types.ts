@@ -3,6 +3,9 @@ export type PlayerPhase = 'NO_FACE' | 'ARMED' | 'PLAYING' | 'PAUSED'
 /** How many diners must be visible and chewing. */
 export type FaceMode = 1 | 2
 
+/** Meal = chew-gated play; watch = free play + blink/posture monitor. */
+export type SessionMode = 'meal' | 'watch'
+
 export type FaceSignals = {
   jawOpen: number
   mouthSmile: number
@@ -47,7 +50,9 @@ export type BlinkSnapshot = {
 }
 
 export type ControllerSettings = {
-  /** 1 = one child; 2 = both visible faces must chew. */
+  /** meal = chew-gated; watch = free play + blink/posture. */
+  sessionMode: SessionMode
+  /** 1 = one child; 2 = both visible faces must chew (meal mode). */
   faceMode: FaceMode
   /** Seconds without chewing before pause. */
   pauseDelaySec: number
@@ -74,6 +79,12 @@ export type ControllerSettings = {
   noBlinkWarnSec: number
   /** Optional: also pause video on dry-eye nudge (default off). */
   pauseOnDryEye: boolean
+  /** Seconds of poor posture before turtle-neck nudge. */
+  postureWarnSec: number
+  /** Pitch-proxy threshold (higher = less sensitive). */
+  postureThreshold: number
+  /** Optional soft pause while posture nudge shows (default off). */
+  pauseOnPosture: boolean
   /** PiP camera/recognition preview over the video (default off). */
   showRecognitionPreview: boolean
   /**
@@ -87,6 +98,7 @@ export type ControllerSettings = {
 
 /** Toddler-tuned defaults (forgiving pause, slightly easier chew). */
 export const DEFAULT_SETTINGS: ControllerSettings = {
+  sessionMode: 'meal',
   faceMode: 1,
   pauseDelaySec: 4.5,
   resumeCycles: 2,
@@ -99,6 +111,9 @@ export const DEFAULT_SETTINGS: ControllerSettings = {
   habitualPauseMultiplier: 1.0,
   noBlinkWarnSec: 14,
   pauseOnDryEye: false,
+  postureWarnSec: 8,
+  postureThreshold: 0.52,
+  pauseOnPosture: false,
   showRecognitionPreview: false,
   cameraZoom: 1.35,
   showMesh: false,
@@ -106,4 +121,4 @@ export const DEFAULT_SETTINGS: ControllerSettings = {
 }
 
 /** Bump when defaults change so old prefs don't stick. */
-export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v5'
+export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v6'
