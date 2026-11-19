@@ -50,11 +50,21 @@ function detectFingerprint(d: DetectBroadcast): string {
 }
 
 function commandFingerprint(c: CommandBroadcast): string {
+  const m = c.ytMedia
   return JSON.stringify({
     forcePlay: c.forcePlay,
     manualPaused: c.manualPaused,
     settings: c.settings,
     wantPreview: c.wantPreview,
+    ytMedia: m
+      ? {
+          volume: m.volume,
+          muted: m.muted,
+          playbackRate: m.playbackRate,
+          seekSeq: m.seekSeq,
+          seekDeltaSec: m.seekDeltaSec,
+        }
+      : null,
   })
 }
 

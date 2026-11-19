@@ -6,6 +6,22 @@ export type YtPlayer = {
   stopVideo: () => void
   destroy: () => void
   getPlayerState: () => number
+  mute: () => void
+  unMute: () => void
+  isMuted: () => boolean
+  setVolume: (volume: number) => void
+  getVolume: () => number
+  setPlaybackRate: (suggestedRate: number) => void
+  getPlaybackRate: () => number
+  getAvailablePlaybackRates: () => number[]
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void
+  getCurrentTime: () => number
+  getDuration: () => number
+  /**
+   * Deprecated / no-op since ~2019 — do not call for UX.
+   * Kept optional so runtime never assumes it works.
+   */
+  setPlaybackQuality?: (suggestedQuality: string) => void
 }
 
 export type YtPlayerEvent = {

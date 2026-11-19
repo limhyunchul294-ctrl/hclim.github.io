@@ -10,6 +10,7 @@ import {
 import { RemoteCameraPreview } from './components/RemoteCameraPreview'
 import { SettingsPanel } from './components/SettingsPanel'
 import { StatusBadges } from './components/StatusBadges'
+import { YoutubeMediaControls } from './components/YoutubeMediaControls'
 import { YoutubePicker } from './components/YoutubePicker'
 import { useCameraLandmarker } from './hooks/useCameraLandmarker'
 import { useRoomSync } from './hooks/useRoomSync'
@@ -36,6 +37,7 @@ import {
 } from './lib/roomSyncTypes'
 import { loadSettings, saveSettings } from './lib/settingsStorage'
 import type { YtVideoMeta } from './lib/youtube'
+import { DEFAULT_YT_MEDIA, type YtMediaState } from './lib/ytMedia'
 import {
   type BlinkSnapshot,
   type ChewSnapshot,
@@ -103,6 +105,12 @@ function App() {
   const [wantViewerPreview, setWantViewerPreview] = useState(false)
   const [outboundPreview, setOutboundPreview] =
     useState<PreviewBroadcast | null>(null)
+  /** YouTube volume / mute / rate / seek (quality is not controllable). */
+  const [ytMedia, setYtMedia] = useState<YtMediaState>(() => ({
+    ...DEFAULT_YT_MEDIA,
+  }))
+  const ytMediaRef = useRef(ytMedia)
+  const lastAppliedSeekSeq = useRef(0)
 
   const [chew, setChew] = useState<ChewSnapshot>({
     score: 0,
@@ -146,6 +154,10 @@ function App() {
     settingsRef.current = settings
     saveSettings(settings)
   }, [settings])
+
+  useEffect(() => {
+    ytMediaRef.current = ytMedia
+  }, [ytMedia])
 
   useEffect(() => {
     writeRoleToUrl(role, room)
@@ -340,9 +352,17 @@ function App() {
       manualPaused,
       settings,
       wantPreview: wantViewerPreview,
+      ytMedia,
       ts: Date.now(),
     }
-  }, [isController, forcePlay, manualPaused, settings, wantViewerPreview])
+  }, [
+    isController,
+    forcePlay,
+    manualPaused,
+    settings,
+    wantViewerPreview,
+    ytMedia,
+  ])
 
   const {
     status: syncStatus,
@@ -415,10 +435,22 @@ function App() {
     status.kind,
   ])
 
-  // Viewer: apply phone forcePlay / manualPaused / settings
+  // Viewer: apply phone forcePlay / manualPaused / settings / ytMedia
   useEffect(() => {
     if (!isViewer || !remoteCommand) return
-    if (remoteCommand.ts && remoteCommand.ts <= lastAppliedCmdTs.current) return
+    if (remoteCommand.ts && remoteCommand.ts <= lastAppliedCmdTs.current) {
+      // Still accept a newer seek even if ts was throttled oddly
+      const remoteMedia = remoteCommand.ytMedia
+      if (
+        remoteMedia &&
+        remoteMedia.seekSeq > lastAppliedSeekSeq.current
+      ) {
+        lastAppliedSeekSeq.current = remoteMedia.seekSeq
+        setYtMedia(remoteMedia)
+        ytMediaRef.current = remoteMedia
+      }
+      return
+    }
     lastAppliedCmdTs.current = remoteCommand.ts
 
     setManualPaused(remoteCommand.manualPaused)
@@ -434,6 +466,12 @@ function App() {
     ) {
       setSettings(remoteCommand.settings)
       settingsRef.current = remoteCommand.settings
+    }
+
+    if (remoteCommand.ytMedia) {
+      lastAppliedSeekSeq.current = remoteCommand.ytMedia.seekSeq
+      setYtMedia(remoteCommand.ytMedia)
+      ytMediaRef.current = remoteCommand.ytMedia
     }
   }, [isViewer, remoteCommand])
 
@@ -686,6 +724,7 @@ function App() {
               }
               onManualPause={onParentPause}
               onManualPlay={onParentPlay}
+              ytMedia={ytMedia}
             />
           )}
 
@@ -926,6 +965,14 @@ function App() {
               )}
             </>
           )}
+
+          {/* YouTube media knobs — phone remotes to viewer; local on TV / one-device */}
+          <YoutubeMediaControls
+            media={ytMedia}
+            onChange={setYtMedia}
+            remoteHint={isController}
+            disabled={isController && !peerConnected}
+          />
 
           {/* Settings on phone (synced) + combined; viewer receives via MQTT */}
           {!isViewer && (
