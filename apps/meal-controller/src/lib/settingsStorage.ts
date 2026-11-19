@@ -17,9 +17,11 @@ function asFaceMode(v: unknown): FaceMode {
 export function loadSettings(): ControllerSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
-    // Soft-migrate from v3 if v4 empty
+    // Soft-migrate from older keys if v5 empty
     const legacy =
-      raw ?? localStorage.getItem('meal-controller-settings-v3')
+      raw ??
+      localStorage.getItem('meal-controller-settings-v4') ??
+      localStorage.getItem('meal-controller-settings-v3')
     if (!legacy) return { ...DEFAULT_SETTINGS }
     const parsed = JSON.parse(legacy) as Partial<ControllerSettings> & {
       eyesClosedWarnSec?: number
@@ -32,6 +34,7 @@ export function loadSettings(): ControllerSettings {
       migrated.noBlinkWarnSec = clamp(parsed.eyesClosedWarnSec * 4, 8, 20)
     }
     if (migrated.faceMode == null) migrated.faceMode = 1
+    if (migrated.cameraZoom == null) migrated.cameraZoom = DEFAULT_SETTINGS.cameraZoom
     return sanitizeSettings({ ...DEFAULT_SETTINGS, ...migrated })
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -69,6 +72,7 @@ export function sanitizeSettings(s: ControllerSettings): ControllerSettings {
     noBlinkWarnSec: clamp(s.noBlinkWarnSec, 5, 30),
     pauseOnDryEye: Boolean(s.pauseOnDryEye),
     showRecognitionPreview: Boolean(s.showRecognitionPreview),
+    cameraZoom: clamp(s.cameraZoom ?? DEFAULT_SETTINGS.cameraZoom, 1, 2.5),
     showMesh: Boolean(s.showMesh),
     showDebug: Boolean(s.showDebug),
   }

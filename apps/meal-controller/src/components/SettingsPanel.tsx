@@ -84,12 +84,24 @@ export function SettingsPanel({
                   ...DEFAULT_SETTINGS,
                   faceMode: settings.faceMode,
                   showRecognitionPreview: settings.showRecognitionPreview,
+                  cameraZoom: settings.cameraZoom,
                 })
               }
             >
               초기화
             </button>
           </div>
+
+          <SliderRow
+            label="카메라 확대"
+            valueText={`${settings.cameraZoom.toFixed(2)}×`}
+            hint="멀찍이 앉으면 1.8~2.3×로 올려 보세요 (디지털 줌)"
+            min={1}
+            max={2.5}
+            step={0.05}
+            value={settings.cameraZoom}
+            onChange={(v) => set('cameraZoom', v)}
+          />
 
           <SliderRow
             label="멈춤까지 기다리는 시간"

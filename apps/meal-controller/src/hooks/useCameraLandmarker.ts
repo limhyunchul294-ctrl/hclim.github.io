@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { FaceLandmarker } from '@mediapipe/tasks-vision'
 import {
+  computeCropRect,
+  cropLocalToFullCenter,
+  landmarksCentroid,
+  processSizeForCrop,
+  smoothCenter,
+  type CropCenter,
+} from '../lib/cameraCrop'
+import { openCameraStream } from '../lib/cameraStream'
+import {
   createFaceLandmarker,
   extractFaceSignals,
 } from '../lib/faceLandmarker'
@@ -9,6 +18,8 @@ import type { FaceFrame } from '../lib/types'
 
 type Options = {
   showMesh: boolean
+  /** Digital zoom 1.0–2.5 (parent slider). */
+  cameraZoom: number
   onFrame: (frame: FaceFrame) => void
   enabled: boolean
 }
@@ -18,6 +29,15 @@ type Status =
   | { kind: 'loading'; message: string }
   | { kind: 'ready' }
   | { kind: 'error'; message: string }
+
+export type StreamInfo = {
+  width: number
+  height: number
+  deviceLabel: string
+  tier: string
+  /** Effective zoom applied this frame. */
+  zoom: number
+}
 
 /** ~15 FPS on phones/tablets; ~24 FPS on desktop — less jank with YouTube. */
 function detectIntervalMs(): number {
@@ -30,6 +50,7 @@ function detectIntervalMs(): number {
 
 export function useCameraLandmarker({
   showMesh,
+  cameraZoom,
   onFrame,
   enabled,
 }: Options) {
@@ -42,11 +63,14 @@ export function useCameraLandmarker({
   const runningRef = useRef(false)
   const onFrameRef = useRef(onFrame)
   const showMeshRef = useRef(showMesh)
+  const zoomRef = useRef(cameraZoom)
+  const cropCenterRef = useRef<CropCenter>({ cx: 0.5, cy: 0.5 })
   const intervalRef = useRef(detectIntervalMs())
 
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [faceLost, setFaceLost] = useState(false)
   const [faceCount, setFaceCount] = useState(0)
+  const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null)
 
   useEffect(() => {
     onFrameRef.current = onFrame
@@ -55,6 +79,10 @@ export function useCameraLandmarker({
   useEffect(() => {
     showMeshRef.current = showMesh
   }, [showMesh])
+
+  useEffect(() => {
+    zoomRef.current = Math.min(2.5, Math.max(1, cameraZoom))
+  }, [cameraZoom])
 
   useEffect(() => {
     const update = () => {
@@ -79,7 +107,9 @@ export function useCameraLandmarker({
     landmarkerRef.current?.close()
     landmarkerRef.current = null
     lastTsRef.current = -1
+    cropCenterRef.current = { cx: 0.5, cy: 0.5 }
     setFaceCount(0)
+    setStreamInfo(null)
     if (videoRef.current) {
       videoRef.current.srcObject = null
     }
@@ -93,29 +123,92 @@ export function useCameraLandmarker({
 
     if (video && canvas && landmarker && video.readyState >= 2) {
       const now = performance.now()
-      // Monotonic timestamps required by MediaPipe VIDEO mode
       if (now > lastTsRef.current + intervalRef.current) {
         lastTsRef.current = now
         try {
-          const result = landmarker.detectForVideo(video, now)
+          const vw = video.videoWidth || 640
+          const vh = video.videoHeight || 480
+          const zoom = zoomRef.current
+          const crop = computeCropRect(vw, vh, zoom, cropCenterRef.current)
+          const { w: pw, h: ph } = processSizeForCrop(crop)
+
+          const ctx = canvas.getContext('2d')
+          if (!ctx) throw new Error('2d context missing')
+
+          if (canvas.width !== pw || canvas.height !== ph) {
+            canvas.width = pw
+            canvas.height = ph
+          }
+
+          // Draw zoomed crop — MediaPipe + preview share this buffer (no over-shrink)
+          ctx.drawImage(
+            video,
+            crop.sx,
+            crop.sy,
+            crop.sw,
+            crop.sh,
+            0,
+            0,
+            pw,
+            ph,
+          )
+
+          const result = landmarker.detectForVideo(canvas, now)
           const frame = extractFaceSignals(result, now)
           setFaceLost(!frame.hasFace)
           setFaceCount(frame.faceCount)
           onFrameRef.current(frame)
 
-          const ctx = canvas.getContext('2d')
-          if (ctx) {
-            if (canvas.width !== video.videoWidth) {
-              canvas.width = video.videoWidth || 640
-              canvas.height = video.videoHeight || 480
-            }
-            ctx.clearRect(0, 0, canvas.width, canvas.height)
-            if (showMeshRef.current && result.faceLandmarks?.length) {
-              for (const lm of result.faceLandmarks) {
-                drawFaceMesh(ctx, lm)
+          // Face-follow: steer crop center in full-frame space
+          if (frame.hasFace && result.faceLandmarks?.length) {
+            const centers = result.faceLandmarks
+              .map((lm) => landmarksCentroid(lm))
+              .filter((c): c is CropCenter => c != null)
+            if (centers.length) {
+              const mid = {
+                cx: centers.reduce((a, c) => a + c.cx, 0) / centers.length,
+                cy: centers.reduce((a, c) => a + c.cy, 0) / centers.length,
               }
+              const target = cropLocalToFullCenter(crop, vw, vh, mid.cx, mid.cy)
+              cropCenterRef.current = smoothCenter(
+                cropCenterRef.current,
+                target,
+                0.2,
+              )
+            }
+          } else {
+            // Drift back to frame center when hunting for a face
+            cropCenterRef.current = smoothCenter(
+              cropCenterRef.current,
+              { cx: 0.5, cy: 0.5 },
+              0.08,
+            )
+          }
+
+          if (showMeshRef.current && result.faceLandmarks?.length) {
+            for (const lm of result.faceLandmarks) {
+              drawFaceMesh(ctx, lm)
             }
           }
+
+          setStreamInfo((prev) => {
+            const next: StreamInfo = {
+              width: vw,
+              height: vh,
+              deviceLabel: prev?.deviceLabel ?? '',
+              tier: prev?.tier ?? '',
+              zoom,
+            }
+            if (
+              prev &&
+              prev.width === next.width &&
+              prev.height === next.height &&
+              prev.zoom === next.zoom
+            ) {
+              return prev
+            }
+            return { ...prev, ...next, deviceLabel: prev?.deviceLabel ?? '', tier: prev?.tier ?? '' }
+          })
         } catch (err) {
           console.warn('detectForVideo failed', err)
         }
@@ -131,27 +224,49 @@ export function useCameraLandmarker({
       const landmarker = await createFaceLandmarker()
       landmarkerRef.current = landmarker
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          facingMode: { ideal: 'user' },
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-        },
+      const opened = await openCameraStream()
+      streamRef.current = opened.stream
+      setStreamInfo({
+        width: opened.width,
+        height: opened.height,
+        deviceLabel: opened.deviceLabel,
+        tier: opened.tier,
+        zoom: zoomRef.current,
       })
-      streamRef.current = stream
 
       const video = videoRef.current
       if (!video) throw new Error('video element missing')
       video.setAttribute('playsinline', 'true')
       video.setAttribute('webkit-playsinline', 'true')
       video.muted = true
-      video.srcObject = stream
+      video.srcObject = opened.stream
       await video.play()
+
+      // Prefer track settings once metadata is ready
+      const applySize = () => {
+        const vw = video.videoWidth
+        const vh = video.videoHeight
+        if (vw && vh) {
+          setStreamInfo((prev) =>
+            prev
+              ? { ...prev, width: vw, height: vh }
+              : {
+                  width: vw,
+                  height: vh,
+                  deviceLabel: opened.deviceLabel,
+                  tier: opened.tier,
+                  zoom: zoomRef.current,
+                },
+          )
+        }
+      }
+      if (video.readyState >= 2) applySize()
+      else video.addEventListener('loadedmetadata', applySize, { once: true })
 
       setStatus({ kind: 'ready' })
       runningRef.current = true
       lastTsRef.current = -1
+      cropCenterRef.current = { cx: 0.5, cy: 0.5 }
       rafRef.current = requestAnimationFrame(loop)
     } catch (err) {
       stop()
@@ -205,6 +320,7 @@ export function useCameraLandmarker({
     status,
     faceLost,
     faceCount,
+    streamInfo,
     restart: start,
   }
 }

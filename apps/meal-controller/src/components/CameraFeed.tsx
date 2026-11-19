@@ -9,7 +9,10 @@ type Props = {
   variant: 'panel' | 'pip'
 }
 
-/** Single shared camera + mesh surface (one MediaStream / Landmarker). */
+/**
+ * Shared camera surface. Raw <video> stays off-screen for the MediaStream;
+ * the canvas shows the zoomed crop MediaPipe actually sees (+ optional mesh).
+ */
 export function CameraFeed({
   videoRef,
   canvasRef,
@@ -26,12 +29,12 @@ export function CameraFeed({
     >
       <video
         ref={videoRef}
-        className="camera-video"
+        className="camera-video camera-video-source"
         playsInline
         muted
         autoPlay
       />
-      <canvas ref={canvasRef} className="camera-overlay" />
+      <canvas ref={canvasRef} className="camera-overlay camera-feed-canvas" />
       {missingBuddy && (
         <div className="face-lost-banner friend-banner" role="status">
           친구도 화면에 나와요

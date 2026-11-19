@@ -255,12 +255,17 @@ html.meal-css-fs body {
 }
 
 .recognition-pip .camera-video,
-.recognition-pip .camera-overlay {
+.recognition-pip .camera-overlay,
+.recognition-pip .camera-feed-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.recognition-pip .camera-video-source {
+  opacity: 0;
 }
 
 .recognition-pip .face-lost-banner {
@@ -940,13 +945,176 @@ html.meal-css-fs body {
   object-fit: cover;
 }
 
-.camera-video {
-  transform: scaleX(-1);
+/* Raw stream stays mounted for getUserMedia; preview is the zoomed canvas. */
+.camera-video-source {
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
 }
 
-.camera-overlay {
+.camera-feed-canvas {
   transform: scaleX(-1);
   pointer-events: none;
+  z-index: 1;
+  object-fit: contain;
+  background: #000;
+}
+
+.camera-stream-meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.viewer-camera-note {
+  margin: 0.35rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.controller-stage-placeholder {
+  display: grid;
+  place-content: center;
+  gap: 0.45rem;
+  min-height: min(42vh, 320px);
+  padding: 1.5rem 1.25rem;
+  border-radius: var(--radius);
+  border: 1px dashed rgba(240, 244, 242, 0.28);
+  background: rgba(0, 0, 0, 0.28);
+  text-align: center;
+}
+
+.controller-stage-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.controller-stage-sub {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  max-width: 28rem;
+  justify-self: center;
+}
+
+.controller-stage-code {
+  margin: 0.5rem 0 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.pairing-panel {
+  margin: 0 0 1rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.pairing-open-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.pairing-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.pairing-hint {
+  margin: 0.25rem 0 0.65rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.pairing-actions {
+  margin-bottom: 0.65rem;
+}
+
+.pairing-join-label {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.pairing-code-input {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 0.45rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.pairing-role-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+  font-weight: 800;
+}
+
+.pairing-link {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.pairing-link.on {
+  color: var(--ok);
+}
+
+.pairing-code-big {
+  margin: 0.15rem 0;
+  font-size: clamp(1.8rem, 6vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.pairing-qr {
+  display: block;
+  margin: 0.55rem auto;
+  border-radius: 10px;
+  max-width: 100%;
+}
+
+.pairing-url-hint {
+  margin: 0.35rem 0 0.55rem;
+  font-size: 0.68rem;
+  word-break: break-all;
+  color: var(--text-muted);
+}
+
+.pairing-url-hint.muted {
+  opacity: 0.75;
+}
+
+.pairing-error {
+  margin: 0.35rem 0 0.55rem;
+  font-size: 0.85rem;
+  color: var(--danger);
 }
 
 .face-lost-banner {

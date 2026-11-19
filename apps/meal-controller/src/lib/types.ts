@@ -76,6 +76,11 @@ export type ControllerSettings = {
   pauseOnDryEye: boolean
   /** PiP camera/recognition preview over the video (default off). */
   showRecognitionPreview: boolean
+  /**
+   * Digital camera zoom / center crop (1.0–2.5).
+   * Raise for desk setups ~1m from a laptop webcam.
+   */
+  cameraZoom: number
   showMesh: boolean
   showDebug: boolean
 }
@@ -95,9 +100,10 @@ export const DEFAULT_SETTINGS: ControllerSettings = {
   noBlinkWarnSec: 14,
   pauseOnDryEye: false,
   showRecognitionPreview: false,
+  cameraZoom: 1.35,
   showMesh: false,
   showDebug: false,
 }
 
 /** Bump when defaults change so old prefs don't stick. */
-export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v4'
+export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v5'

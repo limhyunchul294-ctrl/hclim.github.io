@@ -1,4 +1,5 @@
 import type { ReactNode, RefObject } from 'react'
+import type { StreamInfo } from '../hooks/useCameraLandmarker'
 import { CameraFeed } from './CameraFeed'
 
 type Props = {
@@ -11,6 +12,8 @@ type Props = {
   showFeed: boolean
   /** Optional note under status (e.g. PiP active). */
   note?: ReactNode
+  /** Actual webcam resolution + zoom (parents can verify). */
+  streamInfo?: StreamInfo | null
 }
 
 export function CameraPanel({
@@ -21,7 +24,13 @@ export function CameraPanel({
   statusLabel,
   showFeed,
   note,
+  streamInfo,
 }: Props) {
+  const streamLabel =
+    streamInfo && streamInfo.width > 0
+      ? `카메라 ${streamInfo.width}×${streamInfo.height} · 확대 ${streamInfo.zoom.toFixed(2)}×`
+      : null
+
   return (
     <div className={`camera-panel ${showFeed ? '' : 'camera-panel-compact'}`}>
       {showFeed ? (
@@ -34,6 +43,11 @@ export function CameraPanel({
         />
       ) : null}
       <p className="camera-status">{statusLabel}</p>
+      {streamLabel ? (
+        <p className="camera-stream-meta" title={streamInfo?.deviceLabel || undefined}>
+          {streamLabel}
+        </p>
+      ) : null}
       {note ? <p className="camera-note">{note}</p> : null}
     </div>
   )
