@@ -43,9 +43,9 @@ export function connectRoomMqtt(opts: {
   onPreview: (payload: unknown) => void
 }): {
   client: MqttClient
-  publishDetect: (payload: unknown) => void
-  publishCommand: (payload: unknown) => void
-  publishPreview: (payload: unknown) => void
+  publishDetect: (payload: unknown) => boolean
+  publishCommand: (payload: unknown) => boolean
+  publishPreview: (payload: unknown) => boolean
   dispose: () => void
 } {
   const topics = mqttTopics(opts.room)
@@ -164,19 +164,29 @@ export function connectRoomMqtt(opts: {
     }
   })
 
-  const publishDetect = (payload: unknown) => {
-    if (!client.connected) return
+  const publishDetect = (payload: unknown): boolean => {
+    if (!client.connected) return false
     client.publish(topics.detect, JSON.stringify(payload), { qos: 0 })
+    return true
   }
 
-  const publishCommand = (payload: unknown) => {
-    if (!client.connected) return
+  const publishCommand = (payload: unknown): boolean => {
+    if (!client.connected) return false
     client.publish(topics.command, JSON.stringify(payload), { qos: 0 })
+    return true
   }
 
-  const publishPreview = (payload: unknown) => {
-    if (!client.connected) return
-    client.publish(topics.preview, JSON.stringify(payload), { qos: 0 })
+  const publishPreview = (payload: unknown): boolean => {
+    if (!client.connected) return false
+    try {
+      const body = JSON.stringify(payload)
+      // Keep well under common broker caps; caller should already thumbnail
+      if (body.length > 200_000) return false
+      client.publish(topics.preview, body, { qos: 0 })
+      return true
+    } catch {
+      return false
+    }
   }
 
   let disposed = false
