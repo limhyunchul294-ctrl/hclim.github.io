@@ -7,6 +7,7 @@ import {
   PlaybackStage,
   type PlaybackSource,
 } from './components/PlaybackStage'
+import { RemoteCameraPreview } from './components/RemoteCameraPreview'
 import { SettingsPanel } from './components/SettingsPanel'
 import { StatusBadges } from './components/StatusBadges'
 import { YoutubePicker } from './components/YoutubePicker'
@@ -19,6 +20,10 @@ import { MultiFaceChew } from './lib/multiFaceChew'
 import { PlayerStateMachine } from './lib/playerStateMachine'
 import { PostureTracker, type PostureSnapshot } from './lib/postureScore'
 import {
+  capturePreviewJpeg,
+  PREVIEW_INTERVAL_MS,
+} from './lib/previewFrame'
+import {
   parseRoleFromUrl,
   writeRoleToUrl,
   type AppRole,
@@ -27,6 +32,7 @@ import {
   EMPTY_DETECT,
   type CommandBroadcast,
   type DetectBroadcast,
+  type PreviewBroadcast,
 } from './lib/roomSyncTypes'
 import { loadSettings, saveSettings } from './lib/settingsStorage'
 import type { YtVideoMeta } from './lib/youtube'
@@ -93,6 +99,10 @@ function App() {
   /** Parent 「재생」 boost — plays until pause or chew FSM auto-pauses. */
   const [forcePlay, setForcePlay] = useState(false)
   const [missingBuddy, setMissingBuddy] = useState(false)
+  /** Phone: request JPEG thumbnails of the viewer recognition camera. */
+  const [wantViewerPreview, setWantViewerPreview] = useState(false)
+  const [outboundPreview, setOutboundPreview] =
+    useState<PreviewBroadcast | null>(null)
 
   const [chew, setChew] = useState<ChewSnapshot>({
     score: 0,
@@ -325,9 +335,10 @@ function App() {
       forcePlay,
       manualPaused,
       settings,
+      wantPreview: wantViewerPreview,
       ts: Date.now(),
     }
-  }, [isController, forcePlay, manualPaused, settings])
+  }, [isController, forcePlay, manualPaused, settings, wantViewerPreview])
 
   const {
     status: syncStatus,
@@ -335,13 +346,78 @@ function App() {
     peerConnected,
     remoteDetect,
     remoteCommand,
+    remotePreview,
   } = useRoomSync({
     room,
     role: isCombined ? null : role,
     outboundDetect,
     outboundCommand,
+    outboundPreview: isViewer ? outboundPreview : null,
     enabled: !isCombined && Boolean(room),
   })
+
+  // Phone: drop preview request when unpaired (stops MQTT frames)
+  useEffect(() => {
+    if (!peerConnected && wantViewerPreview) {
+      setWantViewerPreview(false)
+    }
+  }, [peerConnected, wantViewerPreview])
+
+  // Viewer: stream JPEG thumbnails only while phone wants preview + paired + camera on
+  const wantPreviewFromPhone = Boolean(remoteCommand?.wantPreview)
+  useEffect(() => {
+    if (
+      !isViewer ||
+      !wantPreviewFromPhone ||
+      !peerConnected ||
+      !cameraEnabled ||
+      status.kind !== 'ready'
+    ) {
+      setOutboundPreview(null)
+      return
+    }
+
+    let cancelled = false
+    let busy = false
+    const tick = async () => {
+      if (cancelled || busy) return
+      const canvas = canvasRef.current
+      if (!canvas || !canvas.width) return
+      busy = true
+      try {
+        const shot = await capturePreviewJpeg(canvas)
+        if (cancelled || !shot) return
+        setOutboundPreview({
+          v: 2,
+          kind: 'preview',
+          mime: 'image/jpeg',
+          data: shot.data,
+          w: shot.w,
+          h: shot.h,
+          ts: Date.now(),
+        })
+      } finally {
+        busy = false
+      }
+    }
+
+    void tick()
+    const id = window.setInterval(() => {
+      void tick()
+    }, PREVIEW_INTERVAL_MS)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+      setOutboundPreview(null)
+    }
+  }, [
+    isViewer,
+    wantPreviewFromPhone,
+    peerConnected,
+    cameraEnabled,
+    status.kind,
+  ])
 
   // Viewer: apply phone forcePlay / manualPaused / settings
   useEffect(() => {
@@ -466,6 +542,7 @@ function App() {
     setEnabled(false)
     setManualPaused(false)
     setForcePlay(false)
+    setWantViewerPreview(false)
     setRole('controller')
     setRoom(code)
   }
@@ -474,6 +551,8 @@ function App() {
     setEnabled(false)
     setManualPaused(false)
     setForcePlay(false)
+    setWantViewerPreview(false)
+    setOutboundPreview(null)
     lastAppliedCmdTs.current = 0
     setRole('viewer')
     setRoom(code)
@@ -482,6 +561,8 @@ function App() {
   const leaveSplit = () => {
     setEnabled(false)
     setForcePlay(false)
+    setWantViewerPreview(false)
+    setOutboundPreview(null)
     setRole('combined')
     setRoom(null)
   }
@@ -552,6 +633,15 @@ function App() {
                     : '아직 영상 화면이 안 들어왔어요'}
                 </p>
               </div>
+              <RemoteCameraPreview
+                frame={
+                  wantViewerPreview && peerConnected ? remotePreview : null
+                }
+                enabled={wantViewerPreview}
+                peerConnected={peerConnected}
+                sessionOn={detectState.sessionOn}
+                onToggle={setWantViewerPreview}
+              />
               <ControllerTransport
                 sessionOn={peerConnected && detectState.sessionOn}
                 broadcastingPlay={
@@ -905,8 +995,10 @@ function App() {
           </p>
 
           <p className="privacy">
-            얼굴은 인식하는 기기(한 기기 모드 또는 영상 기기)에서만 봐요. 유튜브
-            재생은 YouTube로 연결돼요.
+            얼굴은 인식하는 기기(한 기기 모드 또는 영상 기기)에서만 처리해요.
+            기기 나누기 미리보기는 연결 중에만 MQTT(페어링과 같은 경로)로
+            작은 사진을 보내고, 끊기면 바로 멈춰요. 따로 클라우드에 저장하지
+            않아요. 유튜브 재생은 YouTube로 연결돼요.
           </p>
         </aside>
       </main>

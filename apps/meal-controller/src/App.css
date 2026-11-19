@@ -1016,6 +1016,84 @@ html.meal-css-fs body {
   color: var(--accent);
 }
 
+.remote-preview {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.remote-preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.remote-preview-label {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.remote-preview-toggle {
+  margin: 0;
+}
+
+.remote-preview-stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #0b0d10;
+  aspect-ratio: 4 / 3;
+  max-height: min(42vh, 320px);
+}
+
+.remote-preview-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #0b0d10;
+}
+
+.remote-preview-placeholder {
+  margin: 0;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 8rem;
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.remote-preview-badge {
+  position: absolute;
+  left: 0.45rem;
+  bottom: 0.45rem;
+  padding: 0.18rem 0.45rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.remote-preview-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
 .controller-status-card {
   padding: 1rem 1.05rem;
   border-radius: 14px;

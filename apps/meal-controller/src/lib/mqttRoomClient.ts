@@ -8,8 +8,12 @@ import mqtt, { type MqttClient } from 'mqtt'
  * Topics:
  * - presence/+  — role discovery
  * - detect      — viewer → phone (face / nudge / play outcome)
- * - command     — phone → viewer (play/pause + settings)
+ * - command     — phone → viewer (play/pause + settings + wantPreview)
+ * - preview     — viewer → phone (JPEG recognition thumbnails; only while paired + toggled)
  * - control     — legacy v1 (still subscribed for older peers)
+ *
+ * Privacy: frames stay on the MQTT broker used for pairing (same as control).
+ * No separate cloud upload. Preview stops when unpaired or the phone toggles off.
  */
 export const MQTT_BROKER_URL =
   import.meta.env.VITE_MQTT_BROKER_URL ?? 'wss://broker.emqx.io:8084/mqtt'
@@ -20,6 +24,7 @@ export function mqttTopics(room: string) {
     control: `${base}/control`,
     detect: `${base}/detect`,
     command: `${base}/command`,
+    preview: `${base}/preview`,
     presence: `${base}/presence`,
     presenceWild: `${base}/presence/+`,
   }
@@ -35,10 +40,12 @@ export function connectRoomMqtt(opts: {
   onPresence: (roles: Set<string>) => void
   onDetect: (payload: unknown) => void
   onCommand: (payload: unknown) => void
+  onPreview: (payload: unknown) => void
 }): {
   client: MqttClient
   publishDetect: (payload: unknown) => void
   publishCommand: (payload: unknown) => void
+  publishPreview: (payload: unknown) => void
   dispose: () => void
 } {
   const topics = mqttTopics(opts.room)
@@ -77,7 +84,13 @@ export function connectRoomMqtt(opts: {
   client.on('connect', () => {
     opts.onStatus('connected')
     client.subscribe(
-      [topics.presenceWild, topics.detect, topics.command, topics.control],
+      [
+        topics.presenceWild,
+        topics.detect,
+        topics.command,
+        topics.preview,
+        topics.control,
+      ],
       { qos: 0 },
       (err) => {
         if (err) {
@@ -141,6 +154,10 @@ export function connectRoomMqtt(opts: {
       opts.onCommand(parsed)
       return
     }
+    if (topic === topics.preview) {
+      opts.onPreview(parsed)
+      return
+    }
     if (topic === topics.control) {
       // Legacy v1: treat as detect-shaped for older controllers publishing play state
       opts.onDetect(parsed)
@@ -157,6 +174,11 @@ export function connectRoomMqtt(opts: {
     client.publish(topics.command, JSON.stringify(payload), { qos: 0 })
   }
 
+  const publishPreview = (payload: unknown) => {
+    if (!client.connected) return
+    client.publish(topics.preview, JSON.stringify(payload), { qos: 0 })
+  }
+
   let disposed = false
   const dispose = () => {
     if (disposed) return
@@ -169,5 +191,5 @@ export function connectRoomMqtt(opts: {
     client.end(true)
   }
 
-  return { client, publishDetect, publishCommand, dispose }
+  return { client, publishDetect, publishCommand, publishPreview, dispose }
 }
