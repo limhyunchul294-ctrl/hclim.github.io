@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CameraFeed } from './components/CameraFeed'
 import { CameraPanel } from './components/CameraPanel'
+import { PairingPanel } from './components/PairingPanel'
 import {
   PlaybackStage,
   type PlaybackSource,
@@ -9,11 +10,18 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { StatusBadges } from './components/StatusBadges'
 import { YoutubePicker } from './components/YoutubePicker'
 import { useCameraLandmarker } from './hooks/useCameraLandmarker'
+import { useRoomSync } from './hooks/useRoomSync'
 import { useStandaloneDisplay } from './hooks/useStandaloneDisplay'
 import { useWakeLock } from './hooks/useWakeLock'
 import { BlinkTracker } from './lib/blinkScore'
 import { MultiFaceChew } from './lib/multiFaceChew'
 import { PlayerStateMachine } from './lib/playerStateMachine'
+import {
+  parseRoleFromUrl,
+  writeRoleToUrl,
+  type AppRole,
+} from './lib/roomCode'
+import { EMPTY_REMOTE_STATE, type RemoteControlState } from './lib/roomSyncTypes'
 import { loadSettings, saveSettings } from './lib/settingsStorage'
 import type { YtVideoMeta } from './lib/youtube'
 import {
@@ -51,6 +59,10 @@ const emptyBlink = (): BlinkSnapshot => ({
 })
 
 function App() {
+  const initial = parseRoleFromUrl()
+  const [role, setRole] = useState<AppRole>(initial.role)
+  const [room, setRoom] = useState<string | null>(initial.room)
+
   const [enabled, setEnabled] = useState(false)
   const [settings, setSettings] = useState<ControllerSettings>(() =>
     loadSettings(),
@@ -85,13 +97,23 @@ function App() {
   const fsmRef = useRef(new PlayerStateMachine())
   const settingsRef = useRef(settings)
 
-  useWakeLock(enabled)
+  const isController = role === 'controller'
+  const isViewer = role === 'viewer'
+  const isCombined = role === 'combined'
+  /** Camera runs on combined + controller only. */
+  const cameraEnabled = enabled && !isViewer
+
+  useWakeLock(cameraEnabled)
   const isStandalone = useStandaloneDisplay()
 
   useEffect(() => {
     settingsRef.current = settings
     saveSettings(settings)
   }, [settings])
+
+  useEffect(() => {
+    writeRoleToUrl(role, room)
+  }, [role, room])
 
   useEffect(() => {
     return () => {
@@ -113,7 +135,6 @@ function App() {
     setChew(agg)
     setMissingBuddy(agg.missingBuddy)
 
-    // Blink: any required face staring → nudge
     let blinkSnap = emptyBlink()
     if (agg.facesReady) {
       const snaps = []
@@ -168,15 +189,77 @@ function App() {
 
   const { videoRef, canvasRef, status, faceLost, faceCount, streamInfo } =
     useCameraLandmarker({
-      // Draw landmarks in PiP so parents can see recognition without 세밀 설정
       showMesh: settings.showMesh || settings.showRecognitionPreview,
       cameraZoom: settings.cameraZoom,
       onFrame,
-      enabled,
+      enabled: cameraEnabled,
     })
 
-  const statusLabel =
-    status.kind === 'idle'
+  const dryEyeBlocksPlay =
+    settings.pauseOnDryEye && blink.needsBlinkNudge && cameraEnabled
+
+  const showFriendNudge = cameraEnabled && missingBuddy
+
+  const localWantPlay =
+    machine.shouldPlay &&
+    cameraEnabled &&
+    !dryEyeBlocksPlay &&
+    !manualPaused &&
+    !missingBuddy
+
+  const outbound: RemoteControlState | null = useMemo(() => {
+    if (!isController) return null
+    return {
+      v: 1,
+      shouldPlay: localWantPlay,
+      showChewNudge: machine.showNudge && cameraEnabled && !manualPaused,
+      showBlinkNudge: blink.needsBlinkNudge && cameraEnabled,
+      showFriendNudge,
+      phase: machine.phase,
+      isChewing: chew.isChewing,
+      faceCount,
+      faceMode: settings.faceMode,
+      resumeNeed: settings.resumeCycles,
+      resumeHave: machine.resumeProgress,
+      secSinceLastBlink: blink.secSinceLastBlink,
+      ts: Date.now(),
+    }
+  }, [
+    isController,
+    localWantPlay,
+    machine.showNudge,
+    machine.phase,
+    machine.resumeProgress,
+    cameraEnabled,
+    manualPaused,
+    blink.needsBlinkNudge,
+    blink.secSinceLastBlink,
+    showFriendNudge,
+    chew.isChewing,
+    faceCount,
+    settings.faceMode,
+    settings.resumeCycles,
+  ])
+
+  const {
+    status: syncStatus,
+    error: syncError,
+    peerConnected,
+    remote,
+  } = useRoomSync({
+    room,
+    role: isCombined ? null : role,
+    outbound,
+    enabled: !isCombined && Boolean(room),
+  })
+
+  const remoteState = remote ?? EMPTY_REMOTE_STATE
+
+  const statusLabel = isViewer
+    ? peerConnected
+      ? '휴대폰 인식 연결됨'
+      : '휴대폰 연결을 기다려요'
+    : status.kind === 'idle'
       ? '시작을 눌러 주세요'
       : status.kind === 'loading'
         ? status.message
@@ -208,9 +291,6 @@ function App() {
     return remain.toFixed(1)
   }, [machine.phase, machine.noChewSec, machine.effectivePauseSec])
 
-  const dryEyeBlocksPlay =
-    settings.pauseOnDryEye && blink.needsBlinkNudge && enabled
-
   const playbackSource: PlaybackSource | null =
     mediaMode === 'youtube' && ytMeta
       ? { kind: 'youtube', videoId: ytMeta.id }
@@ -218,139 +298,230 @@ function App() {
         ? { kind: 'local', src: localSrc }
         : null
 
-  const wantPlay =
-    machine.shouldPlay &&
-    enabled &&
-    !dryEyeBlocksPlay &&
-    !manualPaused &&
-    !missingBuddy
+  const stageShouldPlay = isViewer
+    ? remoteState.shouldPlay && !manualPaused
+    : localWantPlay
 
-  const showFriendNudge = enabled && missingBuddy
+  const stageChewNudge = isViewer
+    ? remoteState.showChewNudge && !manualPaused
+    : machine.showNudge && cameraEnabled && !manualPaused
 
-  // PiP only when camera is actually running (same stream / landmarker)
-  const pipActive = settings.showRecognitionPreview && enabled && status.kind === 'ready'
+  const stageBlinkNudge = isViewer
+    ? remoteState.showBlinkNudge
+    : blink.needsBlinkNudge && cameraEnabled
+
+  const stageFriendNudge = isViewer
+    ? remoteState.showFriendNudge
+    : showFriendNudge
+
+  const badgePhase = isViewer ? remoteState.phase : machine.phase
+  const badgeChewing = isViewer ? remoteState.isChewing : chew.isChewing
+  const badgeFaceMode = isViewer ? remoteState.faceMode : settings.faceMode
+  const badgeFaceCount = isViewer
+    ? remoteState.faceCount
+    : cameraEnabled
+      ? faceCount
+      : 0
+  const badgeMissing = isViewer ? remoteState.showFriendNudge : showFriendNudge
+
+  const pipActive =
+    isCombined &&
+    settings.showRecognitionPreview &&
+    cameraEnabled &&
+    status.kind === 'ready'
+
+  const enterController = (code: string) => {
+    setEnabled(false)
+    setManualPaused(false)
+    setRole('controller')
+    setRoom(code)
+  }
+
+  const enterViewer = (code: string) => {
+    setEnabled(false)
+    setManualPaused(false)
+    setRole('viewer')
+    setRoom(code)
+  }
+
+  const leaveSplit = () => {
+    setEnabled(false)
+    setRole('combined')
+    setRoom(null)
+  }
+
+  const tagline = isController
+    ? '이 휴대폰으로 얼굴을 봐요'
+    : isViewer
+      ? '이 화면에서 영상을 봐요'
+      : '씹으면 나와요 · 깜빡깜빡도 해요'
 
   return (
-    <div className="app">
+    <div className={`app role-${role}`}>
       <header className="app-header">
         <p className="brand">냠냠 시청</p>
-        <p className="tagline">씹으면 나와요 · 깜빡깜빡도 해요</p>
+        <p className="tagline">{tagline}</p>
       </header>
 
       <main className="app-main layout-m2">
         <div className="col-media">
-          <PlaybackStage
-            source={playbackSource}
-            shouldPlay={wantPlay}
-            showChewNudge={machine.showNudge && enabled && !manualPaused}
-            showBlinkNudge={blink.needsBlinkNudge && enabled}
-            showFriendNudge={showFriendNudge}
-            resumeNeed={settings.resumeCycles}
-            resumeHave={machine.resumeProgress}
-            secSinceLastBlink={blink.secSinceLastBlink}
-            showHud={settings.showDebug && enabled}
-            hud={{
-              jawOpen: latest?.jawOpen ?? 0,
-              chewScore: chew.score,
-              isChewing: chew.isChewing,
-              phase: machine.phase,
-              noChewSec: machine.noChewSec,
-              effectivePauseSec: machine.effectivePauseSec,
-            }}
-            recognitionSlot={
-              pipActive ? (
-                <CameraFeed
-                  videoRef={videoRef}
-                  canvasRef={canvasRef}
-                  faceLost={faceLost}
-                  missingBuddy={showFriendNudge}
-                  variant="pip"
-                />
-              ) : null
-            }
-            onManualPause={() => setManualPaused(true)}
-            onManualPlay={() => setManualPaused(false)}
-          />
-          <CameraPanel
-            videoRef={videoRef}
-            canvasRef={canvasRef}
-            faceLost={enabled && status.kind === 'ready' && faceLost}
-            missingBuddy={showFriendNudge}
-            statusLabel={statusLabel}
-            showFeed={!pipActive}
-            streamInfo={enabled ? streamInfo : null}
-            note={
-              pipActive
-                ? '인식 화면은 영상 오른쪽 위에 작게 보여요.'
-                : undefined
-            }
-          />
+          {isController ? (
+            <div className="controller-stage-placeholder" role="status">
+              <p className="controller-stage-title">영상은 다른 화면에서</p>
+              <p className="controller-stage-sub">
+                TV·아이패드에서 코드를 넣고 유튜브를 고르면, 이 휴대폰이
+                재생·멈춤을 보내요.
+              </p>
+              {room ? (
+                <p className="controller-stage-code">코드 {room}</p>
+              ) : null}
+            </div>
+          ) : (
+            <PlaybackStage
+              source={playbackSource}
+              shouldPlay={stageShouldPlay}
+              showChewNudge={stageChewNudge}
+              showBlinkNudge={stageBlinkNudge}
+              showFriendNudge={stageFriendNudge}
+              resumeNeed={
+                isViewer ? remoteState.resumeNeed : settings.resumeCycles
+              }
+              resumeHave={
+                isViewer ? remoteState.resumeHave : machine.resumeProgress
+              }
+              secSinceLastBlink={
+                isViewer
+                  ? remoteState.secSinceLastBlink
+                  : blink.secSinceLastBlink
+              }
+              showHud={settings.showDebug && (isViewer || cameraEnabled)}
+              hud={{
+                jawOpen: latest?.jawOpen ?? 0,
+                chewScore: chew.score,
+                isChewing: badgeChewing,
+                phase: badgePhase,
+                noChewSec: machine.noChewSec,
+                effectivePauseSec: machine.effectivePauseSec,
+              }}
+              recognitionSlot={
+                pipActive ? (
+                  <CameraFeed
+                    videoRef={videoRef}
+                    canvasRef={canvasRef}
+                    faceLost={faceLost}
+                    missingBuddy={showFriendNudge}
+                    variant="pip"
+                  />
+                ) : null
+              }
+              onManualPause={() => setManualPaused(true)}
+              onManualPlay={() => setManualPaused(false)}
+            />
+          )}
+
+          {!isViewer ? (
+            <CameraPanel
+              videoRef={videoRef}
+              canvasRef={canvasRef}
+              faceLost={cameraEnabled && status.kind === 'ready' && faceLost}
+              missingBuddy={showFriendNudge}
+              statusLabel={statusLabel}
+              showFeed={!pipActive}
+              streamInfo={cameraEnabled ? streamInfo : null}
+              note={
+                isController
+                  ? peerConnected
+                    ? '영상 화면에 연결됐어요.'
+                    : '영상 화면이 코드를 입력하기를 기다려요.'
+                  : pipActive
+                    ? '인식 화면은 영상 오른쪽 위에 작게 보여요.'
+                    : undefined
+              }
+            />
+          ) : (
+            <p className="viewer-camera-note">{statusLabel}</p>
+          )}
         </div>
 
         <aside className="side-panel">
           <StatusBadges
-            phase={machine.phase}
-            isChewing={chew.isChewing}
-            faceMode={settings.faceMode}
-            faceCount={enabled ? faceCount : 0}
-            missingBuddy={showFriendNudge}
+            phase={badgePhase}
+            isChewing={badgeChewing}
+            faceMode={badgeFaceMode}
+            faceCount={badgeFaceCount}
+            missingBuddy={badgeMissing}
           />
 
-          <h2>같이 먹어요</h2>
+          <PairingPanel
+            role={role}
+            room={room}
+            peerConnected={peerConnected}
+            syncStatus={syncStatus}
+            syncError={syncError}
+            onEnterController={enterController}
+            onEnterViewer={enterViewer}
+            onLeaveSplit={leaveSplit}
+          />
 
-          <div className="face-mode" role="group" aria-label="몇 명인가요">
-            <p className="face-mode-label">몇 명이 먹나요?</p>
-            <div className="face-mode-tabs">
-              <button
-                type="button"
-                className={`btn face-mode-btn ${settings.faceMode === 1 ? 'primary' : ''}`}
-                aria-pressed={settings.faceMode === 1}
-                onClick={() => setFaceMode(1)}
-              >
-                1명
-              </button>
-              <button
-                type="button"
-                className={`btn face-mode-btn ${settings.faceMode === 2 ? 'primary' : ''}`}
-                aria-pressed={settings.faceMode === 2}
-                onClick={() => setFaceMode(2)}
-              >
-                2명
-              </button>
-            </div>
-            <p className="face-mode-rule">
-              {settings.faceMode === 1
-                ? '한 명이 씹어야 영상이 나와요.'
-                : '두 명이 다 화면에 나오고, 둘 다 씹어야 영상이 나와요. 한 명만 보이면 「친구도 화면에 나와요」.'}
-            </p>
-          </div>
+          <h2>{isViewer ? '영상 고르기' : '같이 먹어요'}</h2>
 
-          <div className="btn-row start-row">
-            <button
-              type="button"
-              className="btn primary btn-start"
-              onClick={() => {
-                multiChewRef.current.reset()
-                blinkRefs.current.forEach((b) => b.reset())
-                fsmRef.current.reset()
-                setManualPaused(false)
-                setEnabled(true)
-              }}
-              disabled={enabled && status.kind !== 'error'}
-            >
-              시작
-            </button>
-            <button
-              type="button"
-              className="btn btn-stop"
-              onClick={() => setEnabled(false)}
-              disabled={!enabled}
-            >
-              중지
-            </button>
-          </div>
+          {!isViewer && (
+            <>
+              <div className="face-mode" role="group" aria-label="몇 명인가요">
+                <p className="face-mode-label">몇 명이 먹나요?</p>
+                <div className="face-mode-tabs">
+                  <button
+                    type="button"
+                    className={`btn face-mode-btn ${settings.faceMode === 1 ? 'primary' : ''}`}
+                    aria-pressed={settings.faceMode === 1}
+                    onClick={() => setFaceMode(1)}
+                  >
+                    1명
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn face-mode-btn ${settings.faceMode === 2 ? 'primary' : ''}`}
+                    aria-pressed={settings.faceMode === 2}
+                    onClick={() => setFaceMode(2)}
+                  >
+                    2명
+                  </button>
+                </div>
+                <p className="face-mode-rule">
+                  {settings.faceMode === 1
+                    ? '한 명이 씹어야 영상이 나와요.'
+                    : '두 명이 다 화면에 나오고, 둘 다 씹어야 영상이 나와요. 한 명만 보이면 「친구도 화면에 나와요」.'}
+                </p>
+              </div>
 
-          {!isStandalone && (
+              <div className="btn-row start-row">
+                <button
+                  type="button"
+                  className="btn primary btn-start"
+                  onClick={() => {
+                    multiChewRef.current.reset()
+                    blinkRefs.current.forEach((b) => b.reset())
+                    fsmRef.current.reset()
+                    setManualPaused(false)
+                    setEnabled(true)
+                  }}
+                  disabled={cameraEnabled && status.kind !== 'error'}
+                >
+                  시작
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-stop"
+                  onClick={() => setEnabled(false)}
+                  disabled={!cameraEnabled}
+                >
+                  중지
+                </button>
+              </div>
+            </>
+          )}
+
+          {!isStandalone && !isViewer && (
             <p className="a2hs-tip" role="note">
               Safari에서는 주소창이 남을 수 있어요. 주소창을 없애려면{' '}
               <strong>공유 → 홈 화면에 추가</strong> 한 뒤, 홈 아이콘으로
@@ -358,88 +529,98 @@ function App() {
             </p>
           )}
 
-          <label className="check-row preview-toggle">
-            <input
-              type="checkbox"
-              checked={settings.showRecognitionPreview}
-              onChange={(e) =>
-                setSettings((s) => ({
-                  ...s,
-                  showRecognitionPreview: e.target.checked,
-                }))
-              }
-            />
-            인식 화면 보기
-            <span className="preview-toggle-hint">
-              (켜면 영상 위에 작게 보여요 · 기본 꺼짐)
-            </span>
-          </label>
+          {isCombined && (
+            <label className="check-row preview-toggle">
+              <input
+                type="checkbox"
+                checked={settings.showRecognitionPreview}
+                onChange={(e) =>
+                  setSettings((s) => ({
+                    ...s,
+                    showRecognitionPreview: e.target.checked,
+                  }))
+                }
+              />
+              인식 화면 보기
+              <span className="preview-toggle-hint">
+                (켜면 영상 위에 작게 보여요 · 기본 꺼짐)
+              </span>
+            </label>
+          )}
 
-          <div className="mode-tabs" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mediaMode === 'youtube'}
-              className={`btn ${mediaMode === 'youtube' ? 'primary' : ''}`}
-              onClick={() => setMediaMode('youtube')}
-            >
-              유튜브
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mediaMode === 'local'}
-              className={`btn ${mediaMode === 'local' ? 'primary' : ''}`}
-              onClick={() => setMediaMode('local')}
-            >
-              내 파일
-            </button>
-          </div>
+          {!isController && (
+            <>
+              <div className="mode-tabs" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mediaMode === 'youtube'}
+                  className={`btn ${mediaMode === 'youtube' ? 'primary' : ''}`}
+                  onClick={() => setMediaMode('youtube')}
+                >
+                  유튜브
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mediaMode === 'local'}
+                  className={`btn ${mediaMode === 'local' ? 'primary' : ''}`}
+                  onClick={() => setMediaMode('local')}
+                >
+                  내 파일
+                </button>
+              </div>
 
-          {mediaMode === 'youtube' ? (
-            <YoutubePicker
-              activeId={ytMeta?.id ?? null}
-              onSelect={(meta) => {
-                setYtMeta(meta)
-                setMediaMode('youtube')
-              }}
-            />
-          ) : (
-            <div className="file-row">
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  setLocalSrc(SAMPLE_VIDEO)
-                  setMediaMode('local')
-                }}
-              >
-                샘플 영상
-              </button>
-              <label className="btn file-btn">
-                파일 선택
-                <input
-                  type="file"
-                  accept="video/*"
-                  hidden
-                  onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
+              {mediaMode === 'youtube' ? (
+                <YoutubePicker
+                  activeId={ytMeta?.id ?? null}
+                  onSelect={(meta) => {
+                    setYtMeta(meta)
+                    setMediaMode('youtube')
+                  }}
                 />
-              </label>
-            </div>
+              ) : (
+                <div className="file-row">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setLocalSrc(SAMPLE_VIDEO)
+                      setMediaMode('local')
+                    }}
+                  >
+                    샘플 영상
+                  </button>
+                  <label className="btn file-btn">
+                    파일 선택
+                    <input
+                      type="file"
+                      accept="video/*"
+                      hidden
+                      onChange={(e) =>
+                        onPickFile(e.target.files?.[0] ?? null)
+                      }
+                    />
+                  </label>
+                </div>
+              )}
+
+              {ytMeta && mediaMode === 'youtube' && (
+                <p className="now-playing">지금: {ytMeta.title}</p>
+              )}
+            </>
           )}
 
-          {ytMeta && mediaMode === 'youtube' && (
-            <p className="now-playing">지금: {ytMeta.title}</p>
+          {!isViewer && (
+            <SettingsPanel
+              settings={settings}
+              onChange={setSettings}
+              habitualGapSec={chew.habitualGapSec}
+              effectivePauseSec={machine.effectivePauseSec}
+            />
           )}
 
-          <SettingsPanel
-            settings={settings}
-            onChange={setSettings}
-            habitualGapSec={chew.habitualGapSec}
-            effectivePauseSec={machine.effectivePauseSec}
-          />
-
-          {settings.showDebug && (
+          {settings.showDebug && !isViewer && (
             <dl className="metrics">
               <div>
                 <dt>faces</dt>
@@ -473,12 +654,15 @@ function App() {
           )}
 
           <p className="hint">
-            <strong>시작</strong> → 얼굴 비추고 씹어요. 화면 가장자리를
-            누르면 일시정지·전체화면이 잠깐 보여요.
+            {isController
+              ? '시작 → 얼굴을 비추고 씹어요. 영상은 연결된 화면에서 나와요.'
+              : isViewer
+                ? '유튜브를 고른 뒤, 휴대폰에서 시작을 누르면 씹을 때 재생돼요.'
+                : '시작 → 얼굴 비추고 씹어요. 화면 가장자리를 누르면 일시정지·전체화면이 잠깐 보여요.'}
           </p>
 
           <p className="privacy">
-            얼굴은 이 기기에서만 봐요. 유튜브 재생은 YouTube로 연결돼요.
+            얼굴은 인식하는 기기에서만 봐요. 유튜브 재생은 YouTube로 연결돼요.
           </p>
         </aside>
       </main>
