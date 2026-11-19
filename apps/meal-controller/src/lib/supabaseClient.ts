@@ -1,22 +1,33 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 /**
- * Public anon client for Realtime broadcast rooms only.
- * Same project as the EVKMC portal (key already shipped in public/js/config.js).
+ * Optional Supabase client (EVKMC portal project).
+ * Meal-controller split pairing no longer depends on this — the previous
+ * project host `sesedcotooihnpjklqzs.supabase.co` resolves NXDOMAIN, so room
+ * sync uses MQTT (`mqttRoomClient.ts`) instead.
+ *
+ * If you later restore a Realtime project, set VITE_SUPABASE_URL / ANON_KEY;
+ * pairing still uses MQTT unless the transport is switched back intentionally.
  */
-const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL ??
-  'https://sesedcotooihnpjklqzs.supabase.co'
-
-const SUPABASE_ANON_KEY =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ??
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlc2VkY290b29paG5wamtscXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjA5ODAsImV4cCI6MjA3NDgzNjk4MH0.AcbNoC19S_shBKXXs6-2LOo0KSnZ_Mk1ZejZtUX1EmI'
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as
+  | string
+  | undefined
 
 let client: SupabaseClient | null = null
 
+export function isSupabaseConfigured(): boolean {
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
+}
+
 export function getSupabase(): SupabaseClient {
+  if (!isSupabaseConfigured()) {
+    throw new Error(
+      'Supabase 설정이 없어요. 기기 나누기는 기본 MQTT 연결을 써요.',
+    )
+  }
   if (!client) {
-    client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    client = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,

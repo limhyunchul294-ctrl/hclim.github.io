@@ -1153,6 +1153,10 @@ html.meal-css-fs body {
   color: var(--ok);
 }
 
+.pairing-link.err {
+  color: var(--danger);
+}
+
 .pairing-code-big {
   margin: 0.15rem 0;
   font-size: clamp(1.8rem, 6vw, 2.4rem);

@@ -109,12 +109,21 @@ export function PairingPanel({
 
   const linkLabel =
     syncStatus === 'linked' || peerConnected
-      ? '연결됨'
+      ? '연결됐어요'
       : syncStatus === 'connecting'
-        ? '연결 중…'
+        ? '연결하는 중…'
         : syncStatus === 'error'
-          ? '연결 실패'
-          : '상대 기기 기다리는 중…'
+          ? '연결이 안 됐어요'
+          : syncStatus === 'waiting'
+            ? '상대 기기 기다리는 중…'
+            : '준비 중…'
+
+  const waitingHint =
+    syncStatus === 'waiting' && !peerConnected
+      ? role === 'controller'
+        ? '아직 TV·아이패드가 안 들어왔어요. 같은 6자리 코드를 넣어 주세요.'
+        : '아직 휴대폰이 안 들어왔어요. 휴대폰에 나온 같은 코드를 확인해 주세요.'
+      : null
 
   return (
     <section
@@ -123,7 +132,9 @@ export function PairingPanel({
     >
       <div className="pairing-role-chip">
         {role === 'controller' ? '인식 휴대폰' : '영상 화면'}
-        <span className={`pairing-link ${peerConnected ? 'on' : ''}`}>
+        <span
+          className={`pairing-link ${peerConnected ? 'on' : ''} ${syncStatus === 'error' ? 'err' : ''}`}
+        >
           {linkLabel}
         </span>
       </div>
@@ -171,7 +182,17 @@ export function PairingPanel({
         </>
       ) : null}
 
-      {syncError ? <p className="pairing-error">{syncError}</p> : null}
+      {waitingHint ? <p className="pairing-hint">{waitingHint}</p> : null}
+      {syncError ? (
+        <p className="pairing-error" role="alert">
+          {syncError}
+        </p>
+      ) : null}
+      {syncStatus === 'error' ? (
+        <p className="pairing-hint">
+          코드를 다시 치거나, Wi‑Fi·데이터를 켠 뒤 한 번 더 눌러 보세요.
+        </p>
+      ) : null}
 
       <button type="button" className="btn btn-tiny" onClick={onLeaveSplit}>
         기기 나누기 끄기

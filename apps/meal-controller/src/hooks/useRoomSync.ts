@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { RealtimeChannel } from '@supabase/supabase-js'
-import { channelNameForRoom } from '../lib/roomCode'
-import { getSupabase } from '../lib/supabaseClient'
+import { connectRoomMqtt } from '../lib/mqttRoomClient'
 import {
   isRemoteControlState,
   type RemoteControlState,
@@ -17,7 +15,7 @@ type Options = {
   enabled?: boolean
 }
 
-type SyncStatus =
+export type SyncStatus =
   | 'idle'
   | 'connecting'
   | 'waiting'
@@ -35,27 +33,19 @@ export function useRoomSync({
   const [peerConnected, setPeerConnected] = useState(false)
   const [remote, setRemote] = useState<RemoteControlState | null>(null)
 
-  const channelRef = useRef<RealtimeChannel | null>(null)
+  const publishRef = useRef<((payload: unknown) => void) | null>(null)
   const lastSentRef = useRef(0)
   const lastPayloadRef = useRef('')
   const roleRef = useRef(role)
   roleRef.current = role
 
-  const cleanup = useCallback(async () => {
-    const ch = channelRef.current
-    channelRef.current = null
-    if (ch) {
-      try {
-        await getSupabase().removeChannel(ch)
-      } catch {
-        /* ignore */
-      }
-    }
+  const cleanup = useCallback(() => {
+    publishRef.current = null
   }, [])
 
   useEffect(() => {
     if (!enabled || !room || !role) {
-      void cleanup()
+      cleanup()
       setStatus('idle')
       setPeerConnected(false)
       setRemote(null)
@@ -63,75 +53,64 @@ export function useRoomSync({
       return
     }
 
-    let cancelled = false
+    let disposed = false
     setStatus('connecting')
     setError(null)
     setPeerConnected(false)
 
-    const supabase = getSupabase()
-    const channel = supabase.channel(channelNameForRoom(room), {
-      config: {
-        broadcast: { self: false },
-        presence: { key: `${role}-${Math.random().toString(36).slice(2, 8)}` },
-      },
-    })
-    channelRef.current = channel
-
-    channel.on('broadcast', { event: 'control' }, ({ payload }) => {
-      if (roleRef.current !== 'viewer') return
-      if (isRemoteControlState(payload)) {
-        setRemote(payload)
-      }
-    })
-
-    channel.on('presence', { event: 'sync' }, () => {
-      const state = channel.presenceState() as Record<
-        string,
-        Array<{ role?: string }>
-      >
-      const roles = new Set<string>()
-      for (const key of Object.keys(state)) {
-        for (const meta of state[key] ?? []) {
-          if (meta?.role) roles.add(meta.role)
-        }
-      }
-      const wantPeer = roleRef.current === 'controller' ? 'viewer' : 'controller'
-      const linked = roles.has(wantPeer)
-      setPeerConnected(linked)
-      setStatus(linked ? 'linked' : 'waiting')
-    })
-
-    channel.subscribe(async (subStatus) => {
-      if (cancelled) return
-      if (subStatus === 'SUBSCRIBED') {
-        try {
-          await channel.track({ role, at: Date.now() })
+    const clientKey = `${role}-${Math.random().toString(36).slice(2, 8)}`
+    const session = connectRoomMqtt({
+      room,
+      role,
+      clientKey,
+      onStatus: (s, detail) => {
+        if (disposed) return
+        if (s === 'connecting') {
+          setStatus('connecting')
+          setError(null)
+        } else if (s === 'connected') {
           setStatus('waiting')
-        } catch (err) {
+          setError(null)
+        } else if (s === 'error') {
           setStatus('error')
           setError(
-            err instanceof Error ? err.message : '방에 연결하지 못했어요.',
+            detail ??
+              '연결이 안 됐어요. 같은 코드인지, 인터넷이 되는지를 확인해 주세요.',
           )
         }
-      } else if (
-        subStatus === 'CHANNEL_ERROR' ||
-        subStatus === 'TIMED_OUT' ||
-        subStatus === 'CLOSED'
-      ) {
-        setStatus('error')
-        setError('연결이 끊겼어요. 코드를 다시 확인해 주세요.')
-      }
+      },
+      onPresence: (roles) => {
+        if (disposed) return
+        const wantPeer = roleRef.current === 'controller' ? 'viewer' : 'controller'
+        const linked = roles.has(wantPeer)
+        setPeerConnected(linked)
+        setStatus((prev) => {
+          if (prev === 'error' || prev === 'idle') return prev
+          return linked ? 'linked' : 'waiting'
+        })
+      },
+      onControl: (payload) => {
+        if (disposed) return
+        if (roleRef.current !== 'viewer') return
+        if (isRemoteControlState(payload)) {
+          setRemote(payload)
+        }
+      },
     })
 
+    publishRef.current = session.publishControl
+
     return () => {
-      cancelled = true
-      void cleanup()
+      disposed = true
+      publishRef.current = null
+      session.dispose()
+      cleanup()
     }
   }, [cleanup, enabled, room, role])
 
   // Controller → broadcast (throttle ~8Hz, skip identical payloads)
   useEffect(() => {
-    if (!enabled || role !== 'controller' || !outbound || !channelRef.current) {
+    if (!enabled || role !== 'controller' || !outbound || !publishRef.current) {
       return
     }
     const now = performance.now()
@@ -155,11 +134,7 @@ export function useRoomSync({
     if (now - lastSentRef.current < 80) return
     lastSentRef.current = now
     lastPayloadRef.current = json
-    void channelRef.current.send({
-      type: 'broadcast',
-      event: 'control',
-      payload: outbound,
-    })
+    publishRef.current(outbound)
   }, [enabled, outbound, role])
 
   return {

@@ -61,6 +61,7 @@ export function controllerPairUrl(room: string): string {
   return url.toString()
 }
 
+/** @deprecated Prefer mqttTopics() — kept for docs / URL debugging. */
 export function channelNameForRoom(room: string): string {
-  return `nyam-meal-${room}`
+  return `nyam-controller/v1/${room}`
 }
