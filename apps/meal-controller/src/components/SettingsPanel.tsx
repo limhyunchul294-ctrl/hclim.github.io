@@ -6,6 +6,8 @@ type Props = {
   onChange: (next: ControllerSettings) => void
   habitualGapSec?: number
   effectivePauseSec?: number
+  /** Phone controller: open fine controls by default for live tuning. */
+  defaultOpen?: boolean
 }
 
 function SliderRow({
@@ -53,8 +55,9 @@ export function SettingsPanel({
   onChange,
   habitualGapSec = 0,
   effectivePauseSec,
+  defaultOpen = false,
 }: Props) {
-  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(defaultOpen)
 
   const set = <K extends keyof ControllerSettings>(
     key: K,

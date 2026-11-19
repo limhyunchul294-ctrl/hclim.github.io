@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CameraFeed } from './components/CameraFeed'
 import { CameraPanel } from './components/CameraPanel'
+import { ControllerTransport } from './components/ControllerTransport'
 import { PairingPanel } from './components/PairingPanel'
 import {
   PlaybackStage,
@@ -72,6 +73,8 @@ function App() {
   const [localSrc, setLocalSrc] = useState<string | null>(null)
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
   const [manualPaused, setManualPaused] = useState(false)
+  /** Parent 「재생」 boost — TV plays until pause or chew FSM auto-pauses. */
+  const [forcePlay, setForcePlay] = useState(false)
   const [missingBuddy, setMissingBuddy] = useState(false)
 
   const [chew, setChew] = useState<ChewSnapshot>({
@@ -189,11 +192,25 @@ function App() {
 
   const { videoRef, canvasRef, status, faceLost, faceCount, streamInfo } =
     useCameraLandmarker({
-      showMesh: settings.showMesh || settings.showRecognitionPreview,
+      // Controller: always show mesh while session runs so parents can tune
+      showMesh:
+        settings.showMesh ||
+        settings.showRecognitionPreview ||
+        (isController && cameraEnabled),
       cameraZoom: settings.cameraZoom,
       onFrame,
       enabled: cameraEnabled,
     })
+
+  // Chew FSM auto-pause wins over parent 「재생」 boost (only on transition → PAUSED)
+  const prevPhaseRef = useRef(machine.phase)
+  useEffect(() => {
+    const prev = prevPhaseRef.current
+    prevPhaseRef.current = machine.phase
+    if (forcePlay && prev !== 'PAUSED' && machine.phase === 'PAUSED') {
+      setForcePlay(false)
+    }
+  }, [forcePlay, machine.phase])
 
   const dryEyeBlocksPlay =
     settings.pauseOnDryEye && blink.needsBlinkNudge && cameraEnabled
@@ -201,11 +218,11 @@ function App() {
   const showFriendNudge = cameraEnabled && missingBuddy
 
   const localWantPlay =
-    machine.shouldPlay &&
     cameraEnabled &&
     !dryEyeBlocksPlay &&
     !manualPaused &&
-    !missingBuddy
+    !missingBuddy &&
+    (forcePlay || machine.shouldPlay)
 
   const outbound: RemoteControlState | null = useMemo(() => {
     if (!isController) return null
@@ -333,6 +350,7 @@ function App() {
   const enterController = (code: string) => {
     setEnabled(false)
     setManualPaused(false)
+    setForcePlay(false)
     setRole('controller')
     setRoom(code)
   }
@@ -340,14 +358,26 @@ function App() {
   const enterViewer = (code: string) => {
     setEnabled(false)
     setManualPaused(false)
+    setForcePlay(false)
     setRole('viewer')
     setRoom(code)
   }
 
   const leaveSplit = () => {
     setEnabled(false)
+    setForcePlay(false)
     setRole('combined')
     setRoom(null)
+  }
+
+  const onParentPause = () => {
+    setManualPaused(true)
+    setForcePlay(false)
+  }
+
+  const onParentPlay = () => {
+    setManualPaused(false)
+    setForcePlay(true)
   }
 
   const tagline = isController
@@ -366,14 +396,32 @@ function App() {
       <main className="app-main layout-m2">
         <div className="col-media">
           {isController ? (
-            <div className="controller-stage-placeholder" role="status">
-              <p className="controller-stage-title">영상은 다른 화면에서</p>
-              <p className="controller-stage-sub">
-                TV·아이패드에서 코드를 넣고 유튜브를 고르면, 이 휴대폰이
-                재생·멈춤을 보내요.
-              </p>
+            <div className="controller-hero">
+              <p className="controller-hero-label">인식 카메라 (이 휴대폰)</p>
+              <CameraPanel
+                videoRef={videoRef}
+                canvasRef={canvasRef}
+                faceLost={cameraEnabled && status.kind === 'ready' && faceLost}
+                missingBuddy={showFriendNudge}
+                statusLabel={statusLabel}
+                showFeed
+                streamInfo={cameraEnabled ? streamInfo : null}
+                note={
+                  peerConnected
+                    ? '영상 화면에 연결됐어요. 아래 재생·일시정지가 TV로 가요.'
+                    : '영상 화면이 코드를 입력하기를 기다려요.'
+                }
+              />
+              <ControllerTransport
+                sessionOn={cameraEnabled}
+                broadcastingPlay={localWantPlay}
+                manualPaused={manualPaused}
+                peerConnected={peerConnected}
+                onPause={onParentPause}
+                onPlay={onParentPlay}
+              />
               {room ? (
-                <p className="controller-stage-code">코드 {room}</p>
+                <p className="controller-stage-code subtle">코드 {room}</p>
               ) : null}
             </div>
           ) : (
@@ -414,12 +462,12 @@ function App() {
                   />
                 ) : null
               }
-              onManualPause={() => setManualPaused(true)}
-              onManualPlay={() => setManualPaused(false)}
+              onManualPause={onParentPause}
+              onManualPlay={onParentPlay}
             />
           )}
 
-          {!isViewer ? (
+          {isCombined ? (
             <CameraPanel
               videoRef={videoRef}
               canvasRef={canvasRef}
@@ -429,18 +477,16 @@ function App() {
               showFeed={!pipActive}
               streamInfo={cameraEnabled ? streamInfo : null}
               note={
-                isController
-                  ? peerConnected
-                    ? '영상 화면에 연결됐어요.'
-                    : '영상 화면이 코드를 입력하기를 기다려요.'
-                  : pipActive
-                    ? '인식 화면은 영상 오른쪽 위에 작게 보여요.'
-                    : undefined
+                pipActive
+                  ? '인식 화면은 영상 오른쪽 위에 작게 보여요.'
+                  : undefined
               }
             />
-          ) : (
+          ) : null}
+
+          {isViewer ? (
             <p className="viewer-camera-note">{statusLabel}</p>
-          )}
+          ) : null}
         </div>
 
         <aside className="side-panel">
@@ -503,6 +549,7 @@ function App() {
                     blinkRefs.current.forEach((b) => b.reset())
                     fsmRef.current.reset()
                     setManualPaused(false)
+                    setForcePlay(false)
                     setEnabled(true)
                   }}
                   disabled={cameraEnabled && status.kind !== 'error'}
@@ -512,7 +559,11 @@ function App() {
                 <button
                   type="button"
                   className="btn btn-stop"
-                  onClick={() => setEnabled(false)}
+                  onClick={() => {
+                    setEnabled(false)
+                    setForcePlay(false)
+                    setManualPaused(false)
+                  }}
                   disabled={!cameraEnabled}
                 >
                   중지
@@ -613,10 +664,12 @@ function App() {
 
           {!isViewer && (
             <SettingsPanel
+              key={isController ? 'settings-controller' : 'settings-combined'}
               settings={settings}
               onChange={setSettings}
               habitualGapSec={chew.habitualGapSec}
               effectivePauseSec={machine.effectivePauseSec}
+              defaultOpen={isController}
             />
           )}
 
@@ -655,7 +708,7 @@ function App() {
 
           <p className="hint">
             {isController
-              ? '시작 → 얼굴을 비추고 씹어요. 영상은 연결된 화면에서 나와요.'
+              ? '시작 → 인식 화면을 보고 설정을 맞춰요. 재생·일시정지는 TV로 보내요. 씹기 자동 멈춤은 그대로예요.'
               : isViewer
                 ? '유튜브를 고른 뒤, 휴대폰에서 시작을 누르면 씹을 때 재생돼요.'
                 : '시작 → 얼굴 비추고 씹어요. 화면 가장자리를 누르면 일시정지·전체화면이 잠깐 보여요.'}
