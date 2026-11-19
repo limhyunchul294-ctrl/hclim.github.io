@@ -255,12 +255,17 @@ html.meal-css-fs body {
 }
 
 .recognition-pip .camera-video,
-.recognition-pip .camera-overlay {
+.recognition-pip .camera-overlay,
+.recognition-pip .camera-feed-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.recognition-pip .camera-video-source {
+  opacity: 0;
 }
 
 .recognition-pip .face-lost-banner {
@@ -940,13 +945,26 @@ html.meal-css-fs body {
   object-fit: cover;
 }
 
-.camera-video {
-  transform: scaleX(-1);
+/* Raw stream stays mounted for getUserMedia; preview is the zoomed canvas. */
+.camera-video-source {
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
 }
 
-.camera-overlay {
+.camera-feed-canvas {
   transform: scaleX(-1);
   pointer-events: none;
+  z-index: 1;
+  object-fit: contain;
+  background: #000;
+}
+
+.camera-stream-meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
 }
 
 .face-lost-banner {

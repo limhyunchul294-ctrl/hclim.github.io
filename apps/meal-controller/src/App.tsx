@@ -166,10 +166,11 @@ function App() {
     })
   }, [])
 
-  const { videoRef, canvasRef, status, faceLost, faceCount } =
+  const { videoRef, canvasRef, status, faceLost, faceCount, streamInfo } =
     useCameraLandmarker({
       // Draw landmarks in PiP so parents can see recognition without 세밀 설정
       showMesh: settings.showMesh || settings.showRecognitionPreview,
+      cameraZoom: settings.cameraZoom,
       onFrame,
       enabled,
     })
@@ -277,6 +278,7 @@ function App() {
             missingBuddy={showFriendNudge}
             statusLabel={statusLabel}
             showFeed={!pipActive}
+            streamInfo={enabled ? streamInfo : null}
             note={
               pipActive
                 ? '인식 화면은 영상 오른쪽 위에 작게 보여요.'
