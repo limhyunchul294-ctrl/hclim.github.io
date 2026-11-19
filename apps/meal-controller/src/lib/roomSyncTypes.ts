@@ -1,4 +1,5 @@
 import type { ControllerSettings, FaceMode, PlayerPhase } from './types'
+import { normalizeYtMedia, type YtMediaState } from './ytMedia'
 
 /** Viewer → phone: detection + nudge + effective play state. */
 export type DetectBroadcast = {
@@ -30,6 +31,11 @@ export type CommandBroadcast = {
   settings: ControllerSettings
   /** Phone wants JPEG thumbnails of the viewer recognition camera. */
   wantPreview: boolean
+  /**
+   * YouTube volume / mute / rate / seek — applied on the viewer player.
+   * Older phones may omit this field.
+   */
+  ytMedia?: YtMediaState
   ts: number
 }
 
@@ -120,6 +126,12 @@ export function isCommandBroadcast(x: unknown): x is CommandBroadcast {
   // Older phones omit wantPreview — treat as off
   if (typeof o.wantPreview !== 'boolean') {
     ;(o as { wantPreview: boolean }).wantPreview = false
+  }
+  // Older phones omit ytMedia — fill defaults so viewers can still apply
+  if (o.ytMedia != null && typeof o.ytMedia === 'object') {
+    ;(o as { ytMedia: YtMediaState }).ytMedia = normalizeYtMedia(
+      o.ytMedia as Partial<YtMediaState>,
+    )
   }
   return true
 }

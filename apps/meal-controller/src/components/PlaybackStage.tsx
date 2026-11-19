@@ -8,6 +8,7 @@ import {
   onFullscreenChange,
   requestAppFullscreen,
 } from '../lib/fullscreen'
+import type { YtMediaState } from '../lib/ytMedia'
 import type { YtPlayer } from '../lib/youtubeApi'
 import { BlinkEyesArt, ChewMouthArt, PostureNeckArt } from './NudgeArt'
 
@@ -42,6 +43,8 @@ type Props = {
   recognitionSlot?: ReactNode
   onManualPause: () => void
   onManualPlay: () => void
+  /** Volume / mute / rate / seek — YouTube quality is intentionally unsupported. */
+  ytMedia?: YtMediaState | null
 }
 
 const YT_PLAYING = 1
@@ -66,12 +69,15 @@ export function PlaybackStage({
   recognitionSlot = null,
   onManualPause,
   onManualPlay,
+  ytMedia = null,
 }: Props) {
   const shellRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const ytHostRef = useRef<HTMLDivElement | null>(null)
   const playerRef = useRef<YtPlayer | null>(null)
   const shouldPlayRef = useRef(shouldPlay)
+  const ytMediaRef = useRef(ytMedia)
+  const lastSeekSeqRef = useRef(0)
   const hideTimerRef = useRef<number>(0)
   const ytReady = useYouTubeApiReady()
   /** Native Fullscreen API (desktop). */
@@ -99,6 +105,10 @@ export function PlaybackStage({
     shouldPlayRef.current = shouldPlay
   }, [shouldPlay])
 
+  useEffect(() => {
+    ytMediaRef.current = ytMedia
+  }, [ytMedia])
+
   // Lock page scroll while CSS immersive covers the viewport
   useEffect(() => {
     if (!cssFs) return
@@ -115,6 +125,50 @@ export function PlaybackStage({
       html.classList.remove('meal-css-fs')
     }
   }, [cssFs])
+
+  const applyYtMedia = useCallback((media: YtMediaState | null | undefined) => {
+    if (!media) return
+    const p = playerRef.current
+    if (p) {
+      try {
+        p.setVolume(media.volume)
+        if (media.muted) p.mute()
+        else p.unMute()
+        p.setPlaybackRate(media.playbackRate)
+        if (media.seekSeq > lastSeekSeqRef.current) {
+          lastSeekSeqRef.current = media.seekSeq
+          const now = p.getCurrentTime()
+          const dur = p.getDuration()
+          const target = now + media.seekDeltaSec
+          const capped =
+            Number.isFinite(dur) && dur > 0
+              ? Math.min(Math.max(0, dur - 0.25), Math.max(0, target))
+              : Math.max(0, target)
+          p.seekTo(capped, true)
+        }
+      } catch {
+        /* player not ready */
+      }
+    }
+    const el = videoRef.current
+    if (el && localSrc) {
+      el.volume = Math.max(0, Math.min(1, media.volume / 100))
+      el.muted = media.muted
+      try {
+        el.playbackRate = media.playbackRate
+      } catch {
+        /* ignore unsupported rate */
+      }
+      if (media.seekSeq > lastSeekSeqRef.current) {
+        lastSeekSeqRef.current = media.seekSeq
+        const dur = Number.isFinite(el.duration) ? el.duration : el.currentTime
+        el.currentTime = Math.max(
+          0,
+          Math.min(dur, el.currentTime + media.seekDeltaSec),
+        )
+      }
+    }
+  }, [localSrc])
 
   const applyDesired = useCallback(
     (want: boolean) => {
@@ -146,6 +200,8 @@ export function PlaybackStage({
       /* ignore */
     }
     playerRef.current = null
+    // Do not replay an old seek when a new video loads
+    lastSeekSeqRef.current = ytMediaRef.current?.seekSeq ?? 0
     ytHostRef.current.innerHTML = ''
     const mount = document.createElement('div')
     ytHostRef.current.appendChild(mount)
@@ -167,6 +223,7 @@ export function PlaybackStage({
         onReady: () => {
           if (cancelled) return
           playerRef.current = player
+          applyYtMedia(ytMediaRef.current)
           applyDesired(shouldPlayRef.current)
         },
         onStateChange: (e) => {
@@ -178,6 +235,10 @@ export function PlaybackStage({
             } catch {
               /* ignore */
             }
+          }
+          // Re-apply rate/volume after cue/load resets rate to 1
+          if (e.data === YT_PLAYING || e.data === YT_BUFFERING) {
+            applyYtMedia(ytMediaRef.current)
           }
         },
       },
@@ -192,11 +253,20 @@ export function PlaybackStage({
       }
       playerRef.current = null
     }
-  }, [videoId, ytReady, applyDesired])
+  }, [videoId, ytReady, applyDesired, applyYtMedia])
 
   useEffect(() => {
     applyDesired(shouldPlay)
   }, [shouldPlay, applyDesired, videoId, localSrc])
+
+  useEffect(() => {
+    // New local file: ignore prior seek tokens (same idea as YT remount)
+    lastSeekSeqRef.current = ytMediaRef.current?.seekSeq ?? 0
+  }, [localSrc])
+
+  useEffect(() => {
+    applyYtMedia(ytMedia)
+  }, [ytMedia, applyYtMedia, videoId, localSrc])
 
   useEffect(() => {
     const id = window.setInterval(() => {
