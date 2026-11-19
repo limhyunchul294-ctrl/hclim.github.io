@@ -28,6 +28,20 @@ export type CommandBroadcast = {
   forcePlay: boolean
   manualPaused: boolean
   settings: ControllerSettings
+  /** Phone wants JPEG thumbnails of the viewer recognition camera. */
+  wantPreview: boolean
+  ts: number
+}
+
+/** Viewer → phone: compressed recognition-camera thumbnail (MQTT preview topic). */
+export type PreviewBroadcast = {
+  v: 2
+  kind: 'preview'
+  mime: 'image/jpeg'
+  /** Raw base64 (no data-URL prefix). */
+  data: string
+  w: number
+  h: number
   ts: number
 }
 
@@ -95,13 +109,32 @@ export function isDetectBroadcast(x: unknown): x is DetectBroadcast {
 export function isCommandBroadcast(x: unknown): x is CommandBroadcast {
   if (!x || typeof x !== 'object') return false
   const o = x as Record<string, unknown>
-  return (
+  const ok =
     o.v === 2 &&
     o.kind === 'command' &&
     typeof o.forcePlay === 'boolean' &&
     typeof o.manualPaused === 'boolean' &&
     o.settings != null &&
     typeof o.settings === 'object'
+  if (!ok) return false
+  // Older phones omit wantPreview — treat as off
+  if (typeof o.wantPreview !== 'boolean') {
+    ;(o as { wantPreview: boolean }).wantPreview = false
+  }
+  return true
+}
+
+export function isPreviewBroadcast(x: unknown): x is PreviewBroadcast {
+  if (!x || typeof x !== 'object') return false
+  const o = x as Record<string, unknown>
+  return (
+    o.v === 2 &&
+    o.kind === 'preview' &&
+    o.mime === 'image/jpeg' &&
+    typeof o.data === 'string' &&
+    o.data.length > 0 &&
+    typeof o.w === 'number' &&
+    typeof o.h === 'number'
   )
 }
 

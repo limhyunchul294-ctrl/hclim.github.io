@@ -3,9 +3,11 @@ import { connectRoomMqtt } from '../lib/mqttRoomClient'
 import {
   isCommandBroadcast,
   isDetectBroadcast,
+  isPreviewBroadcast,
   isRemoteControlState,
   type CommandBroadcast,
   type DetectBroadcast,
+  type PreviewBroadcast,
 } from '../lib/roomSyncTypes'
 
 type Role = 'controller' | 'viewer'
@@ -17,6 +19,8 @@ type Options = {
   outboundDetect?: DetectBroadcast | null
   /** Phone publishes play/pause + settings. */
   outboundCommand?: CommandBroadcast | null
+  /** Viewer publishes JPEG thumbnails while phone wants preview. */
+  outboundPreview?: PreviewBroadcast | null
   enabled?: boolean
 }
 
@@ -50,6 +54,7 @@ function commandFingerprint(c: CommandBroadcast): string {
     forcePlay: c.forcePlay,
     manualPaused: c.manualPaused,
     settings: c.settings,
+    wantPreview: c.wantPreview,
   })
 }
 
@@ -58,6 +63,7 @@ export function useRoomSync({
   role,
   outboundDetect = null,
   outboundCommand = null,
+  outboundPreview = null,
   enabled = true,
 }: Options) {
   const [status, setStatus] = useState<SyncStatus>('idle')
@@ -67,19 +73,25 @@ export function useRoomSync({
   const [remoteCommand, setRemoteCommand] = useState<CommandBroadcast | null>(
     null,
   )
+  const [remotePreview, setRemotePreview] = useState<PreviewBroadcast | null>(
+    null,
+  )
 
   const publishDetectRef = useRef<((payload: unknown) => void) | null>(null)
   const publishCommandRef = useRef<((payload: unknown) => void) | null>(null)
+  const publishPreviewRef = useRef<((payload: unknown) => void) | null>(null)
   const lastDetectSentRef = useRef(0)
   const lastDetectPayloadRef = useRef('')
   const lastCommandSentRef = useRef(0)
   const lastCommandPayloadRef = useRef('')
+  const lastPreviewTsRef = useRef(0)
   const roleRef = useRef(role)
   roleRef.current = role
 
   const cleanup = useCallback(() => {
     publishDetectRef.current = null
     publishCommandRef.current = null
+    publishPreviewRef.current = null
   }, [])
 
   useEffect(() => {
@@ -89,6 +101,7 @@ export function useRoomSync({
       setPeerConnected(false)
       setRemoteDetect(null)
       setRemoteCommand(null)
+      setRemotePreview(null)
       setError(null)
       return
     }
@@ -97,6 +110,7 @@ export function useRoomSync({
     setStatus('connecting')
     setError(null)
     setPeerConnected(false)
+    setRemotePreview(null)
 
     const clientKey = `${role}-${Math.random().toString(36).slice(2, 8)}`
     const session = connectRoomMqtt({
@@ -113,6 +127,7 @@ export function useRoomSync({
           setError(null)
         } else if (s === 'error') {
           setStatus('error')
+          setRemotePreview(null)
           setError(
             detail ??
               '연결이 안 됐어요. 같은 코드인지, 인터넷이 되는지를 확인해 주세요.',
@@ -125,6 +140,9 @@ export function useRoomSync({
           roleRef.current === 'controller' ? 'viewer' : 'controller'
         const linked = roles.has(wantPeer)
         setPeerConnected(linked)
+        if (!linked) {
+          setRemotePreview(null)
+        }
         setStatus((prev) => {
           if (prev === 'error' || prev === 'idle') return prev
           return linked ? 'linked' : 'waiting'
@@ -167,17 +185,27 @@ export function useRoomSync({
           setRemoteCommand(payload)
         }
       },
+      onPreview: (payload) => {
+        if (disposed) return
+        if (roleRef.current !== 'controller') return
+        if (isPreviewBroadcast(payload)) {
+          setRemotePreview(payload)
+        }
+      },
     })
 
     publishDetectRef.current = session.publishDetect
     publishCommandRef.current = session.publishCommand
+    publishPreviewRef.current = session.publishPreview
 
     return () => {
       disposed = true
       publishDetectRef.current = null
       publishCommandRef.current = null
+      publishPreviewRef.current = null
       session.dispose()
       cleanup()
+      setRemotePreview(null)
     }
   }, [cleanup, enabled, room, role])
 
@@ -226,11 +254,29 @@ export function useRoomSync({
     publishCommandRef.current(outboundCommand)
   }, [enabled, outboundCommand, role])
 
+  // Viewer → phone preview frames (already rate-limited by capture loop)
+  useEffect(() => {
+    if (
+      !enabled ||
+      role !== 'viewer' ||
+      !outboundPreview ||
+      !publishPreviewRef.current
+    ) {
+      return
+    }
+    if (outboundPreview.ts && outboundPreview.ts <= lastPreviewTsRef.current) {
+      return
+    }
+    lastPreviewTsRef.current = outboundPreview.ts
+    publishPreviewRef.current(outboundPreview)
+  }, [enabled, outboundPreview, role])
+
   return {
     status,
     error,
     peerConnected,
     remoteDetect,
     remoteCommand,
+    remotePreview,
   }
 }
