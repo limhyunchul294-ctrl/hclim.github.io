@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { connectRoomMqtt } from '../lib/mqttRoomClient'
 import {
+  isCommandBroadcast,
+  isDetectBroadcast,
   isRemoteControlState,
-  type RemoteControlState,
+  type CommandBroadcast,
+  type DetectBroadcast,
 } from '../lib/roomSyncTypes'
 
 type Role = 'controller' | 'viewer'
@@ -10,8 +13,10 @@ type Role = 'controller' | 'viewer'
 type Options = {
   room: string | null
   role: Role | null
-  /** Controller publishes this whenever it changes (throttled inside). */
-  outbound?: RemoteControlState | null
+  /** Viewer publishes detection / play outcome. */
+  outboundDetect?: DetectBroadcast | null
+  /** Phone publishes play/pause + settings. */
+  outboundCommand?: CommandBroadcast | null
   enabled?: boolean
 }
 
@@ -22,25 +27,59 @@ export type SyncStatus =
   | 'linked'
   | 'error'
 
+function detectFingerprint(d: DetectBroadcast): string {
+  return JSON.stringify({
+    shouldPlay: d.shouldPlay,
+    showChewNudge: d.showChewNudge,
+    showBlinkNudge: d.showBlinkNudge,
+    showFriendNudge: d.showFriendNudge,
+    showPostureNudge: d.showPostureNudge,
+    phase: d.phase,
+    isChewing: d.isChewing,
+    faceCount: d.faceCount,
+    faceMode: d.faceMode,
+    resumeNeed: d.resumeNeed,
+    resumeHave: d.resumeHave,
+    secSinceLastBlink: d.secSinceLastBlink,
+    sessionOn: d.sessionOn,
+  })
+}
+
+function commandFingerprint(c: CommandBroadcast): string {
+  return JSON.stringify({
+    forcePlay: c.forcePlay,
+    manualPaused: c.manualPaused,
+    settings: c.settings,
+  })
+}
+
 export function useRoomSync({
   room,
   role,
-  outbound = null,
+  outboundDetect = null,
+  outboundCommand = null,
   enabled = true,
 }: Options) {
   const [status, setStatus] = useState<SyncStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const [peerConnected, setPeerConnected] = useState(false)
-  const [remote, setRemote] = useState<RemoteControlState | null>(null)
+  const [remoteDetect, setRemoteDetect] = useState<DetectBroadcast | null>(null)
+  const [remoteCommand, setRemoteCommand] = useState<CommandBroadcast | null>(
+    null,
+  )
 
-  const publishRef = useRef<((payload: unknown) => void) | null>(null)
-  const lastSentRef = useRef(0)
-  const lastPayloadRef = useRef('')
+  const publishDetectRef = useRef<((payload: unknown) => void) | null>(null)
+  const publishCommandRef = useRef<((payload: unknown) => void) | null>(null)
+  const lastDetectSentRef = useRef(0)
+  const lastDetectPayloadRef = useRef('')
+  const lastCommandSentRef = useRef(0)
+  const lastCommandPayloadRef = useRef('')
   const roleRef = useRef(role)
   roleRef.current = role
 
   const cleanup = useCallback(() => {
-    publishRef.current = null
+    publishDetectRef.current = null
+    publishCommandRef.current = null
   }, [])
 
   useEffect(() => {
@@ -48,7 +87,8 @@ export function useRoomSync({
       cleanup()
       setStatus('idle')
       setPeerConnected(false)
-      setRemote(null)
+      setRemoteDetect(null)
+      setRemoteCommand(null)
       setError(null)
       return
     }
@@ -81,7 +121,8 @@ export function useRoomSync({
       },
       onPresence: (roles) => {
         if (disposed) return
-        const wantPeer = roleRef.current === 'controller' ? 'viewer' : 'controller'
+        const wantPeer =
+          roleRef.current === 'controller' ? 'viewer' : 'controller'
         const linked = roles.has(wantPeer)
         setPeerConnected(linked)
         setStatus((prev) => {
@@ -89,58 +130,107 @@ export function useRoomSync({
           return linked ? 'linked' : 'waiting'
         })
       },
-      onControl: (payload) => {
+      onDetect: (payload) => {
+        if (disposed) return
+        // Phone consumes viewer detection (ignore own echo by role)
+        if (roleRef.current !== 'controller') return
+        if (isDetectBroadcast(payload)) {
+          setRemoteDetect(payload)
+          return
+        }
+        // Legacy v1: older phone-as-detector peers — map into detect shape
+        if (isRemoteControlState(payload)) {
+          setRemoteDetect({
+            v: 2,
+            kind: 'detect',
+            shouldPlay: payload.shouldPlay,
+            showChewNudge: payload.showChewNudge,
+            showBlinkNudge: payload.showBlinkNudge,
+            showFriendNudge: payload.showFriendNudge,
+            showPostureNudge: payload.showPostureNudge,
+            phase: payload.phase,
+            isChewing: payload.isChewing,
+            faceCount: payload.faceCount,
+            faceMode: payload.faceMode,
+            resumeNeed: payload.resumeNeed,
+            resumeHave: payload.resumeHave,
+            secSinceLastBlink: payload.secSinceLastBlink,
+            sessionOn: true,
+            ts: payload.ts,
+          })
+        }
+      },
+      onCommand: (payload) => {
         if (disposed) return
         if (roleRef.current !== 'viewer') return
-        if (isRemoteControlState(payload)) {
-          setRemote(payload)
+        if (isCommandBroadcast(payload)) {
+          setRemoteCommand(payload)
         }
       },
     })
 
-    publishRef.current = session.publishControl
+    publishDetectRef.current = session.publishDetect
+    publishCommandRef.current = session.publishCommand
 
     return () => {
       disposed = true
-      publishRef.current = null
+      publishDetectRef.current = null
+      publishCommandRef.current = null
       session.dispose()
       cleanup()
     }
   }, [cleanup, enabled, room, role])
 
-  // Controller → broadcast (throttle ~8Hz, skip identical payloads)
+  // Viewer → phone detect (throttle ~8Hz)
   useEffect(() => {
-    if (!enabled || role !== 'controller' || !outbound || !publishRef.current) {
+    if (
+      !enabled ||
+      role !== 'viewer' ||
+      !outboundDetect ||
+      !publishDetectRef.current
+    ) {
       return
     }
     const now = performance.now()
-    const json = JSON.stringify({
-      shouldPlay: outbound.shouldPlay,
-      showChewNudge: outbound.showChewNudge,
-      showBlinkNudge: outbound.showBlinkNudge,
-      showFriendNudge: outbound.showFriendNudge,
-      showPostureNudge: outbound.showPostureNudge,
-      phase: outbound.phase,
-      isChewing: outbound.isChewing,
-      faceCount: outbound.faceCount,
-      faceMode: outbound.faceMode,
-      resumeNeed: outbound.resumeNeed,
-      resumeHave: outbound.resumeHave,
-      secSinceLastBlink: outbound.secSinceLastBlink,
-    })
-    if (json === lastPayloadRef.current && now - lastSentRef.current < 500) {
+    const json = detectFingerprint(outboundDetect)
+    if (json === lastDetectPayloadRef.current && now - lastDetectSentRef.current < 500) {
       return
     }
-    if (now - lastSentRef.current < 80) return
-    lastSentRef.current = now
-    lastPayloadRef.current = json
-    publishRef.current(outbound)
-  }, [enabled, outbound, role])
+    if (now - lastDetectSentRef.current < 80) return
+    lastDetectSentRef.current = now
+    lastDetectPayloadRef.current = json
+    publishDetectRef.current(outboundDetect)
+  }, [enabled, outboundDetect, role])
+
+  // Phone → viewer command (throttle; settings changes send immediately-ish)
+  useEffect(() => {
+    if (
+      !enabled ||
+      role !== 'controller' ||
+      !outboundCommand ||
+      !publishCommandRef.current
+    ) {
+      return
+    }
+    const now = performance.now()
+    const json = commandFingerprint(outboundCommand)
+    if (
+      json === lastCommandPayloadRef.current &&
+      now - lastCommandSentRef.current < 500
+    ) {
+      return
+    }
+    if (now - lastCommandSentRef.current < 80) return
+    lastCommandSentRef.current = now
+    lastCommandPayloadRef.current = json
+    publishCommandRef.current(outboundCommand)
+  }, [enabled, outboundCommand, role])
 
   return {
     status,
     error,
     peerConnected,
-    remote,
+    remoteDetect,
+    remoteCommand,
   }
 }

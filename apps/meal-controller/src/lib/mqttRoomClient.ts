@@ -4,6 +4,12 @@ import mqtt, { type MqttClient } from 'mqtt'
  * Cross-device room sync over public MQTT WSS.
  * Supabase Realtime project DNS for the previous host is NXDOMAIN, so pairing
  * uses a lightweight MQTT topic layout instead (same 6-digit room codes).
+ *
+ * Topics:
+ * - presence/+  — role discovery
+ * - detect      — viewer → phone (face / nudge / play outcome)
+ * - command     — phone → viewer (play/pause + settings)
+ * - control     — legacy v1 (still subscribed for older peers)
  */
 export const MQTT_BROKER_URL =
   import.meta.env.VITE_MQTT_BROKER_URL ?? 'wss://broker.emqx.io:8084/mqtt'
@@ -12,6 +18,8 @@ export function mqttTopics(room: string) {
   const base = `nyam-controller/v1/${room}`
   return {
     control: `${base}/control`,
+    detect: `${base}/detect`,
+    command: `${base}/command`,
     presence: `${base}/presence`,
     presenceWild: `${base}/presence/+`,
   }
@@ -25,8 +33,14 @@ export function connectRoomMqtt(opts: {
   clientKey: string
   onStatus: (s: 'connecting' | 'connected' | 'error', detail?: string) => void
   onPresence: (roles: Set<string>) => void
-  onControl: (payload: unknown) => void
-}): { client: MqttClient; publishControl: (payload: unknown) => void; dispose: () => void } {
+  onDetect: (payload: unknown) => void
+  onCommand: (payload: unknown) => void
+}): {
+  client: MqttClient
+  publishDetect: (payload: unknown) => void
+  publishCommand: (payload: unknown) => void
+  dispose: () => void
+} {
   const topics = mqttTopics(opts.room)
   const presenceTopic = `${topics.presence}/${opts.clientKey}`
   const rolesSeen = new Map<string, PresenceMeta>()
@@ -62,13 +76,20 @@ export function connectRoomMqtt(opts: {
 
   client.on('connect', () => {
     opts.onStatus('connected')
-    client.subscribe([topics.presenceWild, topics.control], { qos: 0 }, (err) => {
-      if (err) {
-        opts.onStatus('error', '방에 들어가지 못했어요. 네트워크를 확인해 주세요.')
-        return
-      }
-      publishPresence()
-    })
+    client.subscribe(
+      [topics.presenceWild, topics.detect, topics.command, topics.control],
+      { qos: 0 },
+      (err) => {
+        if (err) {
+          opts.onStatus(
+            'error',
+            '방에 들어가지 못했어요. 네트워크를 확인해 주세요.',
+          )
+          return
+        }
+        publishPresence()
+      },
+    )
   })
 
   client.on('reconnect', () => {
@@ -82,10 +103,6 @@ export function connectRoomMqtt(opts: {
         ? `연결이 안 돼요: ${err.message}`
         : '네트워크 연결이 안 돼요. Wi‑Fi나 데이터를 확인해 주세요.',
     )
-  })
-
-  client.on('close', () => {
-    // Reconnect handled by mqtt.js; only surface if not intentional dispose.
   })
 
   client.on('message', (topic, buf) => {
@@ -108,18 +125,36 @@ export function connectRoomMqtt(opts: {
       }
       return
     }
+
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(buf.toString('utf8'))
+    } catch {
+      return
+    }
+
+    if (topic === topics.detect) {
+      opts.onDetect(parsed)
+      return
+    }
+    if (topic === topics.command) {
+      opts.onCommand(parsed)
+      return
+    }
     if (topic === topics.control) {
-      try {
-        opts.onControl(JSON.parse(buf.toString('utf8')))
-      } catch {
-        /* ignore */
-      }
+      // Legacy v1: treat as detect-shaped for older controllers publishing play state
+      opts.onDetect(parsed)
     }
   })
 
-  const publishControl = (payload: unknown) => {
+  const publishDetect = (payload: unknown) => {
     if (!client.connected) return
-    client.publish(topics.control, JSON.stringify(payload), { qos: 0 })
+    client.publish(topics.detect, JSON.stringify(payload), { qos: 0 })
+  }
+
+  const publishCommand = (payload: unknown) => {
+    if (!client.connected) return
+    client.publish(topics.command, JSON.stringify(payload), { qos: 0 })
   }
 
   let disposed = false
@@ -134,5 +169,5 @@ export function connectRoomMqtt(opts: {
     client.end(true)
   }
 
-  return { client, publishControl, dispose }
+  return { client, publishDetect, publishCommand, dispose }
 }

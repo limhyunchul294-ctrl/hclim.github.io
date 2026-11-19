@@ -63,8 +63,8 @@ export function PairingPanel({
       <section className="pairing-panel pairing-pick" aria-label="기기 나누기">
         <h3 className="pairing-title">기기를 나눠 쓸까요?</h3>
         <p className="pairing-hint">
-          휴대폰은 얼굴 인식만, TV·아이패드는 영상만 보여요. 같은 Wi‑Fi가
-          아니어도 됩니다.
+          카메라는 TV·아이패드(영상 기기)에서 켜고, 휴대폰은 재생·설정
+          리모컨만 해요. 같은 Wi‑Fi가 아니어도 됩니다.
         </p>
         <div className="btn-row pairing-actions">
           <button
@@ -72,7 +72,7 @@ export function PairingPanel({
             className="btn primary"
             onClick={() => onEnterController(generateRoomCode())}
           >
-            이 휴대폰으로 인식
+            이 휴대폰으로 조작
           </button>
           <button
             type="button"
@@ -80,16 +80,13 @@ export function PairingPanel({
             onClick={() => {
               const code = normalizeRoomCode(joinCode)
               if (isValidRoomCode(code)) onEnterViewer(code)
-              else {
-                /* stay — show field */
-              }
             }}
           >
-            이 화면에서 영상
+            이 화면에서 영상·인식
           </button>
         </div>
         <label className="pairing-join-label">
-          영상 화면이면 코드를 입력해요
+          영상·인식 화면이면 코드를 입력해요
           <input
             className="pairing-code-input"
             inputMode="numeric"
@@ -131,7 +128,7 @@ export function PairingPanel({
       aria-label="페어링"
     >
       <div className="pairing-role-chip">
-        {role === 'controller' ? '인식 휴대폰' : '영상 화면'}
+        {role === 'controller' ? '조작 휴대폰' : '영상·인식 화면'}
         <span
           className={`pairing-link ${peerConnected ? 'on' : ''} ${syncStatus === 'error' ? 'err' : ''}`}
         >
@@ -145,7 +142,8 @@ export function PairingPanel({
             {room}
           </p>
           <p className="pairing-hint">
-            TV·아이패드에서 코드를 입력하거나 QR을 찍어요.
+            TV·아이패드에서 코드를 입력하거나 QR을 찍어요. 카메라는 그쪽에서
+            켜져요.
           </p>
           <canvas ref={qrRef} className="pairing-qr" aria-hidden />
           <p className="pairing-url-hint">{viewerPairUrl(room)}</p>
@@ -173,7 +171,9 @@ export function PairingPanel({
             코드로 연결
           </button>
           {room ? (
-            <p className="pairing-hint">지금 방: {room}</p>
+            <p className="pairing-hint">
+              지금 방: {room} · 카메라는 이 기기에서 켜요
+            </p>
           ) : (
             <p className="pairing-hint">
               휴대폰에 나온 6자리 코드를 넣어요.
@@ -199,7 +199,7 @@ export function PairingPanel({
       </button>
       {role === 'controller' && room ? (
         <p className="pairing-url-hint muted">
-          인식 URL: {controllerPairUrl(room)}
+          리모컨 URL: {controllerPairUrl(room)}
         </p>
       ) : null}
     </section>
