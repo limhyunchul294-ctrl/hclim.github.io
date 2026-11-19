@@ -287,6 +287,8 @@ function App() {
     (forcePlay ||
       (isWatch ? true : machine.shouldPlay && !missingBuddy))
 
+  const cameraReady = cameraEnabled && status.kind === 'ready'
+
   const outboundDetect: DetectBroadcast | null = useMemo(() => {
     if (!isViewer) return null
     return {
@@ -305,7 +307,8 @@ function App() {
       resumeNeed: settings.resumeCycles,
       resumeHave: machine.resumeProgress,
       secSinceLastBlink: blink.secSinceLastBlink,
-      sessionOn: cameraEnabled,
+      // Phone uses this to avoid infinite 「불러오는 중」 before camera is ready
+      sessionOn: cameraReady,
       ts: Date.now(),
     }
   }, [
@@ -316,6 +319,7 @@ function App() {
     machine.phase,
     machine.resumeProgress,
     cameraEnabled,
+    cameraReady,
     manualPaused,
     blink.needsBlinkNudge,
     blink.secSinceLastBlink,
@@ -378,33 +382,25 @@ function App() {
     }
 
     let cancelled = false
-    let busy = false
-    const tick = async () => {
-      if (cancelled || busy) return
+    const tick = () => {
+      if (cancelled) return
       const canvas = canvasRef.current
       if (!canvas || !canvas.width) return
-      busy = true
-      try {
-        const shot = await capturePreviewJpeg(canvas)
-        if (cancelled || !shot) return
-        setOutboundPreview({
-          v: 2,
-          kind: 'preview',
-          mime: 'image/jpeg',
-          data: shot.data,
-          w: shot.w,
-          h: shot.h,
-          ts: Date.now(),
-        })
-      } finally {
-        busy = false
-      }
+      const shot = capturePreviewJpeg(canvas)
+      if (cancelled || !shot) return
+      setOutboundPreview({
+        v: 2,
+        kind: 'preview',
+        mime: 'image/jpeg',
+        data: shot.data,
+        w: shot.w,
+        h: shot.h,
+        ts: Date.now(),
+      })
     }
 
-    void tick()
-    const id = window.setInterval(() => {
-      void tick()
-    }, PREVIEW_INTERVAL_MS)
+    tick()
+    const id = window.setInterval(tick, PREVIEW_INTERVAL_MS)
 
     return () => {
       cancelled = true

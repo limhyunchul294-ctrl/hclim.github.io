@@ -76,23 +76,36 @@ export function useRoomSync({
   const [remotePreview, setRemotePreview] = useState<PreviewBroadcast | null>(
     null,
   )
+  /** Bumps when MQTT is connected+subscribed so outbound effects flush. */
+  const [mqttEpoch, setMqttEpoch] = useState(0)
 
-  const publishDetectRef = useRef<((payload: unknown) => void) | null>(null)
-  const publishCommandRef = useRef<((payload: unknown) => void) | null>(null)
-  const publishPreviewRef = useRef<((payload: unknown) => void) | null>(null)
+  const publishDetectRef = useRef<((payload: unknown) => boolean) | null>(null)
+  const publishCommandRef = useRef<((payload: unknown) => boolean) | null>(null)
+  const publishPreviewRef = useRef<((payload: unknown) => boolean) | null>(null)
   const lastDetectSentRef = useRef(0)
   const lastDetectPayloadRef = useRef('')
   const lastCommandSentRef = useRef(0)
   const lastCommandPayloadRef = useRef('')
   const lastPreviewTsRef = useRef(0)
+  const pendingCommandRef = useRef<CommandBroadcast | null>(null)
+  const commandRetryTimerRef = useRef<number | null>(null)
   const roleRef = useRef(role)
   roleRef.current = role
+
+  const clearCommandRetry = useCallback(() => {
+    if (commandRetryTimerRef.current != null) {
+      window.clearTimeout(commandRetryTimerRef.current)
+      commandRetryTimerRef.current = null
+    }
+  }, [])
 
   const cleanup = useCallback(() => {
     publishDetectRef.current = null
     publishCommandRef.current = null
     publishPreviewRef.current = null
-  }, [])
+    pendingCommandRef.current = null
+    clearCommandRetry()
+  }, [clearCommandRetry])
 
   useEffect(() => {
     if (!enabled || !room || !role) {
@@ -125,6 +138,8 @@ export function useRoomSync({
         } else if (s === 'connected') {
           setStatus('waiting')
           setError(null)
+          // Flush outbound after subscribe — epoch bump re-runs publish effects
+          setMqttEpoch((n) => n + 1)
         } else if (s === 'error') {
           setStatus('error')
           setRemotePreview(null)
@@ -225,34 +240,88 @@ export function useRoomSync({
       return
     }
     if (now - lastDetectSentRef.current < 80) return
+    const ok = publishDetectRef.current(outboundDetect)
+    if (!ok) return
     lastDetectSentRef.current = now
     lastDetectPayloadRef.current = json
-    publishDetectRef.current(outboundDetect)
-  }, [enabled, outboundDetect, role])
+  }, [enabled, outboundDetect, role, mqttEpoch])
 
-  // Phone → viewer command (throttle; settings changes send immediately-ish)
+  const flushCommand = useCallback(
+    (cmd: CommandBroadcast, force = false) => {
+      const publish = publishCommandRef.current
+      if (!publish) {
+        pendingCommandRef.current = cmd
+        return
+      }
+      const now = performance.now()
+      const json = commandFingerprint(cmd)
+      if (
+        !force &&
+        json === lastCommandPayloadRef.current &&
+        now - lastCommandSentRef.current < 500
+      ) {
+        return
+      }
+      // Different payload must not be dropped by the rate limit — queue a retry
+      if (!force && now - lastCommandSentRef.current < 80) {
+        pendingCommandRef.current = cmd
+        if (commandRetryTimerRef.current == null) {
+          const wait = Math.max(16, 80 - (now - lastCommandSentRef.current))
+          commandRetryTimerRef.current = window.setTimeout(() => {
+            commandRetryTimerRef.current = null
+            const pending = pendingCommandRef.current
+            if (pending) flushCommand(pending, true)
+          }, wait)
+        }
+        return
+      }
+      const ok = publish(cmd)
+      if (!ok) {
+        pendingCommandRef.current = cmd
+        if (commandRetryTimerRef.current == null) {
+          commandRetryTimerRef.current = window.setTimeout(() => {
+            commandRetryTimerRef.current = null
+            const pending = pendingCommandRef.current
+            if (pending) flushCommand(pending, true)
+          }, 200)
+        }
+        return
+      }
+      pendingCommandRef.current = null
+      lastCommandSentRef.current = now
+      lastCommandPayloadRef.current = json
+    },
+    [],
+  )
+
+  // Phone → viewer command (never permanently drop wantPreview / settings)
+  useEffect(() => {
+    if (!enabled || role !== 'controller' || !outboundCommand) {
+      return
+    }
+    flushCommand(outboundCommand)
+  }, [enabled, outboundCommand, role, mqttEpoch, flushCommand])
+
+  // While preview is requested, re-announce periodically (QoS0 can drop)
   useEffect(() => {
     if (
       !enabled ||
       role !== 'controller' ||
-      !outboundCommand ||
-      !publishCommandRef.current
+      !outboundCommand?.wantPreview
     ) {
       return
     }
-    const now = performance.now()
-    const json = commandFingerprint(outboundCommand)
-    if (
-      json === lastCommandPayloadRef.current &&
-      now - lastCommandSentRef.current < 500
-    ) {
-      return
-    }
-    if (now - lastCommandSentRef.current < 80) return
-    lastCommandSentRef.current = now
-    lastCommandPayloadRef.current = json
-    publishCommandRef.current(outboundCommand)
-  }, [enabled, outboundCommand, role])
+    const id = window.setInterval(() => {
+      flushCommand(
+        {
+          ...outboundCommand,
+          ts: Date.now(),
+        },
+        true,
+      )
+    }, 1500)
+    return () => window.clearInterval(id)
+  }, [enabled, role, outboundCommand, flushCommand])
 
   // Viewer → phone preview frames (already rate-limited by capture loop)
   useEffect(() => {
@@ -267,9 +336,10 @@ export function useRoomSync({
     if (outboundPreview.ts && outboundPreview.ts <= lastPreviewTsRef.current) {
       return
     }
+    const ok = publishPreviewRef.current(outboundPreview)
+    if (!ok) return
     lastPreviewTsRef.current = outboundPreview.ts
-    publishPreviewRef.current(outboundPreview)
-  }, [enabled, outboundPreview, role])
+  }, [enabled, outboundPreview, role, mqttEpoch])
 
   return {
     status,

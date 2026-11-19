@@ -1,64 +1,38 @@
 /** Low-bandwidth JPEG thumbnail from the recognition canvas. */
 
-export const PREVIEW_MAX_WIDTH = 240
-export const PREVIEW_JPEG_QUALITY = 0.42
-/** Target ~3 fps; skip if encode/publish is slow. */
-export const PREVIEW_INTERVAL_MS = 333
+export const PREVIEW_MAX_WIDTH = 200
+export const PREVIEW_JPEG_QUALITY = 0.4
+/** Target ~2–3 fps; skip if encode/publish is slow. */
+export const PREVIEW_INTERVAL_MS = 400
 
 /**
  * Encode a downscaled JPEG as raw base64 (no data-URL prefix).
- * Returns null if the canvas is empty or encode fails.
+ * Uses sync toDataURL (reliable on iOS Safari); toBlob can hang/no-op.
  */
 export function capturePreviewJpeg(
   source: HTMLCanvasElement,
   maxWidth = PREVIEW_MAX_WIDTH,
   quality = PREVIEW_JPEG_QUALITY,
-): Promise<{ data: string; w: number; h: number } | null> {
-  return new Promise((resolve) => {
-    if (!source.width || !source.height) {
-      resolve(null)
-      return
-    }
-    const scale = Math.min(1, maxWidth / source.width)
-    const w = Math.max(1, Math.round(source.width * scale))
-    const h = Math.max(1, Math.round(source.height * scale))
-    const off = document.createElement('canvas')
-    off.width = w
-    off.height = h
-    const ctx = off.getContext('2d')
-    if (!ctx) {
-      resolve(null)
-      return
-    }
+): { data: string; w: number; h: number } | null {
+  if (!source.width || !source.height) return null
+  const scale = Math.min(1, maxWidth / source.width)
+  const w = Math.max(1, Math.round(source.width * scale))
+  const h = Math.max(1, Math.round(source.height * scale))
+  const off = document.createElement('canvas')
+  off.width = w
+  off.height = h
+  const ctx = off.getContext('2d')
+  if (!ctx) return null
+  try {
     ctx.drawImage(source, 0, 0, w, h)
-    try {
-      off.toBlob(
-        (blob) => {
-          if (!blob) {
-            resolve(null)
-            return
-          }
-          const reader = new FileReader()
-          reader.onload = () => {
-            const result = reader.result
-            if (typeof result !== 'string') {
-              resolve(null)
-              return
-            }
-            const comma = result.indexOf(',')
-            const data = comma >= 0 ? result.slice(comma + 1) : result
-            resolve({ data, w, h })
-          }
-          reader.onerror = () => resolve(null)
-          reader.readAsDataURL(blob)
-        },
-        'image/jpeg',
-        quality,
-      )
-    } catch {
-      resolve(null)
-    }
-  })
+    const dataUrl = off.toDataURL('image/jpeg', quality)
+    const comma = dataUrl.indexOf(',')
+    const data = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl
+    if (!data || data.length < 32) return null
+    return { data, w, h }
+  } catch {
+    return null
+  }
 }
 
 export function previewDataUrl(mime: string, data: string): string {
