@@ -7,6 +7,7 @@ export type RemoteControlState = {
   showChewNudge: boolean
   showBlinkNudge: boolean
   showFriendNudge: boolean
+  showPostureNudge: boolean
   phase: PlayerPhase
   isChewing: boolean
   faceCount: number
@@ -23,6 +24,7 @@ export const EMPTY_REMOTE_STATE: RemoteControlState = {
   showChewNudge: false,
   showBlinkNudge: false,
   showFriendNudge: false,
+  showPostureNudge: false,
   phase: 'NO_FACE',
   isChewing: false,
   faceCount: 0,
@@ -36,5 +38,10 @@ export const EMPTY_REMOTE_STATE: RemoteControlState = {
 export function isRemoteControlState(x: unknown): x is RemoteControlState {
   if (!x || typeof x !== 'object') return false
   const o = x as Record<string, unknown>
-  return o.v === 1 && typeof o.shouldPlay === 'boolean'
+  if (o.v !== 1 || typeof o.shouldPlay !== 'boolean') return false
+  // Older controllers may omit posture field
+  if (typeof o.showPostureNudge !== 'boolean') {
+    ;(o as { showPostureNudge: boolean }).showPostureNudge = false
+  }
+  return true
 }

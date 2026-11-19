@@ -9,7 +9,7 @@ import {
   requestAppFullscreen,
 } from '../lib/fullscreen'
 import type { YtPlayer } from '../lib/youtubeApi'
-import { BlinkEyesArt, ChewMouthArt } from './NudgeArt'
+import { BlinkEyesArt, ChewMouthArt, PostureNeckArt } from './NudgeArt'
 
 export type PlaybackSource =
   | { kind: 'local'; src: string }
@@ -31,6 +31,8 @@ type Props = {
   showBlinkNudge: boolean
   /** 2명 모드인데 얼굴이 1명만 보일 때 */
   showFriendNudge: boolean
+  /** Watch mode: turtle-neck / forward-head soft nudge */
+  showPostureNudge?: boolean
   resumeNeed: number
   resumeHave: number
   secSinceLastBlink: number
@@ -55,6 +57,7 @@ export function PlaybackStage({
   showChewNudge,
   showBlinkNudge,
   showFriendNudge,
+  showPostureNudge = false,
   resumeNeed,
   resumeHave,
   secSinceLastBlink,
@@ -329,7 +332,20 @@ export function PlaybackStage({
           </div>
         )}
 
-        {showChewNudge && !showBlinkNudge && !showFriendNudge && (
+        {showPostureNudge &&
+          !showBlinkNudge &&
+          !showFriendNudge && (
+            <div className="stage-overlay posture-overlay" role="status">
+              <PostureNeckArt />
+              <p className="stage-overlay-title">고개를 세워 보세요</p>
+              <p className="stage-overlay-sub">목을 길게 · 화면을 똑바로 봐요</p>
+            </div>
+          )}
+
+        {showChewNudge &&
+          !showBlinkNudge &&
+          !showPostureNudge &&
+          !showFriendNudge && (
           <div className="stage-overlay chew-overlay" role="status">
             <ChewMouthArt />
             <p className="stage-overlay-title">한 입 더 씹어 봐요</p>
