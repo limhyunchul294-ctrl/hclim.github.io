@@ -110,13 +110,54 @@ export function SettingsPanel({
           <SliderRow
             label="멈춤까지 기다리는 시간"
             valueText={`${settings.pauseDelaySec.toFixed(1)}초`}
-            hint="씹기를 멈춘 뒤 영상이 멈출 때까지"
+            hint={
+              settings.softIntervention
+                ? '씹기를 멈춘 뒤 부드러운 안내(디밍)가 시작되기까지'
+                : '씹기를 멈춘 뒤 영상이 바로 멈출 때까지'
+            }
             min={1}
             max={8}
             step={0.1}
             value={settings.pauseDelaySec}
             onChange={(v) => set('pauseDelaySec', v)}
           />
+
+          <label className="check-row advanced-check">
+            <input
+              type="checkbox"
+              checked={settings.softIntervention}
+              onChange={(e) => set('softIntervention', e.target.checked)}
+            />
+            부드러운 안내 (디밍·프리패스)
+            <span className="slider-hint" style={{ display: 'block', marginTop: 4 }}>
+              끄면 예전처럼 바로 일시정지해요
+            </span>
+          </label>
+
+          {settings.softIntervention ? (
+            <>
+              <SliderRow
+                label="디밍 유예"
+                valueText={`${settings.dimDurationSec.toFixed(1)}초`}
+                hint="어두워진 뒤 실제로 멈추기까지"
+                min={1}
+                max={8}
+                step={0.1}
+                value={settings.dimDurationSec}
+                onChange={(v) => set('dimDurationSec', v)}
+              />
+              <SliderRow
+                label="프리패스"
+                valueText={`${settings.freePassSec.toFixed(0)}초`}
+                hint="다시 씹으면 이 시간 동안은 바로 안 멈춰요"
+                min={2}
+                max={20}
+                step={1}
+                value={settings.freePassSec}
+                onChange={(v) => set('freePassSec', v)}
+              />
+            </>
+          ) : null}
 
           <SliderRow
             label="씹기 민감도"

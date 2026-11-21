@@ -46,6 +46,8 @@ function detectFingerprint(d: DetectBroadcast): string {
     resumeHave: d.resumeHave,
     secSinceLastBlink: d.secSinceLastBlink,
     sessionOn: d.sessionOn,
+    // Quantize to limit MQTT spam while dim ramps
+    dimLevel: Math.round(d.dimLevel * 20) / 20,
   })
 }
 
@@ -184,7 +186,7 @@ export function useRoomSync({
         // Legacy v1: older phone-as-detector peers — map into detect shape
         if (isRemoteControlState(payload)) {
           setRemoteDetect({
-            v: 2,
+            v: 3,
             kind: 'detect',
             shouldPlay: payload.shouldPlay,
             showChewNudge: payload.showChewNudge,
@@ -199,6 +201,7 @@ export function useRoomSync({
             resumeHave: payload.resumeHave,
             secSinceLastBlink: payload.secSinceLastBlink,
             sessionOn: true,
+            dimLevel: 0,
             ts: payload.ts,
           })
         }

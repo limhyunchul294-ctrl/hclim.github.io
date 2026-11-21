@@ -35,7 +35,11 @@ import {
   type DetectBroadcast,
   type PreviewBroadcast,
 } from './lib/roomSyncTypes'
-import { loadSettings, saveSettings } from './lib/settingsStorage'
+import {
+  loadSettings,
+  saveSettings,
+  sanitizeSettings,
+} from './lib/settingsStorage'
 import type { YtVideoMeta } from './lib/youtube'
 import { DEFAULT_YT_MEDIA, type YtMediaState } from './lib/ytMedia'
 import {
@@ -60,6 +64,7 @@ type MachineView = {
   noChewSec: number
   resumeProgress: number
   effectivePauseSec: number
+  dimLevel: number
 }
 
 type MediaMode = 'youtube' | 'local'
@@ -126,6 +131,7 @@ function App() {
     noChewSec: 0,
     resumeProgress: 0,
     effectivePauseSec: settings.pauseDelaySec,
+    dimLevel: 0,
   })
   const [latest, setLatest] = useState<FaceFrame | null>(null)
   const [blink, setBlink] = useState<BlinkSnapshot>(emptyBlink)
@@ -251,6 +257,7 @@ function App() {
       noChewSec: out.noChewSec,
       resumeProgress: out.resumeProgress,
       effectivePauseSec: out.effectivePauseSec,
+      dimLevel: isWatch ? 0 : out.dimLevel,
     })
   }, [])
 
@@ -301,10 +308,13 @@ function App() {
 
   const cameraReady = cameraEnabled && status.kind === 'ready'
 
+  const stageDimLevel =
+    !isWatch && cameraEnabled && !manualPaused ? machine.dimLevel : 0
+
   const outboundDetect: DetectBroadcast | null = useMemo(() => {
     if (!isViewer) return null
     return {
-      v: 2,
+      v: 3,
       kind: 'detect',
       shouldPlay: localWantPlay,
       showChewNudge:
@@ -321,6 +331,7 @@ function App() {
       secSinceLastBlink: blink.secSinceLastBlink,
       // Phone uses this to avoid infinite 「불러오는 중」 before camera is ready
       sessionOn: cameraReady,
+      dimLevel: stageDimLevel,
       ts: Date.now(),
     }
   }, [
@@ -330,6 +341,7 @@ function App() {
     machine.showNudge,
     machine.phase,
     machine.resumeProgress,
+    stageDimLevel,
     cameraEnabled,
     cameraReady,
     manualPaused,
@@ -464,8 +476,12 @@ function App() {
       remoteCommand.settings &&
       !settingsEqual(remoteCommand.settings, settingsRef.current)
     ) {
-      setSettings(remoteCommand.settings)
-      settingsRef.current = remoteCommand.settings
+      const next = sanitizeSettings({
+        ...settingsRef.current,
+        ...remoteCommand.settings,
+      })
+      setSettings(next)
+      settingsRef.current = next
     }
 
     if (remoteCommand.ytMedia) {
@@ -527,13 +543,26 @@ function App() {
   }
 
   const pauseHint = useMemo(() => {
+    if (machine.phase === 'DIMMING') {
+      const remain = Math.max(
+        0,
+        settings.dimDurationSec * (1 - machine.dimLevel),
+      )
+      return `dim ${remain.toFixed(1)}`
+    }
     if (machine.phase !== 'PLAYING') return null
     const remain = Math.max(
       0,
       machine.effectivePauseSec - machine.noChewSec,
     )
     return remain.toFixed(1)
-  }, [machine.phase, machine.noChewSec, machine.effectivePauseSec])
+  }, [
+    machine.phase,
+    machine.noChewSec,
+    machine.effectivePauseSec,
+    machine.dimLevel,
+    settings.dimDurationSec,
+  ])
 
   const playbackSource: PlaybackSource | null =
     mediaMode === 'youtube' && ytMeta
@@ -611,6 +640,41 @@ function App() {
     setForcePlay(true)
   }
 
+  const toggleParentPause = useCallback(() => {
+    setManualPaused((paused) => {
+      if (paused) {
+        setForcePlay(true)
+        return false
+      }
+      setForcePlay(false)
+      return true
+    })
+  }, [])
+
+  // Parent Space → manual pause toggle (skip when typing in a field)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' && e.key !== ' ') return
+      if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return
+      const t = e.target
+      if (t instanceof HTMLElement) {
+        const tag = t.tagName
+        if (
+          tag === 'INPUT' ||
+          tag === 'TEXTAREA' ||
+          tag === 'SELECT' ||
+          t.isContentEditable
+        ) {
+          return
+        }
+      }
+      e.preventDefault()
+      toggleParentPause()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [toggleParentPause])
+
   const startCameraSession = () => {
     multiChewRef.current.reset()
     blinkRefs.current.forEach((b) => b.reset())
@@ -655,15 +719,20 @@ function App() {
                 <p className="controller-status-main">{statusLabel}</p>
                 <p className="controller-status-sub">
                   {peerConnected
-                    ? detectState.shouldPlay
-                      ? '영상 기기에서 재생 중'
-                      : detectState.showChewNudge
-                        ? '씹기 유도 중'
-                        : detectState.showBlinkNudge
-                          ? '깜빡임 유도 중'
-                          : detectState.showPostureNudge
-                            ? '목 자세 유도 중'
-                            : '대기 중'
+                    ? detectState.phase === 'DIMMING' ||
+                      detectState.dimLevel > 0.05
+                      ? '부드럽게 안내 중 (디밍)'
+                      : detectState.phase === 'FREE_PASS'
+                        ? '프리패스 · 잠시 자유'
+                        : detectState.shouldPlay
+                          ? '영상 기기에서 재생 중'
+                          : detectState.showChewNudge
+                            ? '씹기 유도 중'
+                            : detectState.showBlinkNudge
+                              ? '깜빡임 유도 중'
+                              : detectState.showPostureNudge
+                                ? '목 자세 유도 중'
+                                : '대기 중'
                     : '아직 영상 화면이 안 들어왔어요'}
                 </p>
               </div>
@@ -699,6 +768,7 @@ function App() {
               showBlinkNudge={stageBlinkNudge}
               showFriendNudge={stageFriendNudge}
               showPostureNudge={stagePostureNudge}
+              dimLevel={stageDimLevel}
               resumeNeed={settings.resumeCycles}
               resumeHave={machine.resumeProgress}
               secSinceLastBlink={blink.secSinceLastBlink}
@@ -1034,7 +1104,7 @@ function App() {
                   : '시작으로 카메라를 켠 뒤 유튜브를 고르세요. 씹으면 재생되고, 휴대폰으로도 조작할 수 있어요.'
                 : isWatch
                   ? '시작 → 영상을 틀어요. 눈을 깜빡이지 않거나 고개를 숙이면 알려 줘요.'
-                  : '시작 → 얼굴 비추고 씹어요. 화면 가장자리를 누르면 일시정지·전체화면이 잠깐 보여요.'}
+                  : '시작 → 얼굴 비추고 씹어요. Space로 일시정지, 화면 가장자리로 전체화면이 잠깐 보여요.'}
           </p>
 
           <p className="privacy">

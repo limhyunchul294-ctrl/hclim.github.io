@@ -1,4 +1,10 @@
-export type PlayerPhase = 'NO_FACE' | 'ARMED' | 'PLAYING' | 'PAUSED'
+export type PlayerPhase =
+  | 'NO_FACE'
+  | 'ARMED'
+  | 'PLAYING'
+  | 'DIMMING'
+  | 'FREE_PASS'
+  | 'PAUSED'
 
 /** How many diners must be visible and chewing. */
 export type FaceMode = 1 | 2
@@ -54,8 +60,17 @@ export type ControllerSettings = {
   sessionMode: SessionMode
   /** 1 = one child; 2 = both visible faces must chew (meal mode). */
   faceMode: FaceMode
-  /** Seconds without chewing before pause. */
+  /** Seconds without chewing before pause (or soft dim when softIntervention). */
   pauseDelaySec: number
+  /**
+   * Meal soft intervention: dim + volume ramp before hard pause,
+   * then free-pass after chew recovery. Off = legacy hard pause.
+   */
+  softIntervention: boolean
+  /** Seconds in DIMMING (overlay + volume attenuate) before PAUSED. */
+  dimDurationSec: number
+  /** Seconds of FREE_PASS after chew resumes during dim / from pause. */
+  freePassSec: number
   /** Chew cycles needed to resume. */
   resumeCycles: number
   /** 0–1: higher = easier to count as chewing (scales amplitude floor). */
@@ -101,6 +116,9 @@ export const DEFAULT_SETTINGS: ControllerSettings = {
   sessionMode: 'meal',
   faceMode: 1,
   pauseDelaySec: 4.5,
+  softIntervention: true,
+  dimDurationSec: 3,
+  freePassSec: 8,
   resumeCycles: 2,
   sensitivity: 0.78,
   amplitudeThreshold: 0.032,
@@ -121,4 +139,4 @@ export const DEFAULT_SETTINGS: ControllerSettings = {
 }
 
 /** Bump when defaults change so old prefs don't stick. */
-export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v6'
+export const SETTINGS_STORAGE_KEY = 'meal-controller-settings-v7'

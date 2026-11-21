@@ -425,6 +425,16 @@ html.meal-css-fs body {
   padding: 0.25rem 0;
 }
 
+/* Soft intervention: host dim over YT iframe / local video (below nudges). */
+.stage-dim-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: #0a1210;
+  transition: opacity 180ms linear;
+}
+
 .stage-overlay {
   position: absolute;
   inset: 0;
@@ -802,9 +812,16 @@ html.meal-css-fs body {
   border: 1px solid var(--border);
 }
 
-.badge.phase-PLAYING {
+.badge.phase-PLAYING,
+.badge.phase-FREE_PASS {
   background: var(--accent-soft);
   color: var(--ok);
+  border-color: transparent;
+}
+
+.badge.phase-DIMMING {
+  background: rgba(120, 140, 160, 0.22);
+  color: var(--text);
   border-color: transparent;
 }
 
