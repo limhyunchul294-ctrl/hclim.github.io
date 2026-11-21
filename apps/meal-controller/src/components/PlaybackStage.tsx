@@ -34,6 +34,11 @@ type Props = {
   showFriendNudge: boolean
   /** Watch mode: turtle-neck / forward-head soft nudge */
   showPostureNudge?: boolean
+  /**
+   * Soft intervention dim 0–1. Host overlay + volume ramp to ~15%.
+   * Does not pause — PlaybackStage still follows shouldPlay only.
+   */
+  dimLevel?: number
   resumeNeed: number
   resumeHave: number
   secSinceLastBlink: number
@@ -45,6 +50,12 @@ type Props = {
   onManualPlay: () => void
   /** Volume / mute / rate / seek — YouTube quality is intentionally unsupported. */
   ytMedia?: YtMediaState | null
+}
+
+/** At dimLevel=1, volume is ~15% of parent-set volume. */
+function volumeScaleForDim(dimLevel: number): number {
+  const d = Math.max(0, Math.min(1, dimLevel))
+  return 1 - d * 0.85
 }
 
 const YT_PLAYING = 1
@@ -61,6 +72,7 @@ export function PlaybackStage({
   showBlinkNudge,
   showFriendNudge,
   showPostureNudge = false,
+  dimLevel = 0,
   resumeNeed,
   resumeHave,
   secSinceLastBlink,
@@ -77,6 +89,7 @@ export function PlaybackStage({
   const playerRef = useRef<YtPlayer | null>(null)
   const shouldPlayRef = useRef(shouldPlay)
   const ytMediaRef = useRef(ytMedia)
+  const dimLevelRef = useRef(dimLevel)
   const lastSeekSeqRef = useRef(0)
   const hideTimerRef = useRef<number>(0)
   const ytReady = useYouTubeApiReady()
@@ -88,6 +101,7 @@ export function PlaybackStage({
   const videoId = source?.kind === 'youtube' ? source.videoId : null
   const localSrc = source?.kind === 'local' ? source.src : null
   const appFs = nativeFs || cssFs
+  const clampedDim = Math.max(0, Math.min(1, dimLevel))
 
   const revealControls = useCallback(() => {
     setControlsVisible(true)
@@ -109,6 +123,10 @@ export function PlaybackStage({
     ytMediaRef.current = ytMedia
   }, [ytMedia])
 
+  useEffect(() => {
+    dimLevelRef.current = dimLevel
+  }, [dimLevel])
+
   // Lock page scroll while CSS immersive covers the viewport
   useEffect(() => {
     if (!cssFs) return
@@ -128,10 +146,13 @@ export function PlaybackStage({
 
   const applyYtMedia = useCallback((media: YtMediaState | null | undefined) => {
     if (!media) return
+    const scale = volumeScaleForDim(dimLevelRef.current)
+    const attenuated = Math.round(media.volume * scale)
     const p = playerRef.current
     if (p) {
       try {
-        p.setVolume(media.volume)
+        // iOS Safari often ignores setVolume — best-effort only
+        p.setVolume(attenuated)
         if (media.muted) p.mute()
         else p.unMute()
         p.setPlaybackRate(media.playbackRate)
@@ -152,7 +173,7 @@ export function PlaybackStage({
     }
     const el = videoRef.current
     if (el && localSrc) {
-      el.volume = Math.max(0, Math.min(1, media.volume / 100))
+      el.volume = Math.max(0, Math.min(1, attenuated / 100))
       el.muted = media.muted
       try {
         el.playbackRate = media.playbackRate
@@ -266,7 +287,7 @@ export function PlaybackStage({
 
   useEffect(() => {
     applyYtMedia(ytMedia)
-  }, [ytMedia, applyYtMedia, videoId, localSrc])
+  }, [ytMedia, applyYtMedia, videoId, localSrc, dimLevel])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -368,6 +389,15 @@ export function PlaybackStage({
 
         {recognitionSlot}
 
+        {/* Soft dim: host overlay over iframe (not CSS filter inside YT). */}
+        {clampedDim > 0.01 && (
+          <div
+            className="stage-dim-overlay"
+            aria-hidden
+            style={{ opacity: 0.18 + clampedDim * 0.55 }}
+          />
+        )}
+
         {showHud && (
           <div className="live-hud" aria-live="polite">
             <span>jaw {hud.jawOpen.toFixed(3)}</span>
@@ -380,6 +410,9 @@ export function PlaybackStage({
               noChew {hud.noChewSec.toFixed(1)}/
               {hud.effectivePauseSec.toFixed(1)}s
             </span>
+            {clampedDim > 0.01 ? (
+              <span>dim {(clampedDim * 100).toFixed(0)}%</span>
+            ) : null}
           </div>
         )}
 

@@ -4,6 +4,8 @@ const LABELS: Record<PlayerPhase, string> = {
   NO_FACE: '얼굴 찾아요',
   ARMED: '준비',
   PLAYING: '보는 중',
+  DIMMING: '살짝 어두워져요',
+  FREE_PASS: '잠시 자유',
   PAUSED: '잠깐 멈춤',
 }
 

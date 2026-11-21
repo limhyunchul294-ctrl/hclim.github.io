@@ -24,6 +24,7 @@ export function loadSettings(): ControllerSettings {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
     const legacy =
       raw ??
+      localStorage.getItem('meal-controller-settings-v6') ??
       localStorage.getItem('meal-controller-settings-v5') ??
       localStorage.getItem('meal-controller-settings-v4') ??
       localStorage.getItem('meal-controller-settings-v3')
@@ -48,6 +49,15 @@ export function loadSettings(): ControllerSettings {
     }
     if (migrated.postureThreshold == null) {
       migrated.postureThreshold = DEFAULT_SETTINGS.postureThreshold
+    }
+    if (migrated.softIntervention == null) {
+      migrated.softIntervention = DEFAULT_SETTINGS.softIntervention
+    }
+    if (migrated.dimDurationSec == null) {
+      migrated.dimDurationSec = DEFAULT_SETTINGS.dimDurationSec
+    }
+    if (migrated.freePassSec == null) {
+      migrated.freePassSec = DEFAULT_SETTINGS.freePassSec
     }
     return sanitizeSettings({ ...DEFAULT_SETTINGS, ...migrated })
   } catch {
@@ -76,6 +86,15 @@ export function sanitizeSettings(s: ControllerSettings): ControllerSettings {
     sessionMode: asSessionMode(s.sessionMode),
     faceMode: asFaceMode(s.faceMode),
     pauseDelaySec: clamp(s.pauseDelaySec, 1, 8),
+    softIntervention: Boolean(
+      s.softIntervention ?? DEFAULT_SETTINGS.softIntervention,
+    ),
+    dimDurationSec: clamp(
+      s.dimDurationSec ?? DEFAULT_SETTINGS.dimDurationSec,
+      1,
+      8,
+    ),
+    freePassSec: clamp(s.freePassSec ?? DEFAULT_SETTINGS.freePassSec, 2, 20),
     resumeCycles: Math.round(clamp(s.resumeCycles, 1, 6)),
     sensitivity: clamp(s.sensitivity, 0.2, 0.95),
     amplitudeThreshold: clamp(s.amplitudeThreshold, 0.015, 0.25),

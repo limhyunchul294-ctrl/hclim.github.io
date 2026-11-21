@@ -3,7 +3,8 @@ import { normalizeYtMedia, type YtMediaState } from './ytMedia'
 
 /** Viewer → phone: detection + nudge + effective play state. */
 export type DetectBroadcast = {
-  v: 2
+  /** v3 adds dimLevel for soft intervention; v2 peers still parse via guard. */
+  v: 3
   kind: 'detect'
   shouldPlay: boolean
   showChewNudge: boolean
@@ -19,6 +20,8 @@ export type DetectBroadcast = {
   secSinceLastBlink: number
   /** Viewer camera session running. */
   sessionOn: boolean
+  /** 0–1 soft-dim amount while phase is DIMMING (0 otherwise). */
+  dimLevel: number
   ts: number
 }
 
@@ -70,7 +73,7 @@ export type RemoteControlState = {
 }
 
 export const EMPTY_DETECT: DetectBroadcast = {
-  v: 2,
+  v: 3,
   kind: 'detect',
   shouldPlay: false,
   showChewNudge: false,
@@ -85,6 +88,7 @@ export const EMPTY_DETECT: DetectBroadcast = {
   resumeHave: 0,
   secSinceLastBlink: 0,
   sessionOn: false,
+  dimLevel: 0,
   ts: 0,
 }
 
@@ -109,7 +113,21 @@ export const EMPTY_REMOTE_STATE: RemoteControlState = {
 export function isDetectBroadcast(x: unknown): x is DetectBroadcast {
   if (!x || typeof x !== 'object') return false
   const o = x as Record<string, unknown>
-  return o.v === 2 && o.kind === 'detect' && typeof o.shouldPlay === 'boolean'
+  const ver = o.v
+  if ((ver !== 2 && ver !== 3) || o.kind !== 'detect') return false
+  if (typeof o.shouldPlay !== 'boolean') return false
+  // v2 peers omit dimLevel — treat as clear
+  if (typeof o.dimLevel !== 'number' || !Number.isFinite(o.dimLevel)) {
+    ;(o as { dimLevel: number }).dimLevel = 0
+  } else {
+    ;(o as { dimLevel: number }).dimLevel = Math.max(
+      0,
+      Math.min(1, o.dimLevel),
+    )
+  }
+  // Normalize published version so consumers always see v3 shape
+  ;(o as { v: 3 }).v = 3
+  return true
 }
 
 export function isCommandBroadcast(x: unknown): x is CommandBroadcast {
